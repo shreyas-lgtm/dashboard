@@ -6,321 +6,303 @@
 <title>Artila Procurement Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ── Reset & tokens ─────────────────────────────────────── */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#08080d;--surface:#0f0f17;--card:#13131e;--border:#1c1c2a;--border2:#242438;
-  --text:#e4e4f0;--dim:#666;--dimmer:#333;--muted:#444;
-  --accent:#FF9100;--accent2:rgba(255,145,0,.12);
-  --red:#FF1744;--red2:rgba(255,23,68,.12);
-  --cyan:#00E5FF;--cyan2:rgba(0,229,255,.1);
-  --green:#69F0AE;--green2:rgba(105,240,174,.1);
-  --yellow:#FFD600;--yellow2:rgba(255,214,0,.1);
-  --purple:#BB86FC;--purple2:rgba(187,134,252,.1);
-  --blue:#00B0FF;--blue2:rgba(0,176,255,.1);
-  --teal:#1DE9B6;--teal2:rgba(29,233,182,.1);
+  --bg:#07070c;--surface:#0d0d16;--card:#111119;--card2:#14141f;--border:#1e1e2e;--border2:#25253a;
+  --text:#e8e8f0;--dim:#5a5a7a;--dimmer:#2a2a40;--muted:#3a3a55;
+  --accent:#FF9100;--a2:rgba(255,145,0,.15);--a3:rgba(255,145,0,.06);
+  --red:#FF3D5A;--r2:rgba(255,61,90,.15);--r3:rgba(255,61,90,.06);
+  --cyan:#00D4FF;--c2:rgba(0,212,255,.12);--c3:rgba(0,212,255,.05);
+  --green:#00E676;--g2:rgba(0,230,118,.12);--g3:rgba(0,230,118,.05);
+  --yellow:#FFD740;--y2:rgba(255,215,64,.12);--y3:rgba(255,215,64,.05);
+  --purple:#B388FF;--p2:rgba(179,136,255,.12);--p3:rgba(179,136,255,.05);
+  --blue:#40C4FF;--b2:rgba(64,196,255,.12);--b3:rgba(64,196,255,.05);
+  --teal:#64FFDA;--t2:rgba(100,255,218,.12);
   --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
-  --radius:8px;--radius-sm:5px;
+  --r:8px;--r2px:5px;
 }
-body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;line-height:1.5}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased}
 
-/* ── Scrollbar ───────────────────────────────────────────── */
-::-webkit-scrollbar{width:6px;height:6px}
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#222;border-radius:3px}
+::-webkit-scrollbar-thumb{background:var(--muted);border-radius:3px}
 
-/* ── Animations ──────────────────────────────────────────── */
+/* animations */
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-/* ── Layout ──────────────────────────────────────────────── */
-#loader{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px}
-.spinner{width:28px;height:28px;border:2px solid #1a1a2e;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
-#app{display:none;padding:20px 24px 40px;max-width:1400px;margin:0 auto}
+/* loader */
+#loader{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:14px}
+.spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+#app{display:none;padding:20px 24px 48px;max-width:1440px;margin:0 auto}
 
-/* ── Header ──────────────────────────────────────────────── */
-.hdr{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:24px}
-.hdr-brand{font:600 9px var(--mono);color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:3px}
-.hdr-title{font:800 22px var(--font);color:#fff;letter-spacing:-0.5px}
-.hdr-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;animation:blink 2.5s ease infinite;margin-right:5px}
-.ts{font:400 11px var(--mono);color:var(--dim)}
-.btn{padding:7px 14px;border-radius:var(--radius-sm);font:600 10px var(--mono);cursor:pointer;border:1px solid;letter-spacing:.5px;transition:all .15s}
-.btn-primary{background:var(--accent2);border-color:var(--accent);color:var(--accent)}
-.btn-primary:hover{background:rgba(255,145,0,.2)}
-.btn.disabled{opacity:.4;pointer-events:none}
+/* ── HEADER ────────────────────────────────────────── */
+.hdr{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:22px}
+.hdr-left{display:flex;flex-direction:column;gap:2px}
+.hdr-brand{font:600 9px var(--mono);color:var(--accent);letter-spacing:3px;text-transform:uppercase}
+.hdr-title{font:800 24px var(--font);color:#fff;letter-spacing:-.5px}
+.hdr-right{display:flex;align-items:center;gap:12px}
+.live-badge{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--g3);border:1px solid rgba(0,230,118,.2);border-radius:20px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s ease infinite}
+.live-txt{font:600 9px var(--mono);color:var(--green);letter-spacing:1px}
+.ts{font:400 10px var(--mono);color:var(--dim)}
+.btn{padding:8px 16px;border-radius:var(--r2px);font:600 10px var(--mono);cursor:pointer;border:1px solid;letter-spacing:.8px;transition:all .15s}
+.btn-primary{background:var(--a2);border-color:var(--accent);color:var(--accent)}
+.btn-primary:hover{background:rgba(255,145,0,.25);transform:translateY(-1px)}
+.btn.disabled{opacity:.35;pointer-events:none}
+.sec-lbl{font:600 9px var(--mono);color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
 
-/* ── Section titles ──────────────────────────────────────── */
-.section-title{font:600 10px var(--mono);color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+/* ── APPROVAL PIPELINE ─────────────────────────────── */
+.appr-wrap{margin-bottom:12px;animation:fadeUp .4s ease}
+.appr-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.appr-top{border-bottom:1px solid var(--border);padding:14px 20px 0}
+.appr-nodes{display:flex;align-items:stretch;overflow-x:auto;padding-bottom:0}
+.appr-node{flex:1;min-width:130px;padding:14px 12px 16px;text-align:center;position:relative;transition:background .15s}
+.appr-node:hover{background:rgba(255,255,255,.02)}
+.appr-node+.appr-node{border-left:1px solid var(--border)}
+.appr-node .an-icon{font-size:16px;margin-bottom:6px;display:block;opacity:.7}
+.appr-node .an-num{font:800 30px/1 var(--mono);margin-bottom:4px}
+.appr-node .an-lbl{font:600 8px var(--mono);letter-spacing:1.5px;color:var(--dim);margin-bottom:3px}
+.appr-node .an-sub{font:400 10px var(--font);color:var(--muted)}
+.appr-node .an-bar{height:2px;border-radius:1px;margin-top:10px;transition:width .6s ease}
+.appr-arrow{display:flex;align-items:center;justify-content:center;width:20px;flex-shrink:0;color:var(--dimmer);font-size:12px}
+.appr-bottom{display:flex;gap:6px;padding:10px 16px;flex-wrap:wrap;background:rgba(0,0,0,.15);border-top:1px solid var(--border)}
+.appr-chip{font:500 9px var(--mono);padding:4px 10px;border-radius:20px;border:1px solid;letter-spacing:.5px;display:flex;align-items:center;gap:4px}
+.chip-r{background:var(--r3);border-color:rgba(255,61,90,.25);color:var(--red)}
+.chip-y{background:var(--y3);border-color:rgba(255,215,64,.25);color:var(--yellow)}
+.chip-p{background:var(--p3);border-color:rgba(179,136,255,.25);color:var(--purple)}
+.chip-d{background:rgba(255,255,255,.03);border-color:var(--border2);color:var(--dim)}
 
-/* ── Approval pipeline bar ───────────────────────────────── */
-.appr-bar{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px;animation:fadeUp .4s ease}
-.appr-flow{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding-bottom:4px}
-.appr-node{flex:1;min-width:110px;text-align:center;padding:10px 8px;position:relative}
-.appr-node+.appr-node::before{content:'→';position:absolute;left:-8px;top:50%;transform:translateY(-50%);color:var(--dimmer);font-size:14px}
-.appr-num{font:800 28px var(--mono);line-height:1;margin-bottom:4px}
-.appr-label{font:500 9px var(--mono);letter-spacing:1px;color:var(--dim)}
-.appr-sublabel{font:400 10px var(--font);color:var(--muted);margin-top:3px}
-.appr-divider{width:1px;background:var(--border2);margin:0 4px;flex-shrink:0}
-.appr-sub{display:flex;gap:6px;justify-content:center;margin-top:14px;flex-wrap:wrap}
-.appr-chip{font:500 10px var(--mono);padding:4px 10px;border-radius:20px;border:1px solid;cursor:default}
-.chip-red{background:var(--red2);border-color:rgba(255,23,68,.3);color:var(--red)}
-.chip-yellow{background:var(--yellow2);border-color:rgba(255,214,0,.3);color:var(--yellow)}
-.chip-purple{background:var(--purple2);border-color:rgba(187,134,252,.3);color:var(--purple)}
-.chip-dim{background:#111;border-color:var(--border2);color:var(--dim)}
+/* ── STAT ROW ───────────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px;position:relative;overflow:hidden;animation:fadeUp .4s ease both;transition:border-color .2s,transform .15s}
+.stat-card:hover{transform:translateY(-1px)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:var(--r) var(--r) 0 0;opacity:0;transition:opacity .2s}
+.stat-card.alert{border-color:rgba(255,61,90,.2)}.stat-card.alert::before{background:var(--red);opacity:1}
+.stat-card.warn{border-color:rgba(255,215,64,.15)}.stat-card.warn::before{background:var(--yellow);opacity:.7}
+.stat-card.info{border-color:rgba(0,212,255,.15)}.stat-card.info::before{background:var(--cyan);opacity:.6}
+.stat-icon{font-size:15px;margin-bottom:6px;display:block;opacity:.6}
+.stat-lbl{font:500 8px var(--mono);color:var(--dim);letter-spacing:1.5px;margin-bottom:4px}
+.stat-val{font:700 26px/1 var(--mono)}
 
-/* ── Quick stat row ──────────────────────────────────────── */
-.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;animation:fadeUp .4s ease both}
-.stat-card.alert{border-color:rgba(255,23,68,.25)}
-.stat-card.warn{border-color:rgba(255,214,0,.2)}
-.stat-lbl{font:500 9px var(--mono);color:var(--dim);letter-spacing:1.5px;margin-bottom:5px}
-.stat-val{font:700 26px var(--mono);line-height:1}
+/* ── PIPELINE ───────────────────────────────────────── */
+.pipe-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;animation:fadeUp .4s ease}
+.pipe-scroll{display:flex;gap:0;overflow-x:auto;padding-bottom:4px;align-items:stretch}
+.pipe-arrow{color:var(--dimmer);font-size:11px;flex-shrink:0;align-self:center;padding:0 4px;opacity:.6}
+.stage-card{flex:0 0 auto;min-width:96px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r);padding:12px 8px 8px;text-align:center;cursor:pointer;transition:all .18s;position:relative;display:flex;flex-direction:column;align-items:center}
+.stage-card:hover{transform:translateY(-2px);border-color:var(--accent);background:#0f0f1a}
+.stage-card.active{background:#0d0d1c;box-shadow:0 0 0 1px currentColor inset}
+.sc-icon{font-size:20px;margin-bottom:6px;display:block}
+.sc-num{font:700 22px/1 var(--mono);margin-bottom:3px}
+.sc-lbl{font:500 8px var(--mono);letter-spacing:.5px;white-space:nowrap;margin-bottom:8px}
+.sc-bar-wrap{width:100%;height:3px;background:var(--border2);border-radius:2px;overflow:hidden;margin-top:auto}
+.sc-bar{height:100%;border-radius:2px;transition:width .6s ease}
+.sc-sla{position:absolute;top:-5px;right:-5px;min-width:14px;height:14px;border-radius:7px;padding:0 3px;background:var(--red);font:700 8px var(--mono);color:#fff;display:none;align-items:center;justify-content:center;border:1.5px solid var(--bg)}
+.sc-sla.show{display:flex}
+/* stage colours */
+.sc-pending_requester{color:var(--yellow)}.sc-pending_sourcing{color:#FF9D00}.sc-sourcing{color:var(--accent)}.sc-quotation{color:var(--blue)}.sc-ordered{color:var(--cyan)}.sc-paid{color:var(--green)}.sc-in_transit{color:var(--purple)}.sc-delivered{color:var(--teal)}.sc-handed_over{color:#90CAF9}.sc-cancelled{color:var(--dim)}.sc-pend_appr{color:var(--yellow)}
 
-/* ── Pipeline stages ─────────────────────────────────────── */
-.pipeline-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px;animation:fadeUp .4s ease}
-.pipeline-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
-.stage-card{flex:0 0 auto;min-width:100px;background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--radius);padding:12px 10px;text-align:center;cursor:pointer;transition:all .2s;user-select:none;position:relative}
-.stage-card:hover{background:#16161f;border-color:var(--accent)}
-.stage-card.active{border-color:currentColor;background:#0d0d18}
-.stage-card .s-icon{font-size:18px;margin-bottom:6px;display:block}
-.stage-card .s-count{font:700 22px var(--mono);line-height:1;margin-bottom:3px}
-.stage-card .s-label{font:500 9px var(--mono);letter-spacing:.5px;white-space:nowrap}
-.stage-card .s-sla{position:absolute;top:-5px;right:-5px;width:14px;height:14px;border-radius:50%;background:var(--red);font-size:8px;color:#fff;display:none;align-items:center;justify-content:center;font-weight:700;font-family:var(--mono)}
-.stage-card .s-sla.show{display:flex}
-.stage-card.s-pending_requester{color:var(--yellow)}
-.stage-card.s-pending_sourcing{color:#FF8F00}
-.stage-card.s-sourcing{color:var(--accent)}
-.stage-card.s-quotation{color:var(--blue)}
-.stage-card.s-ordered{color:var(--cyan)}
-.stage-card.s-paid{color:var(--green)}
-.stage-card.s-in_transit{color:var(--purple)}
-.stage-card.s-delivered{color:var(--teal)}
-.stage-card.s-handed_over{color:#90CAF9}
-.stage-card.s-cancelled{color:var(--dim)}
-.stage-arrow{color:var(--dimmer);font-size:13px;flex-shrink:0;align-self:center;padding:0 2px}
-
-/* ── Tabs ────────────────────────────────────────────────── */
-.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:14px;overflow-x:auto}
-.tab{padding:10px 18px;font:600 11px var(--mono);color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;letter-spacing:.5px;transition:color .15s}
-.tab:hover{color:var(--text)}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.tab .tc{display:inline-block;background:rgba(255,255,255,.06);padding:1px 6px;border-radius:8px;margin-left:6px;font-size:10px}
-.tab.has-alert .tc{background:var(--red2);color:var(--red)}
+/* ── TABS ───────────────────────────────────────────── */
+.tabs{display:flex;gap:2px;margin-bottom:14px;overflow-x:auto;padding:3px;background:var(--surface);border-radius:var(--r);border:1px solid var(--border)}
+.tab{padding:8px 16px;font:600 10px var(--mono);color:var(--dim);cursor:pointer;border-radius:6px;white-space:nowrap;letter-spacing:.5px;transition:all .15s;display:flex;align-items:center;gap:6px}
+.tab:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.tab.active{color:var(--accent);background:var(--a2)}
+.tab .tc{font:600 9px var(--mono);padding:1px 6px;border-radius:8px;background:rgba(255,255,255,.06)}
+.tab.active .tc{background:var(--a2);color:var(--accent)}
+.tab.has-alert .tc{background:var(--r2);color:var(--red)}
 .panel{display:none}.panel.active{display:block}
 
-/* ── Filters / Search ────────────────────────────────────── */
+/* ── FILTERS ────────────────────────────────────────── */
 .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
-.search-box{padding:8px 12px;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font:400 12px var(--mono);outline:none;min-width:180px;transition:border-color .15s}
+.search-box{padding:8px 12px;background:var(--card);border:1px solid var(--border2);border-radius:var(--r2px);color:var(--text);font:400 12px var(--mono);outline:none;min-width:200px;transition:border-color .15s}
 .search-box:focus{border-color:var(--accent)}
-.filter-btn{padding:7px 12px;background:transparent;border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--dim);font:500 10px var(--mono);cursor:pointer;transition:all .15s;white-space:nowrap}
-.filter-btn:hover{border-color:var(--accent);color:var(--accent)}
-.filter-btn.active{background:rgba(255,145,0,.1);border-color:var(--accent);color:var(--accent)}
-.sel{padding:7px 10px;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font:400 11px var(--mono);outline:none;cursor:pointer}
+.fbtn{padding:6px 12px;background:transparent;border:1px solid var(--border2);border-radius:var(--r2px);color:var(--dim);font:500 9px var(--mono);cursor:pointer;transition:all .15s;white-space:nowrap;letter-spacing:.5px}
+.fbtn:hover{border-color:var(--accent);color:var(--accent)}
+.fbtn.active{background:var(--a2);border-color:var(--accent);color:var(--accent)}
+.sel{padding:7px 10px;background:var(--card);border:1px solid var(--border2);border-radius:var(--r2px);color:var(--text);font:400 10px var(--mono);outline:none;cursor:pointer}
 
-/* ── Item cards ──────────────────────────────────────────── */
-.item-list{display:flex;flex-direction:column;gap:5px}
-
-.item-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;animation:fadeUp .3s ease both;transition:border-color .15s}
-.item-card:hover{border-color:var(--border2)}
+/* ── ITEM CARDS ─────────────────────────────────────── */
+.item-list{display:flex;flex-direction:column;gap:4px}
+.item-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;animation:fadeUp .3s ease both;transition:border-color .15s,transform .12s}
+.item-card:hover{border-color:var(--border2);transform:translateY(-1px)}
 .item-card.urg-critical{border-left:3px solid var(--red)}
 .item-card.urg-high{border-left:3px solid var(--accent)}
 .item-card.urg-normal{border-left:3px solid var(--cyan)}
 .item-card.urg-planned{border-left:3px solid var(--green)}
-.item-card.has-sla{border-color:rgba(255,214,0,.3)}
-.item-card.is-critical{border-color:rgba(255,23,68,.3)}
+.item-card.has-sla{border-top-color:rgba(255,215,64,.4)}
+.item-card.is-critical{border-top-color:rgba(255,61,90,.35)}
 
-.item-header{display:grid;grid-template-columns:1fr auto;gap:10px;padding:12px 14px;cursor:pointer}
-.item-header:hover .item-name{color:var(--accent)}
+.item-hdr{display:grid;grid-template-columns:1fr auto;gap:10px;padding:12px 14px;cursor:pointer;align-items:start}
+.item-hdr:hover .item-name{color:var(--accent)}
 .item-tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
-.item-name{font:600 14px var(--font);color:#fff;margin-bottom:2px;line-height:1.3}
+.item-name{font:600 14px var(--font);color:#fff;line-height:1.35;margin-bottom:2px}
 .item-name .qty{font:400 11px var(--mono);color:var(--dim);margin-left:8px}
 .item-name .pr{font:400 10px var(--mono);color:var(--muted);margin-left:6px}
-.item-just{font:400 12px var(--font);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:500px}
-.item-meta{display:flex;gap:14px;margin-top:5px;flex-wrap:wrap}
+.item-just{font:400 12px var(--font);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:540px;margin-bottom:4px}
+.item-meta{display:flex;gap:14px;flex-wrap:wrap}
 .item-meta span{font:400 10px var(--mono);color:var(--muted)}
-.item-meta .em{color:#555}
 .item-meta .eta-v{color:var(--cyan)}
-.item-time{font:400 10px var(--mono);color:var(--dimmer);text-align:right;white-space:nowrap;padding-top:2px}
+.item-time{font:400 10px var(--mono);color:var(--dimmer);text-align:right;white-space:nowrap;padding-top:2px;min-width:80px}
 
-.item-body{display:none;border-top:1px solid var(--border);padding:12px 14px;background:#0b0b14}
+.item-body{display:none;border-top:1px solid var(--border);padding:14px;background:#09090f}
 .item-body.open{display:block}
-.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:10px}
-.detail-cell .dc-label{font:500 9px var(--mono);color:var(--dim);letter-spacing:1px;margin-bottom:2px}
-.detail-cell .dc-val{font:400 12px var(--font);color:var(--text)}
-.detail-cell .dc-val.mono{font-family:var(--mono)}
-.just-full{font:400 12px var(--font);color:#888;line-height:1.6;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:10px}
+.dc-label{font:500 8px var(--mono);color:var(--dim);letter-spacing:1px;margin-bottom:2px;text-transform:uppercase}
+.dc-val{font:400 12px var(--font);color:var(--text)}
+.dc-val.mono{font-family:var(--mono);font-size:11px}
+.just-full{font:400 12px var(--font);color:#666;line-height:1.7;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 
-/* ── Badges ──────────────────────────────────────────────── */
-.badge{font:700 8px var(--mono);padding:2px 7px;border-radius:3px;letter-spacing:1px;display:inline-block}
+/* ── BADGES ─────────────────────────────────────────── */
+.badge{font:700 8px var(--mono);padding:2px 7px;border-radius:3px;letter-spacing:1px;display:inline-block;text-transform:uppercase}
 .badge.critical{background:var(--red);color:#fff}
 .badge.high{background:var(--accent);color:#111}
 .badge.normal{background:var(--cyan);color:#111}
 .badge.planned{background:var(--green);color:#111}
 
-.status-pill{font:500 9px var(--mono);padding:3px 8px;border-radius:10px;border:1px solid;display:inline-block;letter-spacing:.5px}
-.sp-pending_requester{background:var(--yellow2);border-color:rgba(255,214,0,.3);color:var(--yellow)}
-.sp-pending_sourcing{background:rgba(255,143,0,.1);border-color:rgba(255,143,0,.3);color:#FF8F00}
-.sp-sourcing{background:var(--accent2);border-color:rgba(255,145,0,.3);color:var(--accent)}
-.sp-quotation{background:var(--blue2);border-color:rgba(0,176,255,.3);color:var(--blue)}
-.sp-ordered{background:var(--cyan2);border-color:rgba(0,229,255,.3);color:var(--cyan)}
-.sp-paid{background:var(--green2);border-color:rgba(105,240,174,.3);color:var(--green)}
-.sp-in_transit{background:var(--purple2);border-color:rgba(187,134,252,.3);color:var(--purple)}
-.sp-delivered{background:var(--teal2);border-color:rgba(29,233,182,.3);color:var(--teal)}
-.sp-handed_over{background:rgba(144,202,249,.1);border-color:rgba(144,202,249,.3);color:#90CAF9}
-.sp-cancelled{background:#111;border-color:var(--border2);color:var(--dim)}
-.sp-rejected{background:var(--red2);border-color:rgba(255,23,68,.3);color:var(--red)}
-.sp-reverify{background:var(--purple2);border-color:rgba(187,134,252,.3);color:var(--purple)}
-.sp-pending_founder{background:var(--accent2);border-color:rgba(255,145,0,.3);color:var(--accent)}
-.sp-pending_dept{background:var(--yellow2);border-color:rgba(255,214,0,.3);color:var(--yellow)}
-.sp-dept_rejected{background:var(--red2);border-color:rgba(255,23,68,.3);color:var(--red)}
+.spill{font:500 9px var(--mono);padding:3px 9px;border-radius:20px;border:1px solid;display:inline-block;letter-spacing:.4px}
+.sp-pending_requester{background:var(--y3);border-color:rgba(255,215,64,.25);color:var(--yellow)}
+.sp-pending_sourcing{background:rgba(255,157,0,.08);border-color:rgba(255,157,0,.25);color:#FF9D00}
+.sp-sourcing{background:var(--a3);border-color:rgba(255,145,0,.25);color:var(--accent)}
+.sp-quotation{background:var(--b3);border-color:rgba(64,196,255,.25);color:var(--blue)}
+.sp-ordered{background:var(--c3);border-color:rgba(0,212,255,.25);color:var(--cyan)}
+.sp-paid{background:var(--g3);border-color:rgba(0,230,118,.25);color:var(--green)}
+.sp-in_transit{background:var(--p3);border-color:rgba(179,136,255,.25);color:var(--purple)}
+.sp-delivered{background:var(--t2);border-color:rgba(100,255,218,.25);color:var(--teal)}
+.sp-handed_over{background:rgba(144,202,249,.06);border-color:rgba(144,202,249,.2);color:#90CAF9}
+.sp-cancelled{background:rgba(255,255,255,.03);border-color:var(--border2);color:var(--dim)}
+.sp-rejected{background:var(--r3);border-color:rgba(255,61,90,.25);color:var(--red)}
+.sp-reverify{background:var(--p3);border-color:rgba(179,136,255,.25);color:var(--purple)}
+.sp-pending_founder{background:var(--a3);border-color:rgba(255,145,0,.25);color:var(--accent)}
+.sp-pending_dept{background:var(--y3);border-color:rgba(255,215,64,.25);color:var(--yellow)}
+.sp-dept_rejected{background:var(--r3);border-color:rgba(255,61,90,.25);color:var(--red)}
 
-.sla-flag{font:600 9px var(--mono);padding:3px 8px;border-radius:3px;display:inline-block;margin-top:4px;letter-spacing:.3px}
-.sla-flag.sourcing{background:var(--yellow2);border:1px solid rgba(255,214,0,.25);color:var(--yellow)}
-.sla-flag.payment,.sla-flag.payment_slow{background:var(--accent2);border:1px solid rgba(255,145,0,.25);color:var(--accent)}
-.sla-flag.transit{background:var(--red2);border:1px solid rgba(255,23,68,.25);color:var(--red)}
+.sla-flag{font:600 9px var(--mono);padding:3px 9px;border-radius:4px;display:inline-block;margin-top:4px;letter-spacing:.3px;border:1px solid}
+.sla-flag.sourcing{background:var(--y3);border-color:rgba(255,215,64,.2);color:var(--yellow)}
+.sla-flag.payment,.sla-flag.payment_slow{background:var(--a3);border-color:rgba(255,145,0,.2);color:var(--accent)}
+.sla-flag.transit{background:var(--r3);border-color:rgba(255,61,90,.2);color:var(--red)}
 
-.team-tag{font:400 9px var(--mono);padding:2px 7px;border:1px solid var(--border2);border-radius:3px;color:var(--muted)}
+.team-tag{font:400 8px var(--mono);padding:2px 7px;border:1px solid var(--border2);border-radius:3px;color:var(--muted)}
 
-/* ── Approval state row (pending tab) ───────────────────── */
-.appr-row{display:flex;align-items:center;gap:10px;padding:6px 14px 12px;border-bottom:1px solid var(--border)}
-.appr-step{font:500 10px var(--mono);padding:3px 8px;border-radius:3px;border:1px solid}
-.as-dept-ok{background:var(--green2);border-color:rgba(105,240,174,.3);color:var(--green)}
-.as-dept-pend{background:var(--yellow2);border-color:rgba(255,214,0,.3);color:var(--yellow)}
-.as-dept-rej{background:var(--red2);border-color:rgba(255,23,68,.3);color:var(--red)}
-.as-founder-pend{background:var(--accent2);border-color:rgba(255,145,0,.3);color:var(--accent)}
-.as-arrow{color:var(--dimmer);font-size:11px}
+/* ── PENDING APPROVAL steps ─────────────────────────── */
+.appr-step{font:500 9px var(--mono);padding:3px 8px;border-radius:3px;border:1px solid;display:inline-flex;align-items:center;gap:3px}
+.as-ok{background:var(--g3);border-color:rgba(0,230,118,.25);color:var(--green)}
+.as-pend{background:var(--y3);border-color:rgba(255,215,64,.25);color:var(--yellow)}
+.as-rej{background:var(--r3);border-color:rgba(255,61,90,.25);color:var(--red)}
+.as-founder{background:var(--a3);border-color:rgba(255,145,0,.25);color:var(--accent)}
+.as-arr{color:var(--dimmer);font-size:10px;margin:0 2px}
 
-/* ── Summary buckets (overview tab) ────────────────────────── */
-.bucket{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:8px;animation:fadeUp .4s ease both}
-.bucket.b-alert{border-color:rgba(255,23,68,.2)}
-.bucket.b-warn{border-color:rgba(255,214,0,.15)}
-.bucket-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;cursor:pointer}
+/* ── INSIGHT BOX ────────────────────────────────────── */
+.insight{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r);padding:16px 18px;margin-bottom:12px}
+.insight-title{font:700 9px var(--mono);color:var(--accent);letter-spacing:2px;margin-bottom:10px;text-transform:uppercase}
+.insight-line{font:400 13px var(--font);color:var(--text);line-height:1.9;display:flex;align-items:baseline;gap:6px;padding:1px 0}
+.insight-line .bullet{font-size:8px;color:var(--dim);flex-shrink:0;margin-top:3px}
+.n{font:700 13px var(--mono)}.n.r{color:var(--red)}.n.y{color:var(--yellow)}.n.c{color:var(--cyan)}.n.g{color:var(--green)}.n.o{color:var(--accent)}.n.p{color:var(--purple)}
+.act{color:var(--accent);font-weight:600}
+
+/* ── SUMMARY BUCKETS ────────────────────────────────── */
+.bucket{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px;animation:fadeUp .4s ease both}
+.bucket.b-alert{border-color:rgba(255,61,90,.2);border-left:3px solid var(--red)}
+.bucket.b-warn{border-color:rgba(255,215,64,.15);border-left:3px solid var(--yellow)}
+.bucket.b-cyan{border-left:3px solid var(--cyan)}
+.bucket.b-purple{border-left:3px solid var(--purple)}
+.bucket-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;cursor:pointer;transition:background .15s}
 .bucket-hdr:hover{background:rgba(255,255,255,.02)}
 .bucket-left{display:flex;align-items:center;gap:10px}
-.bucket-icon{font-size:20px}
+.bucket-icon{font-size:22px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.04);border-radius:8px}
 .bucket-title{font:600 13px var(--font);color:#fff}
 .bucket-sub{font:400 11px var(--font);color:var(--dim);margin-top:2px}
-.bucket-cnt{font:700 22px var(--mono)}
-.bucket-cnt.c-critical{color:var(--red)}.bucket-cnt.c-warn{color:var(--yellow)}.bucket-cnt.c-cyan{color:var(--cyan)}.bucket-cnt.c-ok{color:var(--green)}.bucket-cnt.c-dim{color:var(--dimmer)}
-.bucket-items{border-top:1px solid var(--border);display:none}
-.bucket-items.open{display:block}
-.bucket-row{padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.03);display:flex;justify-content:space-between;align-items:center}
-.bucket-row:last-child{border-bottom:none}
-.br-name{font:500 13px var(--font);color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
-.br-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
-.br-meta span{font:400 10px var(--mono);color:#555}
-.br-right{font:500 10px var(--mono);color:var(--dim);text-align:right;white-space:nowrap}
-.br-days.over{color:var(--red)}.br-days.warn{color:var(--yellow)}
+.bucket-right{display:flex;align-items:center;gap:10px}
+.bucket-cnt{font:700 24px var(--mono)}
+.bc-r{color:var(--red)}.bc-y{color:var(--yellow)}.bc-c{color:var(--cyan)}.bc-p{color:var(--purple)}.bc-g{color:var(--green)}.bc-d{color:var(--dimmer)}
+.bucket-toggle{font:400 10px var(--mono);color:var(--dim);padding:3px 8px;border:1px solid var(--border2);border-radius:3px}
+.bucket-body{display:none;border-top:1px solid var(--border)}
+.bucket-body.open{display:block}
+.brow{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.03);display:flex;justify-content:space-between;align-items:center;transition:background .12s}
+.brow:hover{background:rgba(255,255,255,.02)}
+.brow:last-child{border-bottom:none}
+.brow-name{font:500 13px var(--font);color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px}
+.brow-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;align-items:center}
+.brow-meta span{font:400 9px var(--mono);color:#444}
+.brow-right{font:500 10px var(--mono);color:var(--dim);text-align:right;white-space:nowrap;min-width:80px}
+.brow-days.over{color:var(--red)}.brow-days.warn{color:var(--yellow)}.brow-days.ok{color:var(--green)}
 
-/* ── Insight box ─────────────────────────────────────────── */
-.insight{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
-.insight-title{font:600 9px var(--mono);color:var(--accent);letter-spacing:2px;margin-bottom:10px}
-.insight-line{font:400 13px var(--font);color:var(--text);line-height:1.8;padding:2px 0}
-.insight-line .n{font:700 13px var(--mono)}
-.n.red{color:var(--red)}.n.yellow{color:var(--yellow)}.n.cyan{color:var(--cyan)}.n.green{color:var(--green)}.n.orange{color:var(--accent)}
-.action-word{color:var(--accent);font-weight:600}
-
-/* ── Vendor cards ────────────────────────────────────────── */
-.vendor-card{background:var(--card);border:1px solid rgba(255,23,68,.2);border-left:3px solid var(--red);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;animation:fadeUp .4s ease both}
+/* ── VENDOR CARDS ───────────────────────────────────── */
+.vendor-card{background:var(--card);border:1px solid rgba(255,61,90,.2);border-left:3px solid var(--red);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;animation:fadeUp .4s ease both}
 .vc-name{font:600 14px var(--font);color:#fff;margin-bottom:3px}
 .vc-stats{font:400 11px var(--mono);color:var(--dim);margin-bottom:8px}
 .vc-stats strong{color:var(--red)}
-.vc-item{font:400 10px var(--mono);color:#555;padding:4px 0;border-top:1px solid var(--border)}
+.vc-item{font:400 10px var(--mono);color:#555;padding:5px 0;border-top:1px solid var(--border)}
 .vc-item:first-child{border-top:none}
 .vc-late{color:var(--red);font-weight:600}
 
-/* ── Empty states ────────────────────────────────────────── */
-.empty{text-align:center;padding:48px 20px;color:var(--dim);font:400 13px var(--mono)}
-.empty .em-icon{font-size:32px;margin-bottom:10px;opacity:.4}
+/* ── EMPTY ──────────────────────────────────────────── */
+.empty{text-align:center;padding:52px 20px;color:var(--dim)}
+.empty-icon{font-size:36px;margin-bottom:10px;opacity:.3}
+.empty-text{font:400 12px var(--mono);color:var(--dim)}
+.empty-sub{font:400 11px var(--font);color:var(--muted);margin-top:4px}
 
-/* ── Footer ──────────────────────────────────────────────── */
-.footer{margin-top:28px;text-align:center;font:400 10px var(--mono);color:#1e1e2e;padding:10px 0}
+/* ── FOOTER ─────────────────────────────────────────── */
+.footer{margin-top:28px;text-align:center;font:400 10px var(--mono);color:var(--dimmer);padding:12px}
 
-/* ── Responsive ──────────────────────────────────────────── */
+/* ── RESPONSIVE ─────────────────────────────────────── */
 @media(max-width:640px){
-  #app{padding:14px 14px 32px}
-  .hdr-title{font-size:18px}
-  .appr-num{font-size:22px}
+  #app{padding:12px 12px 32px}
+  .hdr-title{font-size:20px}
+  .appr-node{min-width:100px}
+  .appr-node .an-num{font-size:24px}
   .stat-val{font-size:22px}
-  .pipeline-scroll{gap:4px}
-  .stage-card{min-width:82px}
+  .stage-card{min-width:80px}
+  .sc-num{font-size:18px}
 }
 </style>
 </head>
 <body>
 
-<!-- Loading -->
 <div id="loader">
   <div class="spinner"></div>
-  <div style="font:500 11px var(--mono);color:var(--dim);letter-spacing:1px">LOADING PROCUREMENT DATA...</div>
+  <div style="font:500 10px var(--mono);color:var(--dim);letter-spacing:2px">LOADING PROCUREMENT DATA...</div>
 </div>
 
-<!-- App -->
 <div id="app">
 
-  <!-- Header -->
+  <!-- HEADER -->
   <div class="hdr">
-    <div>
+    <div class="hdr-left">
       <div class="hdr-brand">Artila Robotics</div>
       <div class="hdr-title">Procurement Dashboard</div>
     </div>
     <div class="hdr-right">
-      <span><span class="live-dot"></span><span class="ts" id="ts">—</span></span>
+      <div class="live-badge"><span class="live-dot"></span><span class="live-txt">LIVE</span></div>
+      <span class="ts" id="ts">—</span>
       <button class="btn btn-primary" id="rbtn" onclick="doRefresh()">↻ REFRESH</button>
     </div>
   </div>
 
-  <!-- Approval pipeline bar -->
-  <div class="appr-bar">
-    <div class="section-title">APPROVAL PIPELINE</div>
-    <div class="appr-flow">
-      <div class="appr-node">
-        <div class="appr-num" style="color:var(--text)" id="ap-total">—</div>
-        <div class="appr-label">SUBMITTED</div>
-        <div class="appr-sublabel">Total requests</div>
+  <!-- APPROVAL PIPELINE -->
+  <div class="appr-wrap">
+    <div class="sec-lbl">Approval Pipeline</div>
+    <div class="appr-card">
+      <div class="appr-top">
+        <div class="appr-nodes" id="appr-nodes"></div>
       </div>
-      <div class="appr-divider"></div>
-      <div class="appr-node">
-        <div class="appr-num" style="color:var(--yellow)" id="ap-dept">—</div>
-        <div class="appr-label">DEPT APPROVED</div>
-        <div class="appr-sublabel" id="ap-dept-sub">—</div>
-      </div>
-      <div class="appr-divider"></div>
-      <div class="appr-node">
-        <div class="appr-num" style="color:var(--green)" id="ap-founder">—</div>
-        <div class="appr-label">FOUNDER APPROVED</div>
-        <div class="appr-sublabel" id="ap-founder-sub">—</div>
-      </div>
-      <div class="appr-divider"></div>
-      <div class="appr-node">
-        <div class="appr-num" style="color:var(--cyan)" id="ap-active">—</div>
-        <div class="appr-label">ACTIVE IN PIPELINE</div>
-        <div class="appr-sublabel">Working items</div>
-      </div>
-      <div class="appr-divider"></div>
-      <div class="appr-node">
-        <div class="appr-num" style="color:#90CAF9" id="ap-done">—</div>
-        <div class="appr-label">COMPLETED</div>
-        <div class="appr-sublabel">Delivered / Handed over</div>
-      </div>
+      <div class="appr-bottom" id="appr-chips"></div>
     </div>
-    <!-- Sub-chips for edge states -->
-    <div class="appr-sub" id="appr-chips"></div>
   </div>
 
-  <!-- Quick stats -->
+  <!-- STAT ROW -->
   <div class="stat-row" id="stat-row"></div>
 
-  <!-- Pipeline stages -->
-  <div class="pipeline-wrap">
-    <div class="section-title">PROCUREMENT PIPELINE — click a stage to filter</div>
-    <div class="pipeline-scroll" id="pipeline-stages"></div>
+  <!-- PIPELINE STAGES -->
+  <div class="pipe-wrap">
+    <div class="sec-lbl">Procurement Pipeline — click a stage to filter</div>
+    <div class="pipe-scroll" id="pipe-stages"></div>
   </div>
 
-  <!-- Tabs -->
+  <!-- TABS -->
   <div class="tabs">
     <div class="tab active" data-tab="overview" onclick="switchTab(this)">Overview</div>
     <div class="tab" data-tab="items" onclick="switchTab(this)">All Items <span class="tc" id="tc-items">0</span></div>
@@ -331,21 +313,21 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
     <div class="tab" data-tab="completed" onclick="switchTab(this)">Completed <span class="tc" id="tc-completed">0</span></div>
   </div>
 
-  <!-- Overview -->
+  <!-- OVERVIEW -->
   <div class="panel active" id="panel-overview">
     <div class="insight" id="insight-box"></div>
     <div id="overview-buckets"></div>
   </div>
 
-  <!-- All Items -->
+  <!-- ALL ITEMS -->
   <div class="panel" id="panel-items">
     <div class="filters">
       <input type="text" class="search-box" id="q-items" placeholder="Search PR, item, vendor, team…" oninput="renderAllItems()">
-      <button class="filter-btn active" data-urg="all" onclick="setUrgFilter(this,'items')">All</button>
-      <button class="filter-btn" data-urg="critical" onclick="setUrgFilter(this,'items')">Critical</button>
-      <button class="filter-btn" data-urg="high" onclick="setUrgFilter(this,'items')">High</button>
-      <button class="filter-btn" data-urg="normal" onclick="setUrgFilter(this,'items')">Normal</button>
-      <button class="filter-btn" data-urg="planned" onclick="setUrgFilter(this,'items')">Planned</button>
+      <button class="fbtn active" data-urg="all" onclick="setUrgF(this)">All</button>
+      <button class="fbtn" data-urg="critical" onclick="setUrgF(this)">Critical</button>
+      <button class="fbtn" data-urg="high" onclick="setUrgF(this)">High</button>
+      <button class="fbtn" data-urg="normal" onclick="setUrgF(this)">Normal</button>
+      <button class="fbtn" data-urg="planned" onclick="setUrgF(this)">Planned</button>
       <select class="sel" id="team-f" onchange="renderAllItems()"><option value="all">All Teams</option></select>
       <select class="sel" id="stage-f" onchange="renderAllItems()">
         <option value="all">All Stages</option>
@@ -361,799 +343,481 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
     <div class="item-list" id="list-items"></div>
   </div>
 
-  <!-- Pending Approval -->
+  <!-- PENDING APPROVAL -->
   <div class="panel" id="panel-pending">
     <div class="filters">
       <input type="text" class="search-box" id="q-pending" placeholder="Search…" oninput="renderPending()">
-      <button class="filter-btn active" data-appr="all" onclick="setApprFilter(this)">All</button>
-      <button class="filter-btn" data-appr="pending_dept" onclick="setApprFilter(this)">Needs Dept</button>
-      <button class="filter-btn" data-appr="pending_founder" onclick="setApprFilter(this)">Needs Founder</button>
-      <button class="filter-btn" data-appr="dept_rejected" onclick="setApprFilter(this)">Dept Rejected</button>
+      <button class="fbtn active" data-appr="all" onclick="setApprF(this)">All</button>
+      <button class="fbtn" data-appr="pending_dept" onclick="setApprF(this)">Needs Dept</button>
+      <button class="fbtn" data-appr="pending_founder" onclick="setApprF(this)">Needs Founder</button>
+      <button class="fbtn" data-appr="dept_rejected" onclick="setApprF(this)">Dept Rejected</button>
     </div>
     <div class="item-list" id="list-pending"></div>
   </div>
 
-  <!-- Rejected / Reverify -->
+  <!-- REJECTED -->
   <div class="panel" id="panel-rejected">
     <div class="filters">
       <input type="text" class="search-box" id="q-rejected" placeholder="Search…" oninput="renderRejected()">
-      <button class="filter-btn active" data-rj="all" onclick="setRjFilter(this)">All</button>
-      <button class="filter-btn" data-rj="rejected" onclick="setRjFilter(this)">Rejected</button>
-      <button class="filter-btn" data-rj="reverify" onclick="setRjFilter(this)">Reverify</button>
+      <button class="fbtn active" data-rj="all" onclick="setRjF(this)">All</button>
+      <button class="fbtn" data-rj="rejected" onclick="setRjF(this)">Rejected</button>
+      <button class="fbtn" data-rj="reverify" onclick="setRjF(this)">Reverify</button>
     </div>
     <div class="item-list" id="list-rejected"></div>
   </div>
 
-  <!-- SLA Flags -->
-  <div class="panel" id="panel-sla">
-    <div class="item-list" id="list-sla"></div>
-  </div>
+  <!-- SLA -->
+  <div class="panel" id="panel-sla"><div class="item-list" id="list-sla"></div></div>
 
-  <!-- Vendor Issues -->
-  <div class="panel" id="panel-vendors">
-    <div id="vendor-cards"></div>
-  </div>
+  <!-- VENDORS -->
+  <div class="panel" id="panel-vendors"><div id="vendor-cards"></div></div>
 
-  <!-- Completed -->
+  <!-- COMPLETED -->
   <div class="panel" id="panel-completed">
     <div class="filters">
       <input type="text" class="search-box" id="q-completed" placeholder="Search…" oninput="renderCompleted()">
-      <button class="filter-btn active" data-cmp="all" onclick="setCmpFilter(this)">All</button>
-      <button class="filter-btn" data-cmp="handed_over" onclick="setCmpFilter(this)">Handed Over</button>
-      <button class="filter-btn" data-cmp="delivered" onclick="setCmpFilter(this)">Delivered</button>
-      <button class="filter-btn" data-cmp="cancelled" onclick="setCmpFilter(this)">Cancelled</button>
+      <button class="fbtn active" data-cmp="all" onclick="setCmpF(this)">All</button>
+      <button class="fbtn" data-cmp="handed_over" onclick="setCmpF(this)">Handed Over</button>
+      <button class="fbtn" data-cmp="delivered" onclick="setCmpF(this)">Delivered</button>
+      <button class="fbtn" data-cmp="cancelled" onclick="setCmpF(this)">Cancelled</button>
     </div>
     <div class="item-list" id="list-completed"></div>
   </div>
 
-  <div class="footer" id="footer">Artila Robotics · Procurement · Auto-refresh 30s</div>
+  <div class="footer" id="footer">Artila Robotics · Procurement Operations · Auto-refresh 30s</div>
 </div>
 
 <script>
 // ── State ──────────────────────────────────────────────────
-var DATA = { activeItems:[], pendingItems:[], rejectedItems:[], completedItems:[], vendorFlags:[], approvalBreakdown:{}, stageCounts:{}, totalRequests:0, timestamp:'' };
-var ACTIVE_TAB = 'overview';
-var STAGE_FILTER = 'all';
-var URG_FILTER = { items:'all', overview:'all' };
-var APPR_FILTER = 'all';
-var RJ_FILTER = 'all';
-var CMP_FILTER = 'all';
-var REFRESH_TIMER = null;
-var REFRESH_MS = 30000;
+var D = { activeItems:[], pendingItems:[], rejectedItems:[], completedItems:[], vendorFlags:[], approvalBreakdown:{}, stageCounts:{}, totalRequests:0 };
+var STAGE_FILTER = 'all', urg_f = 'all', appr_f = 'all', rj_f = 'all', cmp_f = 'all';
+var TIMER = null, REFRESH_MS = 30000;
 
-// ── Stage config ───────────────────────────────────────────
 var STAGES = [
-  { key:'pending_requester', icon:'📋', label:'PEND. REQUESTER', short:'Pend Req' },
-  { key:'pending_sourcing',  icon:'⏳', label:'PEND. SOURCING',  short:'Pend Src' },
-  { key:'sourcing',          icon:'🔍', label:'SOURCING',        short:'Sourcing' },
-  { key:'quotation',         icon:'💬', label:'QUOTATION',       short:'Quotation' },
-  { key:'ordered',           icon:'📦', label:'ORDERED',         short:'Ordered' },
-  { key:'paid',              icon:'💳', label:'PAID',            short:'Paid' },
-  { key:'in_transit',        icon:'🚚', label:'IN TRANSIT',      short:'In Transit' },
-  { key:'delivered',         icon:'📬', label:'DELIVERED',       short:'Delivered' },
-  { key:'handed_over',       icon:'✅', label:'HANDED OVER',     short:'Handed Over' },
-  { key:'cancelled',         icon:'🚫', label:'CANCELLED',       short:'Cancelled' }
+  {key:'pending_requester',icon:'📋',short:'Pend Req'},
+  {key:'pending_sourcing', icon:'⏳',short:'Pend Src'},
+  {key:'sourcing',         icon:'🔍',short:'Sourcing'},
+  {key:'quotation',        icon:'💬',short:'Quotation'},
+  {key:'ordered',          icon:'📦',short:'Ordered'},
+  {key:'paid',             icon:'💳',short:'Paid'},
+  {key:'in_transit',       icon:'🚚',short:'In Transit'},
+  {key:'delivered',        icon:'📬',short:'Delivered'},
+  {key:'handed_over',      icon:'✅',short:'Handed Over'},
+  {key:'cancelled',        icon:'🚫',short:'Cancelled'}
 ];
+var SL = {}; STAGES.forEach(function(s){SL[s.key]=s;});
+var URG_RANK = {CRITICAL:1,HIGH:2,NORMAL:3,PLANNED:4};
 
-var STATUS_LABELS = {};
-STAGES.forEach(function(s){ STATUS_LABELS[s.key] = s; });
+function esc(s){var d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;}
+function getUrg(v){if(!v)return'NORMAL';v=v.toLowerCase();if(v.indexOf('critical')>=0)return'CRITICAL';if(v.indexOf('high')>=0)return'HIGH';if(v.indexOf('planned')>=0||v.indexOf('future')>=0)return'PLANNED';return'NORMAL';}
+function urgL(v){return getUrg(v).toLowerCase();}
+function timeAgo(ds){if(!ds)return'';try{var d,p=ds.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);if(p)d=new Date(p[3],p[2]-1,p[1],p[4],p[5],p[6]);else d=new Date(ds);if(isNaN(d.getTime()))return'';var m=Math.floor((Date.now()-d.getTime())/60000);if(m<60)return m+'m ago';if(m<1440)return Math.floor(m/60)+'h ago';return Math.floor(m/1440)+'d ago';}catch(e){return'';}}
+function pct(n,t){return t?Math.round(n/t*100)+'%':'0%';}
+function sum(arr){return arr.reduce(function(a,b){return a+b;},0);}
 
-var URG_RANK = { CRITICAL:1, HIGH:2, NORMAL:3, PLANNED:4 };
+// ── Load ─────────────────────────────────────────────────
+function loadData(){
+  var b=document.getElementById('rbtn');b.classList.add('disabled');b.textContent='↻ LOADING...';
+  google.script.run.withSuccessHandler(onData).withFailureHandler(onErr).getDashboardData();
+}
+function onData(r){
+  document.getElementById('loader').style.display='none';
+  document.getElementById('app').style.display='block';
+  var b=document.getElementById('rbtn');b.classList.remove('disabled');b.textContent='↻ REFRESH';
+  D=r; D.activeItems=D.activeItems||[]; D.pendingItems=D.pendingItems||[];
+  D.rejectedItems=D.rejectedItems||[]; D.completedItems=D.completedItems||[];
+  D.vendorFlags=D.vendorFlags||[]; D.approvalBreakdown=D.approvalBreakdown||{}; D.stageCounts=D.stageCounts||{};
+  document.getElementById('ts').textContent='Updated '+new Date().toLocaleTimeString();
+  renderApproval(); renderStats(); renderPipeline(); buildTeamFilter();
+  renderOverview(); renderAllItems(); renderPending(); renderRejected(); renderSLA(); renderVendors(); renderCompleted();
+  updateTabs(); scheduleNext();
+}
+function onErr(e){var b=document.getElementById('rbtn');b.classList.remove('disabled');b.textContent='↻ RETRY';scheduleNext(15000);}
+function doRefresh(){if(TIMER)clearTimeout(TIMER);loadData();}
+function scheduleNext(ms){if(TIMER)clearTimeout(TIMER);TIMER=setTimeout(loadData,ms||REFRESH_MS);}
 
-// ── Utilities ──────────────────────────────────────────────
-function esc(s) {
-  var d = document.createElement('div');
-  d.textContent = String(s || '');
-  return d.innerHTML;
+// ── Tab ───────────────────────────────────────────────────
+function switchTab(el){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});el.classList.add('active');
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('panel-'+el.getAttribute('data-tab')).classList.add('active');
+}
+function updateTabs(){
+  var sla=D.activeItems.filter(function(r){return r.slaFlag;}).length;
+  document.getElementById('tc-items').textContent=D.activeItems.length;
+  document.getElementById('tc-pending').textContent=D.pendingItems.length;
+  document.getElementById('tc-rejected').textContent=D.rejectedItems.length;
+  document.getElementById('tc-sla').textContent=sla;
+  document.getElementById('tc-vendors').textContent=D.vendorFlags.length;
+  document.getElementById('tc-completed').textContent=D.completedItems.length;
+  ['sla','rejected','vendors'].forEach(function(t){
+    var el=document.querySelector('[data-tab="'+t+'"]');
+    var count=t==='sla'?sla:t==='rejected'?D.rejectedItems.length:D.vendorFlags.length;
+    if(count>0)el.classList.add('has-alert');else el.classList.remove('has-alert');
+  });
 }
 
-function getUrg(v) {
-  if (!v) return 'NORMAL';
-  v = v.toLowerCase();
-  if (v.indexOf('critical') >= 0) return 'CRITICAL';
-  if (v.indexOf('high') >= 0) return 'HIGH';
-  if (v.indexOf('planned') >= 0 || v.indexOf('future') >= 0) return 'PLANNED';
-  return 'NORMAL';
-}
+// ── Approval Bar ──────────────────────────────────────────
+function renderApproval(){
+  var ab=D.approvalBreakdown, total=ab.total||0;
+  var active=D.activeItems.length;
+  var completed=D.completedItems.filter(function(r){return r.statusClass==='handed_over'||r.statusClass==='delivered';}).length;
 
-function timeAgo(ds) {
-  if (!ds) return '';
-  try {
-    var d, p = ds.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
-    if (p) d = new Date(p[3], p[2]-1, p[1], p[4], p[5], p[6]);
-    else d = new Date(ds);
-    if (isNaN(d.getTime())) return '';
-    var m = Math.floor((Date.now() - d.getTime()) / 60000);
-    if (m < 60) return m + 'm ago';
-    if (m < 1440) return Math.floor(m/60) + 'h ago';
-    return Math.floor(m/1440) + 'd ago';
-  } catch(e) { return ''; }
-}
-
-function pct(n, total) {
-  if (!total) return '0%';
-  return Math.round(n / total * 100) + '%';
-}
-
-// ── Data load ──────────────────────────────────────────────
-function loadData() {
-  var btn = document.getElementById('rbtn');
-  btn.classList.add('disabled');
-  btn.textContent = '↻ LOADING...';
-  google.script.run
-    .withSuccessHandler(onData)
-    .withFailureHandler(onErr)
-    .getDashboardData();
-}
-
-function onData(result) {
-  document.getElementById('loader').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  var btn = document.getElementById('rbtn');
-  btn.classList.remove('disabled');
-  btn.textContent = '↻ REFRESH';
-
-  DATA = result;
-  DATA.activeItems  = DATA.activeItems  || [];
-  DATA.pendingItems = DATA.pendingItems || [];
-  DATA.rejectedItems = DATA.rejectedItems || [];
-  DATA.completedItems = DATA.completedItems || [];
-  DATA.vendorFlags  = DATA.vendorFlags  || [];
-  DATA.approvalBreakdown = DATA.approvalBreakdown || {};
-  DATA.stageCounts  = DATA.stageCounts  || {};
-
-  document.getElementById('ts').textContent = 'Updated ' + new Date().toLocaleTimeString();
-
-  renderApprovalBar();
-  renderStatRow();
-  renderPipelineStages();
-  buildTeamFilter();
-  renderOverview();
-  renderAllItems();
-  renderPending();
-  renderRejected();
-  renderSLA();
-  renderVendors();
-  renderCompleted();
-  updateTabCounts();
-  scheduleRefresh();
-}
-
-function onErr(err) {
-  var btn = document.getElementById('rbtn');
-  btn.classList.remove('disabled');
-  btn.textContent = '↻ RETRY';
-  console.error(err);
-  scheduleRefresh(15000);
-}
-
-function doRefresh() {
-  if (REFRESH_TIMER) clearTimeout(REFRESH_TIMER);
-  loadData();
-}
-
-function scheduleRefresh(ms) {
-  if (REFRESH_TIMER) clearTimeout(REFRESH_TIMER);
-  REFRESH_TIMER = setTimeout(loadData, ms || REFRESH_MS);
-}
-
-// ── Tab switching ──────────────────────────────────────────
-function switchTab(el) {
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
-  el.classList.add('active');
-  ACTIVE_TAB = el.getAttribute('data-tab');
-  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
-  document.getElementById('panel-' + ACTIVE_TAB).classList.add('active');
-}
-
-function updateTabCounts() {
-  var ab = DATA.approvalBreakdown;
-  var slaCount = DATA.activeItems.filter(function(r){ return r.slaFlag; }).length;
-  document.getElementById('tc-items').textContent = DATA.activeItems.length;
-  document.getElementById('tc-pending').textContent = DATA.pendingItems.length;
-  document.getElementById('tc-rejected').textContent = DATA.rejectedItems.length;
-  document.getElementById('tc-sla').textContent = slaCount;
-  document.getElementById('tc-vendors').textContent = DATA.vendorFlags.length;
-  document.getElementById('tc-completed').textContent = DATA.completedItems.length;
-
-  var slaTab = document.querySelector('[data-tab="sla"]');
-  var rjTab = document.querySelector('[data-tab="rejected"]');
-  var vTab = document.querySelector('[data-tab="vendors"]');
-  if (slaCount > 0) slaTab.classList.add('has-alert'); else slaTab.classList.remove('has-alert');
-  if (DATA.rejectedItems.length > 0) rjTab.classList.add('has-alert'); else rjTab.classList.remove('has-alert');
-  if (DATA.vendorFlags.length > 0) vTab.classList.add('has-alert'); else vTab.classList.remove('has-alert');
-}
-
-// ── Approval bar ───────────────────────────────────────────
-function renderApprovalBar() {
-  var ab = DATA.approvalBreakdown;
-  var total = ab.total || 0;
-
-  document.getElementById('ap-total').textContent = total;
-  document.getElementById('ap-dept').textContent = ab.deptApproved || 0;
-  document.getElementById('ap-dept-sub').textContent = pct(ab.deptApproved || 0, total) + ' approved';
-  document.getElementById('ap-founder').textContent = ab.founderApproved || 0;
-  document.getElementById('ap-founder-sub').textContent = pct(ab.founderApproved || 0, total) + ' approved';
-
-  var active = DATA.activeItems.length;
-  document.getElementById('ap-active').textContent = active;
-  var completed = DATA.completedItems.filter(function(r){ return r.statusClass === 'handed_over' || r.statusClass === 'delivered'; }).length;
-  document.getElementById('ap-done').textContent = completed;
-
-  var chips = [];
-  if (ab.deptPending > 0) chips.push('<span class="appr-chip chip-yellow">⏳ ' + ab.deptPending + ' Pending Dept</span>');
-  if (ab.founderPending > 0) chips.push('<span class="appr-chip chip-yellow">⏳ ' + ab.founderPending + ' Pending Founder</span>');
-  if (ab.founderRejected > 0 || ab.deptRejected > 0) {
-    var tot = (ab.founderRejected || 0) + (ab.deptRejected || 0);
-    chips.push('<span class="appr-chip chip-red">✕ ' + tot + ' Rejected</span>');
-  }
-  if (ab.founderReverify > 0) chips.push('<span class="appr-chip chip-purple">↺ ' + ab.founderReverify + ' Reverify</span>');
-  var cancelled = DATA.completedItems.filter(function(r){ return r.statusClass === 'cancelled'; }).length;
-  if (cancelled > 0) chips.push('<span class="appr-chip chip-dim">🚫 ' + cancelled + ' Cancelled</span>');
-  document.getElementById('appr-chips').innerHTML = chips.join('');
-}
-
-// ── Stat row ───────────────────────────────────────────────
-function renderStatRow() {
-  var items = DATA.activeItems;
-  var crit = items.filter(function(r){ return getUrg(r.urgency) === 'CRITICAL'; }).length;
-  var sla = items.filter(function(r){ return r.slaFlag; }).length;
-  var noVendor = items.filter(function(r){ return !r.vendor && r.statusClass !== 'pending_requester'; }).length;
-  var sc = DATA.stageCounts;
-  var pending = (sc.pending_requester||0) + (sc.pending_sourcing||0) + (sc.sourcing||0);
-
-  var stats = [
-    { l:'ACTIVE',       v: items.length,            color:'#fff',          alert: false },
-    { l:'CRITICAL',     v: crit,                    color:'var(--red)',    alert: crit > 0 },
-    { l:'PENDING/SRC',  v: pending,                 color:'var(--yellow)', alert: pending > 0 },
-    { l:'QUOTATION',    v: sc.quotation || 0,       color:'var(--blue)',   alert: false },
-    { l:'IN TRANSIT',   v: sc.in_transit || 0,      color:'var(--purple)', alert: false },
-    { l:'SLA BREACHES', v: sla,                     color:'var(--red)',    alert: sla > 0 },
-    { l:'NO VENDOR',    v: noVendor,                color:'var(--accent)', alert: noVendor > 0 },
-    { l:'PENDING APPR', v: DATA.pendingItems.length,color:'var(--yellow)', alert: DATA.pendingItems.length > 0 }
+  var nodes=[
+    {num:total,         lbl:'SUBMITTED',        sub:'Total requests',        color:'var(--text)',   icon:'📝'},
+    {num:ab.deptApproved||0,lbl:'DEPT APPROVED',sub:pct(ab.deptApproved||0,total)+' rate',color:'var(--yellow)',icon:'🏢'},
+    {num:ab.founderApproved||0,lbl:'FOUNDER APPROVED',sub:pct(ab.founderApproved||0,total)+' rate',color:'var(--green)',icon:'✅'},
+    {num:active,        lbl:'ACTIVE',            sub:'In pipeline',           color:'var(--cyan)',   icon:'⚡'},
+    {num:completed,     lbl:'COMPLETED',         sub:'Delivered / Handed over',color:'#90CAF9',     icon:'🎯'}
   ];
+  var maxVal=Math.max.apply(null,nodes.map(function(n){return n.num;}).concat([1]));
 
-  document.getElementById('stat-row').innerHTML = stats.map(function(s, i) {
-    return '<div class="stat-card' + (s.alert ? ' alert' : '') + '" style="animation-delay:' + (i * 0.05) + 's">' +
-      '<div class="stat-lbl">' + s.l + '</div>' +
-      '<div class="stat-val" style="color:' + s.color + '">' + s.v + '</div>' +
-      '</div>';
+  document.getElementById('appr-nodes').innerHTML=nodes.map(function(n,i){
+    var barW=Math.max(6,Math.round(n.num/maxVal*100));
+    return (i>0?'<div class="appr-arrow">→</div>':'')+
+    '<div class="appr-node">'+
+      '<span class="an-icon">'+n.icon+'</span>'+
+      '<div class="an-num" style="color:'+n.color+'">'+n.num+'</div>'+
+      '<div class="an-lbl">'+n.lbl+'</div>'+
+      '<div class="an-sub">'+n.sub+'</div>'+
+      '<div class="an-bar" style="background:'+n.color+';width:'+barW+'%;margin:8px auto 0;max-width:60px"></div>'+
+    '</div>';
+  }).join('');
+
+  var chips=[];
+  if((ab.deptPending||0)>0)chips.push('<span class="appr-chip chip-y">⏳ '+(ab.deptPending||0)+' Pending Dept</span>');
+  if((ab.founderPending||0)>0)chips.push('<span class="appr-chip chip-y">⏳ '+(ab.founderPending||0)+' Pending Founder</span>');
+  var rej=(ab.founderRejected||0)+(ab.deptRejected||0);
+  if(rej>0)chips.push('<span class="appr-chip chip-r">✕ '+rej+' Rejected</span>');
+  if((ab.founderReverify||0)>0)chips.push('<span class="appr-chip chip-p">↺ '+(ab.founderReverify||0)+' Reverify</span>');
+  var cancelled=D.completedItems.filter(function(r){return r.statusClass==='cancelled';}).length;
+  if(cancelled>0)chips.push('<span class="appr-chip chip-d">🚫 '+cancelled+' Cancelled</span>');
+  document.getElementById('appr-chips').innerHTML=chips.join('')||'<span class="appr-chip chip-d">No exceptions</span>';
+}
+
+// ── Stats ─────────────────────────────────────────────────
+function renderStats(){
+  var items=D.activeItems, sc=D.stageCounts;
+  var crit=items.filter(function(r){return getUrg(r.urgency)==='CRITICAL';}).length;
+  var sla=items.filter(function(r){return r.slaFlag;}).length;
+  var noV=items.filter(function(r){return !r.vendor&&r.statusClass!=='pending_requester';}).length;
+  var pend=(sc.pending_requester||0)+(sc.pending_sourcing||0)+(sc.sourcing||0);
+
+  var stats=[
+    {icon:'📊',l:'ACTIVE',       v:items.length, color:'#fff',          cls:''},
+    {icon:'🔴',l:'CRITICAL',     v:crit,         color:'var(--red)',    cls:crit>0?'alert':''},
+    {icon:'🕐',l:'PENDING/SRC',  v:pend,         color:'var(--yellow)', cls:pend>0?'warn':''},
+    {icon:'💬',l:'QUOTATION',    v:sc.quotation||0,color:'var(--blue)', cls:'info'},
+    {icon:'🚚',l:'IN TRANSIT',   v:sc.in_transit||0,color:'var(--purple)',cls:''},
+    {icon:'⚠️',l:'SLA BREACHES', v:sla,          color:'var(--red)',    cls:sla>0?'alert':''},
+    {icon:'🏪',l:'NO VENDOR',    v:noV,          color:'var(--accent)', cls:noV>0?'warn':''},
+    {icon:'⏸',l:'PEND APPROVAL',v:D.pendingItems.length,color:'var(--yellow)',cls:D.pendingItems.length>0?'warn':''}
+  ];
+  document.getElementById('stat-row').innerHTML=stats.map(function(s,i){
+    return '<div class="stat-card '+s.cls+'" style="animation-delay:'+(i*.05)+'s">'+
+      '<span class="stat-icon">'+s.icon+'</span>'+
+      '<div class="stat-lbl">'+s.l+'</div>'+
+      '<div class="stat-val" style="color:'+s.color+'">'+s.v+'</div>'+
+    '</div>';
   }).join('');
 }
 
-// ── Pipeline stages ────────────────────────────────────────
-function renderPipelineStages() {
-  var sc = DATA.stageCounts;
-  var items = DATA.activeItems;
+// ── Pipeline ──────────────────────────────────────────────
+function renderPipeline(){
+  var sc=D.stageCounts, items=D.activeItems;
+  var total=sum(STAGES.map(function(s){return sc[s.key]||0;}));
+  var slaBySt={};
+  items.forEach(function(r){if(r.slaFlag)slaBySt[r.statusClass]=(slaBySt[r.statusClass]||0)+1;});
 
-  // Count SLA issues per stage
-  var slaBySt = {};
-  items.forEach(function(r){ if (r.slaFlag) slaBySt[r.statusClass] = (slaBySt[r.statusClass] || 0) + 1; });
-
-  var html = STAGES.map(function(s, idx) {
-    var cnt = sc[s.key] || 0;
-    var slaC = slaBySt[s.key] || 0;
-    var isActive = STAGE_FILTER === s.key;
-    return (idx > 0 ? '<span class="stage-arrow">→</span>' : '') +
-      '<div class="stage-card s-' + s.key + (isActive ? ' active' : '') + '" onclick="setStageFilter(\'' + s.key + '\')">' +
-        '<span class="s-icon">' + s.icon + '</span>' +
-        '<div class="s-count">' + cnt + '</div>' +
-        '<div class="s-label">' + s.short + '</div>' +
-        '<div class="s-sla' + (slaC > 0 ? ' show' : '') + '">' + slaC + '</div>' +
-      '</div>';
+  var html=STAGES.map(function(s,i){
+    var cnt=sc[s.key]||0;
+    var slaC=slaBySt[s.key]||0;
+    var barW=total>0?Math.max(0,Math.round(cnt/total*100)):0;
+    var isAct=STAGE_FILTER===s.key;
+    return (i>0?'<span class="pipe-arrow">→</span>':'')+
+    '<div class="stage-card sc-'+s.key+(isAct?' active':'')+'" onclick="setStageF(\''+s.key+'\')">'+
+      '<span class="sc-icon">'+s.icon+'</span>'+
+      '<div class="sc-num">'+cnt+'</div>'+
+      '<div class="sc-lbl">'+esc(s.short)+'</div>'+
+      '<div class="sc-bar-wrap"><div class="sc-bar" style="width:'+barW+'%;background:currentColor;opacity:.5"></div></div>'+
+      '<div class="sc-sla'+(slaC>0?' show':'')+'">'+slaC+'</div>'+
+    '</div>';
   }).join('');
 
-  html += '<span class="stage-arrow">·</span>' +
-    '<div class="stage-card s-cancelled' + (STAGE_FILTER === '__pending' ? ' active' : '') + '" onclick="switchToTab(\'pending\')" style="color:var(--yellow)">' +
-      '<span class="s-icon">⏸</span>' +
-      '<div class="s-count">' + DATA.pendingItems.length + '</div>' +
-      '<div class="s-label">PEND APPR</div>' +
+  html+='<span class="pipe-arrow">·</span>'+
+    '<div class="stage-card sc-pend_appr" onclick="goTab(\'pending\')">'+
+      '<span class="sc-icon">⏸</span>'+
+      '<div class="sc-num">'+D.pendingItems.length+'</div>'+
+      '<div class="sc-lbl">Pend Appr</div>'+
+      '<div class="sc-bar-wrap"><div class="sc-bar" style="width:30%;background:currentColor;opacity:.4"></div></div>'+
     '</div>';
 
-  document.getElementById('pipeline-stages').innerHTML = html;
+  document.getElementById('pipe-stages').innerHTML=html;
 }
 
-function setStageFilter(stage) {
-  STAGE_FILTER = (STAGE_FILTER === stage) ? 'all' : stage;
-  renderPipelineStages();
-  // Switch to All Items tab and apply stage filter
-  var stageSelect = document.getElementById('stage-f');
-  stageSelect.value = STAGE_FILTER;
-  switchToTab('items');
-  renderAllItems();
+function setStageF(s){
+  STAGE_FILTER=(STAGE_FILTER===s)?'all':s;
+  renderPipeline();
+  document.getElementById('stage-f').value=STAGE_FILTER;
+  goTab('items'); renderAllItems();
+}
+function goTab(key){var el=document.querySelector('[data-tab="'+key+'"]');if(el)switchTab(el);}
+
+// ── Team filter ───────────────────────────────────────────
+function buildTeamFilter(){
+  var t={};D.activeItems.forEach(function(r){if(r.team)t[r.team]=true;});
+  var l=Object.keys(t).sort();var s=document.getElementById('team-f');
+  s.innerHTML='<option value="all">All Teams</option>'+l.map(function(x){return'<option value="'+esc(x)+'">'+esc(x)+'</option>';}).join('');
+  s.style.display=l.length>1?'':'none';
 }
 
-function switchToTab(tabKey) {
-  var el = document.querySelector('[data-tab="' + tabKey + '"]');
-  if (el) switchTab(el);
-}
+// ── Filter setters ────────────────────────────────────────
+function setUrgF(btn){btn.parentElement.querySelectorAll('[data-urg]').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');urg_f=btn.getAttribute('data-urg');renderAllItems();}
+function setApprF(btn){btn.parentElement.querySelectorAll('[data-appr]').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');appr_f=btn.getAttribute('data-appr');renderPending();}
+function setRjF(btn){btn.parentElement.querySelectorAll('[data-rj]').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');rj_f=btn.getAttribute('data-rj');renderRejected();}
+function setCmpF(btn){btn.parentElement.querySelectorAll('[data-cmp]').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');cmp_f=btn.getAttribute('data-cmp');renderCompleted();}
 
-// ── Build team filter ──────────────────────────────────────
-function buildTeamFilter() {
-  var teams = {};
-  DATA.activeItems.forEach(function(r){ if (r.team) teams[r.team] = true; });
-  var list = Object.keys(teams).sort();
-  var sel = document.getElementById('team-f');
-  if (list.length > 1) {
-    sel.style.display = '';
-    sel.innerHTML = '<option value="all">All Teams</option>' +
-      list.map(function(t){ return '<option value="' + esc(t) + '">' + esc(t) + '</option>'; }).join('');
-  } else {
-    sel.style.display = 'none';
-  }
-}
+// ── Detail cell ───────────────────────────────────────────
+function cell(l,v,mono){if(!v)return'';return'<div><div class="dc-label">'+esc(l)+'</div><div class="dc-val'+(mono?' mono':'')+'">'+esc(v)+'</div></div>';}
+function toggleBody(id){var el=document.getElementById(id);if(el)el.classList.toggle('open');}
 
-// ── Filter helpers ─────────────────────────────────────────
-var urg_filter_items = 'all';
+// ── Item card ─────────────────────────────────────────────
+function itemCard(r,i){
+  var u=getUrg(r.urgency),ul=u.toLowerCase();
+  var st=SL[r.statusClass]||{icon:'📋',short:r.statusClass||''};
+  var hasSla=!!r.slaFlag;
+  var id='cb-'+i+'-'+Math.random().toString(36).slice(2,5);
 
-function setUrgFilter(btn, scope) {
-  var buttons = btn.parentElement.querySelectorAll('[data-urg]');
-  buttons.forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  urg_filter_items = btn.getAttribute('data-urg');
-  renderAllItems();
-}
+  var tags='<span class="badge '+ul+'">'+u+'</span>'+
+    '<span class="spill sp-'+esc(r.statusClass)+'">'+esc(st.icon)+' '+esc(st.short)+'</span>'+
+    (r.team?'<span class="team-tag">'+esc(r.team)+'</span>':'');
 
-var appr_filter = 'all';
-function setApprFilter(btn) {
-  var buttons = btn.parentElement.querySelectorAll('[data-appr]');
-  buttons.forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  appr_filter = btn.getAttribute('data-appr');
-  renderPending();
-}
+  var meta=(r.email?'<span>'+esc(r.email.split('@')[0])+'</span>':'')+
+    (r.vendor?'<span>→ '+esc(r.vendor)+'</span>':'<span style="color:var(--red)">No vendor</span>')+
+    (r.estimate?'<span>'+esc(r.estimate)+'</span>':'')+
+    (r.approvalDate?'<span>Approved: '+esc(r.approvalDate)+'</span>':'')+
+    (r.orderedDate?'<span>Ordered: '+esc(r.orderedDate)+'</span>':'')+
+    (r.eta?'<span class="eta-v">ETA: '+esc(r.eta)+'</span>':'');
 
-var rj_filter = 'all';
-function setRjFilter(btn) {
-  var buttons = btn.parentElement.querySelectorAll('[data-rj]');
-  buttons.forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  rj_filter = btn.getAttribute('data-rj');
-  renderRejected();
-}
+  var detail='<div class="detail-grid">'+
+    cell('PR ID',r.prId,true)+cell('Item',r.item,false)+cell('Quantity',r.quantity,true)+
+    cell('Estimate',r.estimate,true)+cell('Part Number',r.partNumber,true)+cell('Vendor',r.vendor,false)+
+    cell('Category',r.category,false)+cell('Team',r.team,false)+cell('Urgency',r.urgency,false)+
+    cell('Order Status',r.orderStatus,false)+cell('Approval Date',r.approvalDate,true)+
+    cell('Ordered Date',r.orderedDate,true)+cell('ETA',r.eta,true)+cell('Lead Time',r.leadTime,true)+
+    cell('Dept Approval',r.managerApproval,false)+cell('Founder Approval',r.finalApproval,false)+
+  '</div>'+(r.justification?'<div class="just-full">'+esc(r.justification)+'</div>':'');
 
-var cmp_filter = 'all';
-function setCmpFilter(btn) {
-  var buttons = btn.parentElement.querySelectorAll('[data-cmp]');
-  buttons.forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  cmp_filter = btn.getAttribute('data-cmp');
-  renderCompleted();
-}
-
-// ── Item card HTML ─────────────────────────────────────────
-function itemCardHtml(r, idx) {
-  var urg = getUrg(r.urgency);
-  var urgL = urg.toLowerCase();
-  var isCrit = urg === 'CRITICAL';
-  var hasSla = !!r.slaFlag;
-  var st = STATUS_LABELS[r.statusClass] || { icon:'📋', short: r.statusClass || '' };
-
-  var tagsHtml =
-    '<span class="badge ' + urgL + '">' + urg + '</span>' +
-    '<span class="status-pill sp-' + esc(r.statusClass) + '">' + esc(st.icon) + ' ' + esc(st.short || r.statusClass) + '</span>' +
-    (r.team ? '<span class="team-tag">' + esc(r.team) + '</span>' : '');
-
-  var slaHtml = hasSla ? '<div class="sla-flag ' + esc(r.slaFlagType) + '">⚠ ' + esc(r.slaFlag) + '</div>' : '';
-
-  var metaHtml =
-    (r.email ? '<span class="em">' + esc(r.email.split('@')[0]) + '</span>' : '') +
-    (r.vendor ? '<span>→ ' + esc(r.vendor) + '</span>' : '<span style="color:var(--red)">No vendor set</span>') +
-    (r.estimate ? '<span>' + esc(r.estimate) + '</span>' : '') +
-    (r.approvalDate ? '<span>Approved: ' + esc(r.approvalDate) + '</span>' : '') +
-    (r.orderedDate ? '<span>Ordered: ' + esc(r.orderedDate) + '</span>' : '') +
-    (r.eta ? '<span class="eta-v">ETA: ' + esc(r.eta) + '</span>' : '');
-
-  var rightHtml = r.daysSinceApproval >= 0
-    ? r.daysSinceApproval + 'd since appr.'
-    : timeAgo(r.timestamp);
-
-  var cardId = 'card-body-' + idx + '-' + Math.random().toString(36).slice(2,6);
-
-  var detailHtml =
-    '<div class="detail-grid">' +
-      cell('PR ID', r.prId, true) +
-      cell('Item', r.item, false) +
-      cell('Quantity', r.quantity, true) +
-      cell('Estimate', r.estimate, true) +
-      cell('Part Number', r.partNumber, true) +
-      cell('Vendor', r.vendor, false) +
-      cell('Category', r.category, false) +
-      cell('Team', r.team, false) +
-      cell('Urgency', r.urgency, false) +
-      cell('Order Status', r.orderStatus, false) +
-      cell('Approval Date', r.approvalDate, true) +
-      cell('Ordered Date', r.orderedDate, true) +
-      cell('ETA', r.eta, true) +
-      cell('Lead Time', r.leadTime, true) +
-      cell('Dept Approval', r.managerApproval, false) +
-      cell('Founder Approval', r.finalApproval, false) +
-    '</div>' +
-    (r.justification ? '<div class="just-full">' + esc(r.justification) + '</div>' : '');
-
-  return '<div class="item-card urg-' + urgL + (hasSla ? ' has-sla' : '') + (isCrit ? ' is-critical' : '') + '" style="animation-delay:' + (idx * 0.025) + 's">' +
-    '<div class="item-header" onclick="toggleBody(\'' + cardId + '\')">' +
-      '<div>' +
-        '<div class="item-tags">' + tagsHtml + '</div>' +
-        '<div class="item-name">' + esc(r.item || '—') +
-          (r.quantity ? '<span class="qty">×' + esc(r.quantity) + '</span>' : '') +
-          (r.prId ? '<span class="pr">' + esc(r.prId) + '</span>' : '') +
-        '</div>' +
-        (r.justification ? '<div class="item-just">' + esc(r.justification) + '</div>' : '') +
-        slaHtml +
-        '<div class="item-meta">' + metaHtml + '</div>' +
-      '</div>' +
-      '<div class="item-time">' + rightHtml + '</div>' +
-    '</div>' +
-    '<div class="item-body" id="' + cardId + '">' + detailHtml + '</div>' +
+  return '<div class="item-card urg-'+ul+(hasSla?' has-sla':'')+(u==='CRITICAL'?' is-critical':'')+'" style="animation-delay:'+(i*.022)+'s">'+
+    '<div class="item-hdr" onclick="toggleBody(\''+id+'\')">'+
+      '<div>'+
+        '<div class="item-tags">'+tags+'</div>'+
+        '<div class="item-name">'+esc(r.item||'—')+(r.quantity?'<span class="qty">×'+esc(r.quantity)+'</span>':'')+(r.prId?'<span class="pr">'+esc(r.prId)+'</span>':'')+'</div>'+
+        (r.justification?'<div class="item-just">'+esc(r.justification)+'</div>':'')+
+        (hasSla?'<div class="sla-flag '+esc(r.slaFlagType)+'">⚠ '+esc(r.slaFlag)+'</div>':'')+
+        '<div class="item-meta">'+meta+'</div>'+
+      '</div>'+
+      '<div class="item-time">'+(r.daysSinceApproval>=0?r.daysSinceApproval+'d since appr.':timeAgo(r.timestamp))+'</div>'+
+    '</div>'+
+    '<div class="item-body" id="'+id+'">'+detail+'</div>'+
   '</div>';
 }
 
-function cell(label, val, mono) {
-  if (!val) return '';
-  return '<div class="detail-cell"><div class="dc-label">' + esc(label) + '</div><div class="dc-val' + (mono ? ' mono' : '') + '">' + esc(val) + '</div></div>';
-}
+// ── Pending card ──────────────────────────────────────────
+function pendingCard(r,i){
+  var u=getUrg(r.urgency);
+  var dCls=r.approvalState==='dept_rejected'?'as-rej':r.approvalState==='pending_founder'?'as-ok':'as-pend';
+  var dLbl=r.approvalState==='dept_rejected'?'✕ Dept Rejected':r.approvalState==='pending_founder'?'✓ Dept OK':'⏳ Needs Dept';
+  var id='pc-'+i;
+  var detail='<div class="detail-grid">'+cell('PR ID',r.prId,true)+cell('Team',r.team,false)+cell('Estimate',r.estimate,true)+cell('Vendor',r.vendor,false)+cell('Category',r.category,false)+cell('Urgency',r.urgency,false)+cell('Dept Approval',r.managerApproval||'Pending',false)+cell('Founder Approval',r.finalApproval||'Pending',false)+'</div>'+(r.justification?'<div class="just-full">'+esc(r.justification)+'</div>':'');
 
-function toggleBody(id) {
-  var el = document.getElementById(id);
-  if (el) el.classList.toggle('open');
-}
-
-// ── Pending-approval item card (slightly different) ────────
-function pendingItemCardHtml(r, idx) {
-  var deptClass = r.approvalState === 'dept_rejected' ? 'as-dept-rej' :
-                  r.approvalState === 'pending_founder' ? 'as-dept-ok' : 'as-dept-pend';
-  var deptLabel = r.approvalState === 'dept_rejected' ? '✕ Dept Rejected' :
-                  r.approvalState === 'pending_founder' ? '✓ Dept Approved' : '⏳ Needs Dept';
-  var founderClass = r.approvalState === 'pending_founder' ? 'as-founder-pend' : 'chip-dim';
-  var founderLabel = r.approvalState === 'pending_founder' ? '⏳ Needs Founder' : '—';
-
-  var urg = getUrg(r.urgency);
-  var cardId = 'pcard-' + idx;
-
-  var detailHtml =
-    '<div class="detail-grid">' +
-      cell('PR ID', r.prId, true) +
-      cell('Quantity', r.quantity, true) +
-      cell('Estimate', r.estimate, true) +
-      cell('Vendor', r.vendor, false) +
-      cell('Team', r.team, false) +
-      cell('Category', r.category, false) +
-      cell('Urgency', r.urgency, false) +
-      cell('Dept Approval', r.managerApproval || 'Pending', false) +
-      cell('Founder Approval', r.finalApproval || 'Pending', false) +
-    '</div>' +
-    (r.justification ? '<div class="just-full">' + esc(r.justification) + '</div>' : '');
-
-  return '<div class="item-card urg-' + urg.toLowerCase() + '" style="animation-delay:' + (idx * 0.025) + 's">' +
-    '<div class="item-header" onclick="toggleBody(\'' + cardId + '\')">' +
-      '<div>' +
-        '<div class="item-tags">' +
-          '<span class="badge ' + urg.toLowerCase() + '">' + urg + '</span>' +
-          '<span class="appr-step ' + deptClass + '">' + deptLabel + '</span>' +
-          (r.approvalState !== 'dept_rejected' ? '<span class="as-arrow">→</span><span class="appr-step ' + founderClass + '">' + founderLabel + '</span>' : '') +
-          (r.team ? '<span class="team-tag">' + esc(r.team) + '</span>' : '') +
-        '</div>' +
-        '<div class="item-name">' + esc(r.item || '—') +
-          (r.quantity ? '<span class="qty">×' + esc(r.quantity) + '</span>' : '') +
-          (r.prId ? '<span class="pr">' + esc(r.prId) + '</span>' : '') +
-        '</div>' +
-        '<div class="item-meta">' +
-          (r.email ? '<span>' + esc(r.email.split('@')[0]) + '</span>' : '') +
-          (r.vendor ? '<span>→ ' + esc(r.vendor) + '</span>' : '') +
-          (r.estimate ? '<span>' + esc(r.estimate) + '</span>' : '') +
-        '</div>' +
-      '</div>' +
-      '<div class="item-time">' + timeAgo(r.timestamp) + '</div>' +
-    '</div>' +
-    '<div class="item-body" id="' + cardId + '">' + detailHtml + '</div>' +
+  return '<div class="item-card urg-'+u.toLowerCase()+'" style="animation-delay:'+(i*.022)+'s">'+
+    '<div class="item-hdr" onclick="toggleBody(\''+id+'\')">'+
+      '<div>'+
+        '<div class="item-tags">'+
+          '<span class="badge '+u.toLowerCase()+'">'+u+'</span>'+
+          '<span class="appr-step '+dCls+'">'+dLbl+'</span>'+
+          (r.approvalState!=='dept_rejected'?'<span class="as-arr">→</span><span class="appr-step as-founder">⏳ Needs Founder</span>':'')+
+          (r.team?'<span class="team-tag">'+esc(r.team)+'</span>':'')+
+        '</div>'+
+        '<div class="item-name">'+esc(r.item||'—')+(r.prId?'<span class="pr">'+esc(r.prId)+'</span>':'')+'</div>'+
+        '<div class="item-meta">'+(r.email?'<span>'+esc(r.email.split('@')[0])+'</span>':'')+(r.vendor?'<span>→ '+esc(r.vendor)+'</span>':'')+(r.estimate?'<span>'+esc(r.estimate)+'</span>':'')+'</div>'+
+      '</div>'+
+      '<div class="item-time">'+timeAgo(r.timestamp)+'</div>'+
+    '</div>'+
+    '<div class="item-body" id="'+id+'">'+detail+'</div>'+
   '</div>';
 }
 
-// ── Render functions ───────────────────────────────────────
-
-function renderAllItems() {
-  var q = (document.getElementById('q-items').value || '').toLowerCase();
-  var team = document.getElementById('team-f').value;
-  var stageSel = document.getElementById('stage-f').value;
-
-  var filtered = DATA.activeItems.filter(function(r) {
-    if (urg_filter_items !== 'all' && getUrg(r.urgency).toLowerCase() !== urg_filter_items) return false;
-    if (team !== 'all' && (r.team || '').toLowerCase() !== team.toLowerCase()) return false;
-    if (stageSel !== 'all' && r.statusClass !== stageSel) return false;
-    if (q) {
-      var hay = [r.item, r.justification, r.vendor, r.email, r.prId, r.category, r.orderStatus, r.team].map(function(v){ return (v||'').toLowerCase(); }).join(' ');
-      if (hay.indexOf(q) < 0) return false;
-    }
+// ── Render All Items ──────────────────────────────────────
+function renderAllItems(){
+  var q=(document.getElementById('q-items').value||'').toLowerCase();
+  var team=document.getElementById('team-f').value;
+  var stage=document.getElementById('stage-f').value;
+  var filtered=D.activeItems.filter(function(r){
+    if(urg_f!=='all'&&getUrg(r.urgency).toLowerCase()!==urg_f)return false;
+    if(team!=='all'&&(r.team||'').toLowerCase()!==team.toLowerCase())return false;
+    if(stage!=='all'&&r.statusClass!==stage)return false;
+    if(q){var h=[r.item,r.justification,r.vendor,r.email,r.prId,r.category,r.orderStatus,r.team].map(function(v){return(v||'').toLowerCase();}).join(' ');if(h.indexOf(q)<0)return false;}
     return true;
-  }).sort(function(a, b) {
-    var af = a.slaFlag ? 0 : 1, bf = b.slaFlag ? 0 : 1;
-    if (af !== bf) return af - bf;
-    return (URG_RANK[getUrg(a.urgency)] || 3) - (URG_RANK[getUrg(b.urgency)] || 3);
+  }).sort(function(a,b){
+    var af=a.slaFlag?0:1,bf=b.slaFlag?0:1;if(af!==bf)return af-bf;
+    return(URG_RANK[getUrg(a.urgency)]||3)-(URG_RANK[getUrg(b.urgency)]||3);
   });
-
-  var el = document.getElementById('list-items');
-  if (!filtered.length) {
-    el.innerHTML = '<div class="empty"><div class="em-icon">🔍</div>No items match the current filters</div>';
-    return;
-  }
-  el.innerHTML = filtered.map(function(r, i){ return itemCardHtml(r, i); }).join('');
-  document.getElementById('footer').textContent = filtered.length + ' of ' + DATA.activeItems.length + ' active items · Auto-refresh every 30s';
+  var el=document.getElementById('list-items');
+  el.innerHTML=filtered.length?filtered.map(itemCard).join(''):emptyHtml('🔍','No items match the filters','Try adjusting search or stage filter');
+  document.getElementById('footer').textContent=filtered.length+' of '+D.activeItems.length+' active items · Auto-refresh 30s';
 }
 
-function renderPending() {
-  var q = (document.getElementById('q-pending').value || '').toLowerCase();
-  var filtered = DATA.pendingItems.filter(function(r) {
-    if (appr_filter !== 'all' && r.approvalState !== appr_filter) return false;
-    if (q) {
-      var hay = [r.item, r.vendor, r.email, r.prId, r.team].map(function(v){ return (v||'').toLowerCase(); }).join(' ');
-      if (hay.indexOf(q) < 0) return false;
-    }
+function renderPending(){
+  var q=(document.getElementById('q-pending').value||'').toLowerCase();
+  var filtered=D.pendingItems.filter(function(r){
+    if(appr_f!=='all'&&r.approvalState!==appr_f)return false;
+    if(q){var h=[r.item,r.vendor,r.email,r.prId,r.team].map(function(v){return(v||'').toLowerCase();}).join(' ');if(h.indexOf(q)<0)return false;}
     return true;
-  }).sort(function(a, b) {
-    return (URG_RANK[getUrg(a.urgency)] || 3) - (URG_RANK[getUrg(b.urgency)] || 3);
-  });
-
-  var el = document.getElementById('list-pending');
-  if (!filtered.length) {
-    el.innerHTML = '<div class="empty"><div class="em-icon">✓</div>No items pending approval</div>';
-    return;
-  }
-  el.innerHTML = filtered.map(function(r, i){ return pendingItemCardHtml(r, i); }).join('');
+  }).sort(function(a,b){return(URG_RANK[getUrg(a.urgency)]||3)-(URG_RANK[getUrg(b.urgency)]||3);});
+  document.getElementById('list-pending').innerHTML=filtered.length?filtered.map(pendingCard).join(''):emptyHtml('✓','No items pending approval','All requests have been reviewed');
 }
 
-function renderRejected() {
-  var q = (document.getElementById('q-rejected').value || '').toLowerCase();
-  var filtered = DATA.rejectedItems.filter(function(r) {
-    if (rj_filter !== 'all' && r.statusClass !== rj_filter) return false;
-    if (q) {
-      var hay = [r.item, r.vendor, r.email, r.prId, r.team].map(function(v){ return (v||'').toLowerCase(); }).join(' ');
-      if (hay.indexOf(q) < 0) return false;
-    }
+function renderRejected(){
+  var q=(document.getElementById('q-rejected').value||'').toLowerCase();
+  var filtered=D.rejectedItems.filter(function(r){
+    if(rj_f!=='all'&&r.statusClass!==rj_f)return false;
+    if(q){var h=[r.item,r.vendor,r.email,r.prId,r.team].map(function(v){return(v||'').toLowerCase();}).join(' ');if(h.indexOf(q)<0)return false;}
     return true;
   });
+  document.getElementById('list-rejected').innerHTML=filtered.length?filtered.map(function(r,i){
+    var u=getUrg(r.urgency);var isRev=r.statusClass==='reverify';var id='rj-'+i;
+    var detail='<div class="detail-grid">'+cell('PR ID',r.prId,true)+cell('Team',r.team,false)+cell('Estimate',r.estimate,true)+cell('Vendor',r.vendor,false)+cell('Dept Approval',r.managerApproval||'—',false)+cell('Founder Approval',r.finalApproval||'—',false)+'</div>'+(r.justification?'<div class="just-full">'+esc(r.justification)+'</div>':'');
+    return '<div class="item-card urg-'+u.toLowerCase()+' is-critical" style="animation-delay:'+(i*.022)+'s">'+
+      '<div class="item-hdr" onclick="toggleBody(\''+id+'\')">'+
+        '<div><div class="item-tags"><span class="badge '+u.toLowerCase()+'">'+u+'</span><span class="spill sp-'+r.statusClass+'">'+(isRev?'↺ REVERIFY':'✕ REJECTED')+'</span>'+(r.team?'<span class="team-tag">'+esc(r.team)+'</span>':'')+'</div>'+
+        '<div class="item-name">'+esc(r.item||'—')+(r.prId?'<span class="pr">'+esc(r.prId)+'</span>':'')+'</div>'+
+        '<div class="item-meta">'+(r.email?'<span>'+esc(r.email.split('@')[0])+'</span>':'')+(r.estimate?'<span>'+esc(r.estimate)+'</span>':'')+'</div></div>'+
+        '<div class="item-time">'+timeAgo(r.timestamp)+'</div>'+
+      '</div>'+
+      '<div class="item-body" id="'+id+'">'+detail+'</div>'+
+    '</div>';
+  }).join(''):emptyHtml('✓','No rejected or reverify items','');
+}
 
-  var el = document.getElementById('list-rejected');
-  if (!filtered.length) {
-    el.innerHTML = '<div class="empty"><div class="em-icon">✓</div>No rejected or reverify items</div>';
-    return;
-  }
+function renderSLA(){
+  var f=D.activeItems.filter(function(r){return r.slaFlag;}).sort(function(a,b){return b.slaDaysOver-a.slaDaysOver;});
+  document.getElementById('list-sla').innerHTML=f.length?f.map(itemCard).join(''):emptyHtml('✅','No SLA breaches','All items progressing within SLA');
+}
 
-  el.innerHTML = filtered.map(function(r, i) {
-    var urg = getUrg(r.urgency);
-    var isRev = r.statusClass === 'reverify';
-    var cardId = 'rjcard-' + i;
-    var detailHtml = '<div class="detail-grid">' +
-      cell('PR ID', r.prId, true) + cell('Team', r.team, false) +
-      cell('Estimate', r.estimate, true) + cell('Vendor', r.vendor, false) +
-      cell('Dept Approval', r.managerApproval || '—', false) +
-      cell('Founder Approval', r.finalApproval || '—', false) +
-    '</div>' +
-    (r.justification ? '<div class="just-full">' + esc(r.justification) + '</div>' : '');
-
-    return '<div class="item-card urg-' + urg.toLowerCase() + ' is-critical" style="animation-delay:' + (i * 0.025) + 's">' +
-      '<div class="item-header" onclick="toggleBody(\'' + cardId + '\')">' +
-        '<div>' +
-          '<div class="item-tags">' +
-            '<span class="badge ' + urg.toLowerCase() + '">' + urg + '</span>' +
-            '<span class="status-pill sp-' + r.statusClass + '">' + (isRev ? '↺ REVERIFY' : '✕ REJECTED') + '</span>' +
-            (r.team ? '<span class="team-tag">' + esc(r.team) + '</span>' : '') +
-          '</div>' +
-          '<div class="item-name">' + esc(r.item || '—') +
-            (r.prId ? '<span class="pr">' + esc(r.prId) + '</span>' : '') +
-          '</div>' +
-          '<div class="item-meta">' +
-            (r.email ? '<span>' + esc(r.email.split('@')[0]) + '</span>' : '') +
-            (r.estimate ? '<span>' + esc(r.estimate) + '</span>' : '') +
-          '</div>' +
-        '</div>' +
-        '<div class="item-time">' + timeAgo(r.timestamp) + '</div>' +
-      '</div>' +
-      '<div class="item-body" id="' + cardId + '">' + detailHtml + '</div>' +
+function renderVendors(){
+  var el=document.getElementById('vendor-cards');
+  if(!D.vendorFlags.length){el.innerHTML=emptyHtml('🤝','No vendor delivery issues','All deliveries arrived on time');return;}
+  el.innerHTML=D.vendorFlags.map(function(v,i){
+    var avg=Math.round(v.totalDaysLate/v.lateCount);
+    return '<div class="vendor-card" style="animation-delay:'+(i*.05)+'s">'+
+      '<div class="vc-name">'+esc(v.vendor)+'</div>'+
+      '<div class="vc-stats"><strong>'+v.lateCount+' late deliveries</strong> · Avg delay: <strong>'+avg+'d</strong></div>'+
+      v.items.map(function(it){return'<div class="vc-item">'+esc(it.prId)+' · '+esc(it.item)+' — ETA: '+esc(it.eta)+' → Arrived: '+esc(it.actualArrival)+' <span class="vc-late">(+'+it.daysLate+'d)</span></div>';}).join('')+
     '</div>';
   }).join('');
 }
 
-function renderSLA() {
-  var flagged = DATA.activeItems.filter(function(r){ return r.slaFlag; })
-    .sort(function(a, b){ return b.slaDaysOver - a.slaDaysOver; });
-  var el = document.getElementById('list-sla');
-  if (!flagged.length) {
-    el.innerHTML = '<div class="empty"><div class="em-icon">✓</div>No SLA breaches — all items on track</div>';
-    return;
-  }
-  el.innerHTML = flagged.map(function(r, i){ return itemCardHtml(r, i); }).join('');
-}
-
-function renderVendors() {
-  var el = document.getElementById('vendor-cards');
-  if (!DATA.vendorFlags.length) {
-    el.innerHTML = '<div class="empty"><div class="em-icon">✓</div>No vendor delivery issues</div>';
-    return;
-  }
-  el.innerHTML = DATA.vendorFlags.map(function(v, i) {
-    var avg = Math.round(v.totalDaysLate / v.lateCount);
-    return '<div class="vendor-card" style="animation-delay:' + (i * 0.05) + 's">' +
-      '<div class="vc-name">' + esc(v.vendor) + '</div>' +
-      '<div class="vc-stats"><strong>' + v.lateCount + ' late deliveries</strong> · Avg delay: <strong>' + avg + 'd</strong></div>' +
-      v.items.map(function(it) {
-        return '<div class="vc-item">' + esc(it.prId) + ' · ' + esc(it.item) + ' — ETA: ' + esc(it.eta) + ' → Arrived: ' + esc(it.actualArrival) + ' <span class="vc-late">(+' + it.daysLate + 'd late)</span></div>';
-      }).join('') +
-    '</div>';
-  }).join('');
-}
-
-function renderCompleted() {
-  var q = (document.getElementById('q-completed').value || '').toLowerCase();
-  var filtered = DATA.completedItems.filter(function(r) {
-    if (cmp_filter !== 'all' && r.statusClass !== cmp_filter) return false;
-    if (q) {
-      var hay = [r.item, r.vendor, r.email, r.prId, r.team].map(function(v){ return (v||'').toLowerCase(); }).join(' ');
-      if (hay.indexOf(q) < 0) return false;
-    }
+function renderCompleted(){
+  var q=(document.getElementById('q-completed').value||'').toLowerCase();
+  var filtered=D.completedItems.filter(function(r){
+    if(cmp_f!=='all'&&r.statusClass!==cmp_f)return false;
+    if(q){var h=[r.item,r.vendor,r.prId,r.team].map(function(v){return(v||'').toLowerCase();}).join(' ');if(h.indexOf(q)<0)return false;}
     return true;
-  }).sort(function(a, b) {
-    var order = { handed_over:0, delivered:1, cancelled:2 };
-    return (order[a.statusClass] || 0) - (order[b.statusClass] || 0);
-  });
-
-  var el = document.getElementById('list-completed');
-  if (!filtered.length) {
-    el.innerHTML = '<div class="empty"><div class="em-icon">📦</div>No completed items</div>';
-    return;
-  }
-  el.innerHTML = filtered.map(function(r, i) {
-    var urg = getUrg(r.urgency);
-    var st = STATUS_LABELS[r.statusClass] || { icon:'✅', short: r.statusClass };
-    var cardId = 'cmpcard-' + i;
-    var detailHtml = '<div class="detail-grid">' +
-      cell('PR ID', r.prId, true) + cell('Quantity', r.quantity, true) +
-      cell('Vendor', r.vendor, false) + cell('Team', r.team, false) +
-      cell('Estimate', r.estimate, true) + cell('Approval Date', r.approvalDate, true) +
-      cell('Ordered Date', r.orderedDate, true) + cell('Lead Time', r.leadTime, true) +
-    '</div>' +
-    (r.justification ? '<div class="just-full">' + esc(r.justification) + '</div>' : '');
-
-    return '<div class="item-card urg-' + urg.toLowerCase() + '" style="opacity:.8;animation-delay:' + (i * 0.025) + 's">' +
-      '<div class="item-header" onclick="toggleBody(\'' + cardId + '\')">' +
-        '<div>' +
-          '<div class="item-tags">' +
-            '<span class="badge ' + urg.toLowerCase() + '">' + urg + '</span>' +
-            '<span class="status-pill sp-' + r.statusClass + '">' + esc(st.icon) + ' ' + esc(st.short) + '</span>' +
-            (r.team ? '<span class="team-tag">' + esc(r.team) + '</span>' : '') +
-          '</div>' +
-          '<div class="item-name">' + esc(r.item || '—') +
-            (r.quantity ? '<span class="qty">×' + esc(r.quantity) + '</span>' : '') +
-            (r.prId ? '<span class="pr">' + esc(r.prId) + '</span>' : '') +
-          '</div>' +
-          '<div class="item-meta">' +
-            (r.vendor ? '<span>→ ' + esc(r.vendor) + '</span>' : '') +
-            (r.orderedDate ? '<span>Ordered: ' + esc(r.orderedDate) + '</span>' : '') +
-            (r.leadTime ? '<span>Arrived: ' + esc(r.leadTime) + '</span>' : '') +
-          '</div>' +
-        '</div>' +
-        '<div class="item-time">' + (r.daysApprovalToOrdered >= 0 ? r.daysApprovalToOrdered + 'd to order' : timeAgo(r.timestamp)) + '</div>' +
-      '</div>' +
-      '<div class="item-body" id="' + cardId + '">' + detailHtml + '</div>' +
+  }).sort(function(a,b){var o={handed_over:0,delivered:1,cancelled:2};return(o[a.statusClass]||0)-(o[b.statusClass]||0);});
+  document.getElementById('list-completed').innerHTML=filtered.length?filtered.map(function(r,i){
+    var u=getUrg(r.urgency);var st=SL[r.statusClass]||{icon:'✅',short:r.statusClass};var id='cm-'+i;
+    var detail='<div class="detail-grid">'+cell('PR ID',r.prId,true)+cell('Quantity',r.quantity,true)+cell('Vendor',r.vendor,false)+cell('Team',r.team,false)+cell('Estimate',r.estimate,true)+cell('Approval Date',r.approvalDate,true)+cell('Ordered Date',r.orderedDate,true)+cell('Lead Time',r.leadTime,true)+'</div>'+(r.justification?'<div class="just-full">'+esc(r.justification)+'</div>':'');
+    return '<div class="item-card urg-'+u.toLowerCase()+'" style="opacity:.8;animation-delay:'+(i*.022)+'s">'+
+      '<div class="item-hdr" onclick="toggleBody(\''+id+'\')">'+
+        '<div><div class="item-tags"><span class="badge '+u.toLowerCase()+'">'+u+'</span><span class="spill sp-'+r.statusClass+'">'+esc(st.icon)+' '+esc(st.short)+'</span>'+(r.team?'<span class="team-tag">'+esc(r.team)+'</span>':'')+'</div>'+
+        '<div class="item-name">'+esc(r.item||'—')+(r.prId?'<span class="pr">'+esc(r.prId)+'</span>':'')+'</div>'+
+        '<div class="item-meta">'+(r.vendor?'<span>→ '+esc(r.vendor)+'</span>':'')+(r.orderedDate?'<span>Ordered: '+esc(r.orderedDate)+'</span>':'')+(r.leadTime?'<span>Arrived: '+esc(r.leadTime)+'</span>':'')+'</div></div>'+
+        '<div class="item-time">'+(r.daysApprovalToOrdered>=0?r.daysApprovalToOrdered+'d to order':timeAgo(r.timestamp))+'</div>'+
+      '</div>'+
+      '<div class="item-body" id="'+id+'">'+detail+'</div>'+
     '</div>';
-  }).join('');
+  }).join(''):emptyHtml('📦','No completed items','');
 }
 
-// ── Overview / Summary buckets ─────────────────────────────
-function renderOverview() {
-  var items = DATA.activeItems;
-  var sc = DATA.stageCounts;
-  var ab = DATA.approvalBreakdown;
+// ── Overview ──────────────────────────────────────────────
+function renderOverview(){
+  var items=D.activeItems,sc=D.stageCounts;
+  var total=items.length,slaC=items.filter(function(r){return r.slaFlag;}).length;
+  var pend=(sc.pending_requester||0)+(sc.pending_sourcing||0)+(sc.sourcing||0);
+  var inQ=sc.quotation||0,ordered=(sc.ordered||0)+(sc.paid||0),transit=sc.in_transit||0;
+  var pastEta=items.filter(function(r){return r.statusClass==='in_transit'&&r.slaFlagType==='transit';}).length;
+  var crit=items.filter(function(r){return getUrg(r.urgency)==='CRITICAL';}).length;
+  var noV=items.filter(function(r){return !r.vendor&&r.statusClass!=='pending_requester';}).length;
 
-  // Build insight text
-  var total = items.length;
-  var slaC = items.filter(function(r){ return r.slaFlag; }).length;
-  var pending = (sc.pending_requester||0) + (sc.pending_sourcing||0) + (sc.sourcing||0);
-  var inQ = sc.quotation || 0;
-  var ordered = (sc.ordered||0) + (sc.paid||0);
-  var transit = sc.in_transit || 0;
-  var pastEta = items.filter(function(r){ return r.statusClass === 'in_transit' && r.slaFlagType === 'transit'; }).length;
-  var crit = items.filter(function(r){ return getUrg(r.urgency) === 'CRITICAL'; }).length;
-  var noVendor = items.filter(function(r){ return !r.vendor && r.statusClass !== 'pending_requester'; }).length;
+  var lines=[];
+  lines.push({t:'You have <span class="n">'+total+'</span> approved items actively in the procurement pipeline.'});
+  if(pend>0){var ps=items.filter(function(r){return(r.statusClass==='pending_requester'||r.statusClass==='pending_sourcing'||r.statusClass==='sourcing')&&r.slaFlag;}).length;lines.push({t:'<span class="n y">'+pend+'</span> item'+(pend>1?'s':'')+' not yet initiated with a vendor'+(ps>0?' — <span class="n r">'+ps+'</span> <span class="act">past 2-day SLA</span>.':' — within SLA.')});}
+  if(inQ>0){var qs=items.filter(function(r){return r.statusClass==='quotation'&&r.slaFlag;}).length;lines.push({t:'<span class="n o">'+inQ+'</span> item'+(inQ>1?'s':'')+' in quotation'+(qs>0?' — <span class="n r">'+qs+'</span> exceeding SLA.':' — on track.')});}
+  if(ordered>0)lines.push({t:'<span class="n c">'+ordered+'</span> item'+(ordered>1?'s':'')+' ordered/paid, awaiting shipment.'});
+  if(transit>0)lines.push({t:'<span class="n p">'+transit+'</span> item'+(transit>1?'s':'')+' in transit'+(pastEta>0?' — <span class="n r">'+pastEta+'</span> <span class="act">past ETA</span>.':' — on schedule.')});
+  if(crit>0)lines.push({t:'<span class="n r">'+crit+'</span> <span class="act">CRITICAL urgency</span> item'+(crit>1?'s':'')+' need immediate action.'});
+  if(noV>0)lines.push({t:'<span class="n o">'+noV+'</span> item'+(noV>1?'s':'')+' have no vendor assigned — <span class="act">assign now</span>.'});
+  if(D.vendorFlags.length>0){var tl=D.vendorFlags.reduce(function(s,v){return s+v.lateCount;},0);lines.push({t:'<span class="n r">'+D.vendorFlags.length+'</span> vendor'+(D.vendorFlags.length>1?'s':'')+' flagged for late delivery ('+tl+' items).'});}
+  if(total===0)lines=[{t:'<span class="n g">✓</span> Pipeline clear — all items completed or cancelled.'}];
+  else if(slaC===0&&pend===0)lines.push({t:'<span class="n g">✓</span> All items are progressing within SLA.'});
 
-  var lines = [];
-  lines.push('You have <span class="n">' + total + '</span> approved items actively in the procurement pipeline.');
-  if (pending > 0) {
-    var pendSla = items.filter(function(r){ return (r.statusClass==='pending_requester'||r.statusClass==='pending_sourcing'||r.statusClass==='sourcing') && r.slaFlag; }).length;
-    var l = '<span class="n yellow">' + pending + '</span> item' + (pending > 1 ? 's' : '') + ' not yet initiated with a vendor';
-    l += pendSla > 0 ? ' — <span class="n red">' + pendSla + '</span> <span class="action-word">past the 2-day SLA</span>.' : ' — within SLA.';
-    lines.push(l);
-  }
-  if (inQ > 0) {
-    var qSla = items.filter(function(r){ return r.statusClass==='quotation' && r.slaFlag; }).length;
-    var l = '<span class="n orange">' + inQ + '</span> item' + (inQ > 1 ? 's' : '') + ' in quotation/negotiation';
-    l += qSla > 0 ? ' — <span class="n red">' + qSla + '</span> exceeding SLA.' : ' — progressing well.';
-    lines.push(l);
-  }
-  if (ordered > 0) lines.push('<span class="n cyan">' + ordered + '</span> item' + (ordered > 1 ? 's' : '') + ' ordered/paid, waiting to ship.');
-  if (transit > 0) {
-    var l = '<span class="n" style="color:var(--purple)">' + transit + '</span> item' + (transit > 1 ? 's' : '') + ' in transit';
-    l += pastEta > 0 ? ' — <span class="n red">' + pastEta + '</span> <span class="action-word">past ETA</span>.' : ' — all on schedule.';
-    lines.push(l);
-  }
-  if (crit > 0) lines.push('<span class="n red">' + crit + '</span> <span class="action-word">CRITICAL urgency</span> item' + (crit > 1 ? 's' : '') + ' need immediate attention.');
-  if (noVendor > 0) lines.push('<span class="n orange">' + noVendor + '</span> item' + (noVendor > 1 ? 's' : '') + ' have no vendor assigned — <span class="action-word">action needed</span>.');
-  if (DATA.vendorFlags.length > 0) {
-    var tl = DATA.vendorFlags.reduce(function(s, v){ return s + v.lateCount; }, 0);
-    lines.push('<span class="n red">' + DATA.vendorFlags.length + '</span> vendor' + (DATA.vendorFlags.length > 1 ? 's' : '') + ' flagged for late deliveries (' + tl + ' items total).');
-  }
-  if (total === 0) lines = ['<span class="n green">✓</span> All items have been completed or cancelled — pipeline is clear.'];
-  else if (slaC === 0 && pending === 0) lines.push('<span class="n green">✓</span> All items are progressing within SLA.');
+  document.getElementById('insight-box').innerHTML='<div class="insight-title">What needs your attention</div>'+
+    lines.map(function(l){return'<div class="insight-line"><span class="bullet">▸</span><span>'+l.t+'</span></div>';}).join('');
 
-  document.getElementById('insight-box').innerHTML =
-    '<div class="insight-title">WHAT NEEDS YOUR ATTENTION</div>' +
-    lines.map(function(l){ return '<div class="insight-line">' + l + '</div>'; }).join('');
-
-  // Summary buckets
-  var buckets = [
-    {
-      key: 'not_started', icon: '🔴', title: 'Not initiated with vendor',
-      sub: 'Approved but sourcing not yet begun',
-      border: 'b-alert', cntCls: 'c-critical',
-      filter: function(r){ return r.statusClass === 'pending_requester' || r.statusClass === 'pending_sourcing' || r.statusClass === 'sourcing'; }
-    },
-    {
-      key: 'quotation', icon: '🟡', title: 'Quotation / Negotiation',
-      sub: 'RFQ sent or currently negotiating',
-      border: 'b-warn', cntCls: 'c-warn',
-      filter: function(r){ return r.statusClass === 'quotation'; }
-    },
-    {
-      key: 'ordered_paid', icon: '🔵', title: 'Ordered / Paid',
-      sub: 'Payment done, waiting for vendor to ship',
-      border: '', cntCls: 'c-cyan',
-      filter: function(r){ return r.statusClass === 'ordered' || r.statusClass === 'paid'; }
-    },
-    {
-      key: 'in_transit', icon: '🚚', title: 'In Transit',
-      sub: 'Shipped, awaiting delivery',
-      border: '', cntCls: 'c-cyan',
-      filter: function(r){ return r.statusClass === 'in_transit'; }
-    }
+  var buckets=[
+    {icon:'🔴',title:'Not initiated with vendor',sub:'Sourcing not yet begun',border:'b-alert',cntCls:'bc-r',
+     filter:function(r){return r.statusClass==='pending_requester'||r.statusClass==='pending_sourcing'||r.statusClass==='sourcing';}},
+    {icon:'💬',title:'Quotation / Negotiation',sub:'RFQ sent or negotiating price',border:'b-warn',cntCls:'bc-y',
+     filter:function(r){return r.statusClass==='quotation';}},
+    {icon:'📦',title:'Ordered / Paid',sub:'Waiting for vendor to dispatch',border:'b-cyan',cntCls:'bc-c',
+     filter:function(r){return r.statusClass==='ordered'||r.statusClass==='paid';}},
+    {icon:'🚚',title:'In Transit',sub:'Shipped, awaiting arrival',border:'b-purple',cntCls:'bc-p',
+     filter:function(r){return r.statusClass==='in_transit';}}
   ];
 
-  document.getElementById('overview-buckets').innerHTML = buckets.map(function(b, bidx) {
-    var bItems = items.filter(b.filter).sort(function(a, c){ return (URG_RANK[getUrg(a.urgency)]||3) - (URG_RANK[getUrg(c.urgency)]||3); });
-    if (!bItems.length) return '';
-
-    var rowsHtml = bItems.map(function(r) {
-      var ds = r.daysSinceApproval >= 0
-        ? '<span class="br-days' + (r.slaFlag ? ' over' : r.daysSinceApproval > 1 ? ' warn' : '') + '">' + r.daysSinceApproval + 'd since approval</span>'
-        : '';
-      return '<div class="bucket-row">' +
-        '<div>' +
-          '<div class="br-name">' + esc(r.item || '—') + '</div>' +
-          '<div class="br-meta">' +
-            (r.prId ? '<span>' + esc(r.prId) + '</span>' : '') +
-            (r.vendor ? '<span>→ ' + esc(r.vendor) + '</span>' : '<span style="color:var(--red)">No vendor</span>') +
-            (r.team ? '<span>' + esc(r.team) + '</span>' : '') +
-            '<span class="badge ' + getUrg(r.urgency).toLowerCase() + '" style="font-size:7px;padding:1px 5px">' + getUrg(r.urgency) + '</span>' +
-            (r.slaFlag ? '<span style="color:var(--red)">⚠ SLA</span>' : '') +
-          '</div>' +
-        '</div>' +
-        '<div class="br-right">' + ds + '</div>' +
+  document.getElementById('overview-buckets').innerHTML=buckets.map(function(b,bi){
+    var bItems=items.filter(b.filter).sort(function(a,c){return(URG_RANK[getUrg(a.urgency)]||3)-(URG_RANK[getUrg(c.urgency)]||3);});
+    if(!bItems.length)return'';
+    var autoOpen=bItems.length<=6;
+    var rows=bItems.map(function(r){
+      var ds=r.daysSinceApproval>=0?'<span class="brow-days'+(r.slaFlag?' over':r.daysSinceApproval>2?' warn':' ok')+'">'+r.daysSinceApproval+'d</span>':'';
+      return'<div class="brow">'+
+        '<div style="min-width:0;flex:1">'+
+          '<div class="brow-name">'+esc(r.item||'—')+'</div>'+
+          '<div class="brow-meta">'+
+            (r.prId?'<span>'+esc(r.prId)+'</span>':'')+
+            (r.vendor?'<span>→ '+esc(r.vendor)+'</span>':'<span style="color:var(--red)">No vendor</span>')+
+            (r.team?'<span>'+esc(r.team)+'</span>':'')+
+            '<span class="badge '+getUrg(r.urgency).toLowerCase()+'" style="font-size:7px;padding:1px 5px">'+getUrg(r.urgency)+'</span>'+
+            (r.slaFlag?'<span style="color:var(--red)">⚠ SLA</span>':'')+
+          '</div>'+
+        '</div>'+
+        '<div class="brow-right">'+ds+'</div>'+
       '</div>';
     }).join('');
-
-    return '<div class="bucket ' + b.border + '" style="animation-delay:' + (bidx * 0.06) + 's">' +
-      '<div class="bucket-hdr" onclick="this.nextElementSibling.classList.toggle(\'open\')">' +
-        '<div class="bucket-left">' +
-          '<span class="bucket-icon">' + b.icon + '</span>' +
-          '<div><div class="bucket-title">' + b.title + '</div><div class="bucket-sub">' + b.sub + '</div></div>' +
-        '</div>' +
-        '<div class="bucket-cnt ' + b.cntCls + '">' + bItems.length + '</div>' +
-      '</div>' +
-      '<div class="bucket-items">' + rowsHtml + '</div>' +
+    return'<div class="bucket '+b.border+'" style="animation-delay:'+(bi*.06)+'s">'+
+      '<div class="bucket-hdr" onclick="this.nextElementSibling.classList.toggle(\'open\')">'+
+        '<div class="bucket-left">'+
+          '<div class="bucket-icon">'+b.icon+'</div>'+
+          '<div><div class="bucket-title">'+b.title+'</div><div class="bucket-sub">'+b.sub+'</div></div>'+
+        '</div>'+
+        '<div class="bucket-right">'+
+          '<div class="bucket-cnt '+b.cntCls+'">'+bItems.length+'</div>'+
+          '<div class="bucket-toggle">'+(autoOpen?'−':'+')+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="bucket-body'+(autoOpen?' open':'')+'">'+rows+'</div>'+
     '</div>';
-  }).join('') || '<div class="empty"><div class="em-icon">✓</div>Pipeline clear — nothing outstanding</div>';
+  }).join('')||'<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Pipeline clear</div></div>';
 }
 
-// ── Boot ───────────────────────────────────────────────────
+// ── Empty state ───────────────────────────────────────────
+function emptyHtml(icon,text,sub){
+  return'<div class="empty"><div class="empty-icon">'+icon+'</div><div class="empty-text">'+esc(text)+'</div>'+(sub?'<div class="empty-sub">'+esc(sub)+'</div>':'')+'</div>';
+}
+
 loadData();
 </script>
 </body>

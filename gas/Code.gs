@@ -11,7 +11,7 @@ const CONFIG = {
     LINK: "Link",
     JUSTIFICATION: "Justification for Purchase",
     FINAL_APPROVAL: "Final Approval",
-    MANAGER_APPROVAL: "Manager Approval",
+    MANAGER_APPROVAL: "Department Approval",
     URGENCY_LEVEL: "Urgency Level",
     TEAM: "Team",
     PREFERRED_VENDOR: "Preferred Vendor/ Source",
@@ -48,6 +48,12 @@ function col_(map, headerName) {
   const c = map[headerName];
   if (!c) throw new Error(`Missing column header: "${headerName}"`);
   return c;
+}
+
+/** Like col_() but tries multiple names and returns -1 (not found) instead of throwing */
+function colAny_(map, ...names) {
+  for (const n of names) { if (map[n]) return map[n]; }
+  return 0; // 0 - 1 = -1 in colIdx
 }
 
 /**
@@ -473,6 +479,11 @@ function getDashboardData() {
     try { colIdx[key] = col_(headerMap, headerName) - 1; }
     catch (e) { colIdx[key] = -1; }
   });
+  // Flexible lookup for approval columns that may use different names across sheets
+  colIdx.MANAGER_APPROVAL = colAny_(headerMap,
+    'Department Approval', 'Manager Approval', 'Dept Approval', 'Departmental Approval') - 1;
+  colIdx.FINAL_APPROVAL = colAny_(headerMap,
+    'Final Approval', 'Founder Approval', 'Final Approval ') - 1;
 
   const tz = Session.getScriptTimeZone();
   const now = new Date();
