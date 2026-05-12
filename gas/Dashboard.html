@@ -278,6 +278,27 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .brow-right{font:500 11px var(--mono);color:var(--text3);text-align:right;white-space:nowrap;min-width:72px;font-feature-settings:"tnum"}
 .brow-days.over{color:var(--red)}.brow-days.warn{color:var(--yellow)}.brow-days.ok{color:var(--green)}
 
+/* ── HANDOVER PROGRESS TOGGLE ───────────── */
+.ho-toggle{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin-bottom:12px;animation:fadeUp .35s ease}
+.ho-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;cursor:pointer;transition:background .15s;gap:14px}
+.ho-hdr:hover{background:var(--card-hi)}
+.ho-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.ho-label{font:600 11px/1 var(--font);color:var(--text3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.ho-track{flex:1;height:8px;background:var(--border-hi);border-radius:4px;overflow:hidden;min-width:60px}
+.ho-bar{height:100%;border-radius:4px;background:var(--green);transition:width .7s ease}
+.ho-stats{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.ho-stat{text-align:right}
+.ho-stat-val{font:700 18px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-.5px}
+.ho-stat-lbl{font:400 10px var(--font);color:var(--text3);margin-top:2px}
+.ho-chevron{color:var(--text3);font-size:12px;transition:transform .2s;flex-shrink:0}
+.ho-chevron.open{transform:rotate(180deg)}
+.ho-body{display:none;border-top:1px solid var(--border);padding:14px 18px}
+.ho-body.open{display:block}
+.ho-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.ho-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px}
+.ho-cell-val{font:700 22px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-.5px;margin-bottom:4px}
+.ho-cell-lbl{font:400 11px var(--font);color:var(--text3)}
+
 /* ── EMPTY ───────────────────────────────── */
 .empty{text-align:center;padding:56px 20px;color:var(--text3)}
 .empty-icon{font-size:34px;margin-bottom:11px;opacity:.22}
@@ -346,6 +367,32 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
     <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)">
       <div class="appr-nodes" id="appr-nodes"></div>
       <div class="appr-chips" id="appr-chips"></div>
+    </div>
+  </div>
+
+  <!-- HANDOVER PROGRESS TOGGLE -->
+  <div class="ho-toggle" id="ho-toggle">
+    <div class="ho-hdr" onclick="toggleHO()">
+      <div class="ho-left">
+        <span class="ho-label">Handover Progress</span>
+        <div class="ho-track"><div class="ho-bar" id="ho-bar" style="width:0%"></div></div>
+        <span id="ho-pct" style="font:600 12px/1 var(--mono);color:var(--green);flex-shrink:0">0%</span>
+      </div>
+      <div class="ho-stats">
+        <div class="ho-stat">
+          <div class="ho-stat-val" id="ho-done" style="color:var(--green)">0</div>
+          <div class="ho-stat-lbl">Handed Over</div>
+        </div>
+        <div style="width:1px;height:28px;background:var(--border)"></div>
+        <div class="ho-stat">
+          <div class="ho-stat-val" id="ho-total" style="color:var(--text)">0</div>
+          <div class="ho-stat-lbl">Total Approved</div>
+        </div>
+      </div>
+      <span class="ho-chevron" id="ho-chevron">▼</span>
+    </div>
+    <div class="ho-body" id="ho-body">
+      <div class="ho-grid" id="ho-grid"></div>
     </div>
   </div>
 
@@ -490,6 +537,14 @@ function sum(arr){return arr.reduce(function(a,b){return a+b;},0);}
 function parseAmt(v){if(!v)return 0;var n=parseFloat(String(v).replace(/[^0-9.]/g,''));return isNaN(n)?0:n;}
 function fmtCurrency(n){if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return Math.round(n).toLocaleString();}
 
+// ── Approval gate filter ──────────────────────────────────────────
+// Only show items where dept OR founder has explicitly approved — hide blanks
+function hasApproval(r){
+  var d=(r.managerApproval||'').toLowerCase().trim();
+  var f=(r.finalApproval||'').toLowerCase().trim();
+  return d.indexOf('approved')>=0||d==='yes'||f.indexOf('approved')>=0||f==='yes';
+}
+
 // ── My View filter ────────────────────────────────────────────────
 function filterMine(items){
   if(!MY_VIEW)return items;
@@ -520,7 +575,7 @@ function onData(r){
   D.rejectedItems=D.rejectedItems||[];D.completedItems=D.completedItems||[];
   D.vendorFlags=D.vendorFlags||[];D.approvalBreakdown=D.approvalBreakdown||{};D.stageCounts=D.stageCounts||{};
   document.getElementById('ts').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  renderApproval();renderStats();renderPipeline();buildTeamFilter();
+  renderApproval();renderHandoverProgress();renderStats();renderPipeline();buildTeamFilter();
   renderActionQueue();renderAllItems();renderPending();renderRejected();renderReports();renderCompleted();
   updateTabs();scheduleNext();
 }
@@ -552,6 +607,54 @@ function updateTabs(){
   if(sla>0)aqTab.classList.add('has-alert');else aqTab.classList.remove('has-alert');
 }
 function goTab(key){var el=document.querySelector('[data-tab="'+key+'"]');if(el)switchTab(el);}
+
+// ── Handover Progress Toggle ──────────────────────────────────────
+function renderHandoverProgress(){
+  var ab=D.approvalBreakdown;
+  // "Total approved" = items that have cleared founder approval (fully approved)
+  var totalApproved=ab.founderApproved||0;
+  // Handed over = completed items with statusClass handed_over
+  var handedOver=D.completedItems.filter(function(r){return r.statusClass==='handed_over';}).length;
+  // Also in transit / delivered = approved but not yet handed over
+  var delivered=D.completedItems.filter(function(r){return r.statusClass==='delivered';}).length;
+  var stillActive=D.activeItems.filter(hasApproval).length;
+  var pctDone=totalApproved>0?Math.round(handedOver/totalApproved*100):0;
+  var remaining=totalApproved-handedOver;
+
+  // Update header elements
+  document.getElementById('ho-bar').style.width=pctDone+'%';
+  document.getElementById('ho-pct').textContent=pctDone+'%';
+  document.getElementById('ho-done').textContent=handedOver;
+  document.getElementById('ho-total').textContent=totalApproved;
+
+  // Color bar based on completion
+  var barColor=pctDone>=80?'var(--green)':pctDone>=50?'var(--amber)':'var(--blue)';
+  document.getElementById('ho-bar').style.background=barColor;
+  document.getElementById('ho-pct').style.color=barColor;
+  document.getElementById('ho-done').style.color=barColor;
+
+  // Detail grid inside toggle
+  var cells=[
+    {val:handedOver,  lbl:'Handed Over',           color:barColor},
+    {val:delivered,   lbl:'Delivered (not signed)', color:'var(--teal)'},
+    {val:stillActive, lbl:'Still in Pipeline',      color:'var(--cyan)'},
+    {val:remaining,   lbl:'Yet to Complete',        color:remaining>0?'var(--yellow)':'var(--text3)'},
+    {val:totalApproved,lbl:'Total Founder-Approved',color:'var(--text)'},
+    {val:pctDone+'%', lbl:'Completion Rate',        color:barColor},
+  ];
+  document.getElementById('ho-grid').innerHTML=cells.map(function(c){
+    return '<div class="ho-cell">'+
+      '<div class="ho-cell-val" style="color:'+c.color+'">'+c.val+'</div>'+
+      '<div class="ho-cell-lbl">'+c.lbl+'</div>'+
+    '</div>';
+  }).join('');
+}
+function toggleHO(){
+  var body=document.getElementById('ho-body');
+  var chev=document.getElementById('ho-chevron');
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
 
 // ── Approval Pipeline ─────────────────────────────────────────────
 function renderApproval(){
@@ -677,7 +780,7 @@ function itemDetail(r){
 
 // ── Action Queue ──────────────────────────────────────────────────
 function renderActionQueue(){
-  var items=filterMine(D.activeItems);
+  var items=filterMine(D.activeItems).filter(hasApproval);
   var tagged=items.map(function(r){return{r:r,action:getItemAction(r)};}).filter(function(x){return x.action;});
 
   // Summary counters
@@ -801,7 +904,7 @@ function renderAllItems(){
   var q=(document.getElementById('q-items').value||'').toLowerCase();
   var team=document.getElementById('team-f').value;
   var stage=document.getElementById('stage-f').value;
-  var filtered=filterMine(D.activeItems).filter(function(r){
+  var filtered=filterMine(D.activeItems).filter(hasApproval).filter(function(r){
     if(urg_f!=='all'&&getUrg(r.urgency).toLowerCase()!==urg_f)return false;
     if(team!=='all'&&(r.team||'').toLowerCase()!==team.toLowerCase())return false;
     if(stage!=='all'&&r.statusClass!==stage)return false;
@@ -843,7 +946,7 @@ function pendingCard(r,i){
 }
 function renderPending(){
   var q=(document.getElementById('q-pending').value||'').toLowerCase();
-  var filtered=filterMine(D.pendingItems).filter(function(r){
+  var filtered=filterMine(D.pendingItems).filter(hasApproval).filter(function(r){
     if(appr_f!=='all'&&r.approvalState!==appr_f)return false;
     if(q){var h=[r.item,r.vendor,r.email,r.prId,r.team].map(function(v){return(v||'').toLowerCase();}).join(' ');if(h.indexOf(q)<0)return false;}
     return true;
@@ -854,7 +957,7 @@ function renderPending(){
 // ── Rejected / Reverify ───────────────────────────────────────────
 function renderRejected(){
   var q=(document.getElementById('q-rejected').value||'').toLowerCase();
-  var filtered=filterMine(D.rejectedItems).filter(function(r){
+  var filtered=filterMine(D.rejectedItems).filter(hasApproval).filter(function(r){
     if(rj_f!=='all'&&r.statusClass!==rj_f)return false;
     if(q){var h=[r.item,r.vendor,r.email,r.prId,r.team].map(function(v){return(v||'').toLowerCase();}).join(' ');if(h.indexOf(q)<0)return false;}
     return true;
@@ -1019,7 +1122,7 @@ function ptCard(lbl,val,sub,color){
 // ── Completed ─────────────────────────────────────────────────────
 function renderCompleted(){
   var q=(document.getElementById('q-completed').value||'').toLowerCase();
-  var filtered=filterMine(D.completedItems).filter(function(r){
+  var filtered=filterMine(D.completedItems).filter(hasApproval).filter(function(r){
     if(cmp_f!=='all'&&r.statusClass!==cmp_f)return false;
     if(q){var h=[r.item,r.vendor,r.prId,r.team].map(function(v){return(v||'').toLowerCase();}).join(' ');if(h.indexOf(q)<0)return false;}
     return true;
