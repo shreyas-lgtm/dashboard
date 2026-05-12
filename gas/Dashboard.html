@@ -18,13 +18,13 @@
   --yellow:#eab308;--yellow-bg:rgba(234,179,8,.08);--yellow-bd:rgba(234,179,8,.22);
   --purple:#a855f7;--purple-bg:rgba(168,85,247,.08);--purple-bd:rgba(168,85,247,.22);
   --cyan:#06b6d4;--cyan-bg:rgba(6,182,212,.08);--cyan-bd:rgba(6,182,212,.22);
-  --teal:#14b8a6;--teal-bg:rgba(20,184,166,.08);
+  --teal:#14b8a6;--teal-bg:rgba(20,184,166,.08);--teal-bd:rgba(20,184,166,.22);
   --orange:#f97316;--orange-bg:rgba(249,115,22,.08);--orange-bd:rgba(249,115,22,.22);
-  --sky:#90CAF9;--sky-bg:rgba(144,202,249,.08);
+  --sky:#90CAF9;--sky-bg:rgba(144,202,249,.08);--sky-bd:rgba(144,202,249,.2);
   --shadow:0 1px 3px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04);
   --shadow-hi:0 4px 16px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.07);
   --font:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
-  --r:10px;--rs:6px;--rl:14px;
+  --r:10px;--rs:6px;
 }
 body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased;font-size:14px}
 ::-webkit-scrollbar{width:4px;height:4px}
@@ -38,40 +38,52 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 #loader{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px}
 .spinner{width:28px;height:28px;border:2px solid var(--border-hi);border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite}
 .loader-txt{font:500 11px/1 var(--mono);color:var(--text3);letter-spacing:2px}
-#app{display:none;padding:24px 28px 56px;max-width:1440px;margin:0 auto}
+#app{display:none;padding:20px 24px 56px;max-width:1440px;margin:0 auto}
 
 /* ── HEADER ──────────────────────────────── */
-.hdr{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
-.hdr-brand{font:500 10px/1 var(--mono);color:var(--amber);letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;opacity:.8}
-.hdr-title{font:700 22px/1.1 var(--font);color:var(--text);letter-spacing:-.4px}
+.hdr{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)}
+.hdr-brand{font:500 10px/1 var(--mono);color:var(--amber);letter-spacing:3px;text-transform:uppercase;margin-bottom:5px;opacity:.8}
+.hdr-title{font:700 21px/1.1 var(--font);color:var(--text);letter-spacing:-.4px}
 .hdr-right{display:flex;align-items:center;gap:10px}
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2.5s ease infinite;flex-shrink:0}
 .ts{font:400 12px var(--font);color:var(--text3)}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--rs);font:500 12px var(--font);cursor:pointer;border:1px solid;transition:all .15s;letter-spacing:-.01em}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--rs);font:500 12px var(--font);cursor:pointer;border:1px solid;transition:all .15s}
 .btn-amber{background:var(--amber-bg);border-color:var(--amber-bd);color:var(--amber)}
-.btn-amber:hover{background:rgba(245,158,11,.17);box-shadow:0 0 0 1px var(--amber-bd)}
-.btn.spinning{opacity:.5;pointer-events:none}
-.sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:14px}
-.sec-lbl{font:600 11px/1 var(--font);color:var(--text3);letter-spacing:.3px;text-transform:uppercase}
-.sec-line{flex:1;height:1px;background:var(--border)}
+.btn-amber:hover{background:rgba(245,158,11,.17)}
+.btn.spinning{opacity:.45;pointer-events:none}
 
-/* ── CARD BASE ───────────────────────────── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+/* ── MY VIEW FILTER ──────────────────────── */
+.mv-input-wrap{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);padding:6px 11px;box-shadow:var(--shadow);transition:border-color .15s;min-width:200px}
+.mv-input-wrap:focus-within{border-color:var(--amber-bd)}
+.mv-input-wrap svg{color:var(--text3);flex-shrink:0}
+.mv-input{background:none;border:none;outline:none;font:400 12px var(--font);color:var(--text);width:100%;min-width:130px}
+.mv-input::placeholder{color:var(--text3)}
+.mv-clear{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;line-height:1;padding:0 2px;transition:color .15s}
+.mv-clear:hover{color:var(--text)}
+.mv-banner{display:none;align-items:center;gap:10px;padding:9px 14px;background:rgba(245,158,11,.07);border:1px solid var(--amber-bd);border-radius:var(--r);margin-bottom:14px;animation:fadeUp .25s ease}
+.mv-banner-txt{font:400 13px var(--font);color:var(--text2);flex:1}
+.mv-banner-txt strong{color:var(--amber);font-weight:600}
+.mv-banner-btn{font:500 11px var(--font);color:var(--amber);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+
+/* ── SECTION HEADERS ─────────────────────── */
+.sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.sec-lbl{font:600 11px/1 var(--font);color:var(--text3);letter-spacing:.3px;text-transform:uppercase;white-space:nowrap}
+.sec-line{flex:1;height:1px;background:var(--border)}
+.sec-sub{font:400 11px var(--font);color:var(--text4);white-space:nowrap}
 
 /* ── APPROVAL PIPELINE ───────────────────── */
-.appr-wrap{margin-bottom:14px;animation:fadeUp .35s ease}
-.appr-nodes{display:flex;overflow-x:auto;gap:0;align-items:stretch}
-.appr-node{flex:1;min-width:140px;padding:20px 16px;text-align:center;position:relative;border-right:1px solid var(--border);transition:background .15s}
+.appr-wrap{margin-bottom:12px;animation:fadeUp .35s ease}
+.appr-nodes{display:flex;overflow-x:auto;align-items:stretch}
+.appr-node{flex:1;min-width:130px;padding:18px 14px;text-align:center;border-right:1px solid var(--border);transition:background .15s;cursor:default}
 .appr-node:last-child{border-right:none}
 .appr-node:hover{background:var(--card-hi)}
-.an-icon{font-size:18px;margin-bottom:10px;display:block}
-.an-num{font:700 32px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-1px;margin-bottom:5px}
-.an-lbl{font:600 10px/1 var(--font);color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+.an-icon{font-size:17px;margin-bottom:8px;display:block}
+.an-num{font:700 30px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-1px;margin-bottom:4px}
+.an-lbl{font:600 10px/1 var(--font);color:var(--text3);letter-spacing:.4px;text-transform:uppercase;margin-bottom:3px}
 .an-sub{font:400 11px var(--font);color:var(--text3)}
-.an-bar-track{width:60px;height:3px;background:var(--border-hi);border-radius:2px;margin:12px auto 0;overflow:hidden}
+.an-bar-track{width:56px;height:3px;background:var(--border-hi);border-radius:2px;margin:10px auto 0;overflow:hidden}
 .an-bar{height:100%;border-radius:2px;transition:width .7s ease}
-.appr-arrow{display:none}/* arrows removed in favour of divider lines */
-.appr-chips{display:flex;gap:6px;padding:12px 18px;flex-wrap:wrap;border-top:1px solid var(--border);background:rgba(0,0,0,.15)}
+.appr-chips{display:flex;gap:6px;padding:11px 16px;flex-wrap:wrap;border-top:1px solid var(--border);background:rgba(0,0,0,.12)}
 .chip{font:500 11px/1 var(--font);padding:5px 11px;border-radius:20px;border:1px solid;display:inline-flex;align-items:center;gap:5px}
 .chip-amber{background:var(--amber-bg);border-color:var(--amber-bd);color:var(--amber)}
 .chip-red{background:var(--red-bg);border-color:var(--red-bd);color:var(--red)}
@@ -80,28 +92,26 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .chip-dim{background:transparent;border-color:var(--border-hi);color:var(--text3)}
 
 /* ── STAT ROW ────────────────────────────── */
-.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:relative;overflow:hidden;box-shadow:var(--shadow);animation:fadeUp .35s ease both;transition:transform .15s,border-color .15s}
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:9px;margin-bottom:12px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;position:relative;overflow:hidden;box-shadow:var(--shadow);animation:fadeUp .35s ease both;transition:transform .15s,border-color .15s}
 .stat-card:hover{transform:translateY(-1px);border-color:var(--border-hi)}
-.stat-card.s-alert{border-color:var(--red-bd)}
-.stat-card.s-alert::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--red);border-radius:var(--r) var(--r) 0 0}
-.stat-card.s-warn{border-color:var(--amber-bd)}
-.stat-card.s-warn::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--amber);border-radius:var(--r) var(--r) 0 0}
-.stat-card.s-info{border-color:var(--blue-bd)}
-.stat-card.s-info::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--blue);border-radius:var(--r) var(--r) 0 0}
-.stat-icon{font-size:16px;margin-bottom:8px;display:block}
-.stat-lbl{font:500 10px/1 var(--font);color:var(--text3);letter-spacing:.3px;margin-bottom:6px;text-transform:uppercase}
-.stat-val{font:700 28px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-1px}
+.stat-card.s-alert{border-color:var(--red-bd)}.stat-card.s-alert::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--red);border-radius:var(--r) var(--r) 0 0}
+.stat-card.s-warn{border-color:var(--amber-bd)}.stat-card.s-warn::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--amber);border-radius:var(--r) var(--r) 0 0}
+.stat-card.s-info{border-color:var(--blue-bd)}.stat-card.s-info::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--blue);border-radius:var(--r) var(--r) 0 0}
+.stat-icon{font-size:15px;margin-bottom:7px;display:block}
+.stat-lbl{font:500 10px/1 var(--font);color:var(--text3);letter-spacing:.2px;margin-bottom:5px;text-transform:uppercase}
+.stat-val{font:700 26px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-1px}
 
 /* ── PIPELINE STAGES ─────────────────────── */
-.pipe-wrap{animation:fadeUp .35s ease;margin-bottom:14px}
-.pipe-scroll{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;align-items:stretch}
-.stage-card{flex:0 0 auto;min-width:100px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 10px 10px;text-align:center;cursor:pointer;transition:all .15s;position:relative;display:flex;flex-direction:column;align-items:center;box-shadow:var(--shadow)}
+.pipe-wrap{animation:fadeUp .35s ease;margin-bottom:12px}
+.pipe-scroll{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 6px;align-items:stretch}
+.stage-card{flex:0 0 auto;min-width:96px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 10px 9px;text-align:center;cursor:pointer;transition:all .15s;position:relative;display:flex;flex-direction:column;align-items:center;box-shadow:var(--shadow)}
 .stage-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-hi);border-color:var(--border-hi)}
-.stage-card.active{box-shadow:0 0 0 2px currentColor}
-.sc-icon{font-size:20px;margin-bottom:8px;display:block}
-.sc-num{font:700 22px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-.5px;margin-bottom:5px}
-.sc-lbl{font:500 10px/1 var(--font);color:var(--text3);letter-spacing:.2px;white-space:nowrap;margin-bottom:10px;text-transform:uppercase}
+.stage-card.empty{opacity:.3}
+.stage-card.active{box-shadow:0 0 0 2px currentColor;opacity:1}
+.sc-icon{font-size:18px;margin-bottom:6px;display:block}
+.sc-num{font:700 20px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-.5px;margin-bottom:4px}
+.sc-lbl{font:500 10px/1 var(--font);color:var(--text3);white-space:nowrap;margin-bottom:8px;text-transform:uppercase;letter-spacing:.2px}
 .sc-bar-track{width:100%;height:3px;background:var(--border-hi);border-radius:2px;overflow:hidden;margin-top:auto}
 .sc-bar{height:100%;border-radius:2px;transition:width .6s ease}
 .sc-sla{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;padding:0 3px;background:var(--red);font:700 9px var(--mono);color:#fff;display:none;align-items:center;justify-content:center;border:2px solid var(--bg)}
@@ -109,26 +119,45 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .sc-pending_requester{color:var(--yellow)}.sc-pending_sourcing{color:var(--orange)}.sc-sourcing{color:var(--amber)}.sc-quotation{color:var(--blue)}.sc-ordered{color:var(--cyan)}.sc-paid{color:var(--green)}.sc-in_transit{color:var(--purple)}.sc-delivered{color:var(--teal)}.sc-handed_over{color:var(--sky)}.sc-cancelled{color:var(--text3)}.sc-pend_appr{color:var(--yellow)}
 
 /* ── TABS ────────────────────────────────── */
-.tab-bar{display:flex;gap:1px;margin-bottom:18px;overflow-x:auto;padding:4px;background:var(--surface);border-radius:var(--r);border:1px solid var(--border)}
-.tab{padding:8px 16px;font:500 12px/1 var(--font);color:var(--text3);cursor:pointer;border-radius:var(--rs);white-space:nowrap;transition:all .15s;display:flex;align-items:center;gap:7px;letter-spacing:-.01em}
+.tab-bar{display:flex;gap:1px;margin-bottom:16px;overflow-x:auto;padding:4px;background:var(--surface);border-radius:var(--r);border:1px solid var(--border)}
+.tab{padding:8px 15px;font:500 12px/1 var(--font);color:var(--text3);cursor:pointer;border-radius:var(--rs);white-space:nowrap;transition:all .15s;display:flex;align-items:center;gap:6px}
 .tab:hover{color:var(--text);background:var(--card-hi)}
-.tab.active{color:var(--text);background:var(--card);box-shadow:var(--shadow)}
-.tab.active{font-weight:600}
-.tc{font:600 10px/1 var(--mono);padding:2px 7px;border-radius:10px;background:var(--border-hi);color:var(--text3)}
+.tab.active{color:var(--text);background:var(--card);box-shadow:var(--shadow);font-weight:600}
+.tc{font:600 10px/1 var(--mono);padding:2px 6px;border-radius:10px;background:var(--border-hi);color:var(--text3)}
 .tab.active .tc{background:var(--amber-bg);color:var(--amber)}
 .tab.has-alert .tc{background:var(--red-bg);color:var(--red)}
-.panel{display:none}.panel.active{display:block;animation:fadeUp .25s ease}
+.panel{display:none}.panel.active{display:block;animation:fadeUp .2s ease}
 
 /* ── FILTERS ─────────────────────────────── */
-.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
-.search-box{padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font:400 13px var(--font);outline:none;min-width:220px;transition:border-color .15s;box-shadow:var(--shadow)}
+.filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.search-box{padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font:400 13px var(--font);outline:none;min-width:210px;transition:border-color .15s;box-shadow:var(--shadow)}
 .search-box::placeholder{color:var(--text3)}
-.search-box:focus{border-color:var(--amber-bd);box-shadow:0 0 0 3px rgba(245,158,11,.08)}
-.fbtn{padding:7px 13px;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);color:var(--text3);font:500 12px var(--font);cursor:pointer;transition:all .15s;white-space:nowrap;box-shadow:var(--shadow)}
+.search-box:focus{border-color:var(--amber-bd);box-shadow:0 0 0 3px rgba(245,158,11,.07)}
+.fbtn{padding:7px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);color:var(--text3);font:500 12px var(--font);cursor:pointer;transition:all .15s;white-space:nowrap;box-shadow:var(--shadow)}
 .fbtn:hover{border-color:var(--border-hi);color:var(--text)}
 .fbtn.active{background:var(--amber-bg);border-color:var(--amber-bd);color:var(--amber)}
-.sel{padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font:400 12px var(--font);outline:none;cursor:pointer;box-shadow:var(--shadow)}
+.sel{padding:7px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font:400 12px var(--font);outline:none;cursor:pointer;box-shadow:var(--shadow)}
 .sel:focus{border-color:var(--amber-bd)}
+
+/* ── ACTION PILLS ────────────────────────── */
+.action-pill{font:600 10px/1 var(--font);padding:4px 9px;border-radius:4px;border:1px solid;display:inline-flex;align-items:center;gap:4px;text-transform:uppercase;letter-spacing:.4px}
+.ap-sla     {background:var(--red-bg);   border-color:var(--red-bd);   color:var(--red)   }
+.ap-vendor  {background:var(--amber-bg); border-color:var(--amber-bd); color:var(--amber) }
+.ap-sourcing{background:var(--orange-bg);border-color:var(--orange-bd);color:var(--orange)}
+.ap-quote   {background:var(--blue-bg);  border-color:var(--blue-bd);  color:var(--blue)  }
+.ap-po      {background:var(--cyan-bg);  border-color:var(--cyan-bd);  color:var(--cyan)  }
+.ap-dispatch{background:var(--green-bg); border-color:var(--green-bd); color:var(--green) }
+.ap-transit {background:var(--purple-bg);border-color:var(--purple-bd);color:var(--purple)}
+.ap-pend_req{background:var(--yellow-bg);border-color:var(--yellow-bd);color:var(--yellow)}
+
+/* ── ACTION QUEUE SUMMARY ────────────────── */
+.aq-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.aqs-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;box-shadow:var(--shadow);min-width:110px;display:flex;align-items:center;gap:11px;transition:border-color .15s}
+.aqs-card.aqs-alert{border-color:var(--red-bd)}
+.aqs-card.aqs-warn{border-color:var(--amber-bd)}
+.aqs-icon{font-size:18px;opacity:.75}
+.aqs-num{font:700 22px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-.5px}
+.aqs-lbl{font:400 11px var(--font);color:var(--text3);margin-top:2px}
 
 /* ── ITEM CARDS ──────────────────────────── */
 .item-list{display:flex;flex-direction:column;gap:6px}
@@ -140,33 +169,34 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .item-card.urg-planned{border-left:3px solid var(--green)}
 .item-card.has-sla{border-top-color:rgba(234,179,8,.4)}
 .item-card.is-critical{border-top-color:rgba(244,63,94,.35)}
-.item-hdr{display:grid;grid-template-columns:1fr auto;gap:12px;padding:14px 16px;cursor:pointer;align-items:start}
+.item-hdr{display:grid;grid-template-columns:1fr auto;gap:12px;padding:13px 15px;cursor:pointer;align-items:start}
 .item-hdr:hover .item-name{color:var(--amber)}
-.item-tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
-.item-name{font:600 14px/1.4 var(--font);color:var(--text);margin-bottom:4px}
-.item-name .qty{font:400 12px var(--mono);color:var(--text3);margin-left:8px;font-feature-settings:"tnum"}
-.item-name .pr{font:400 11px var(--mono);color:var(--text4);margin-left:6px}
-.item-just{font:400 12px var(--font);color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:560px;margin-bottom:5px;line-height:1.4}
-.item-meta{display:flex;gap:14px;flex-wrap:wrap}
+.item-tags{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:5px}
+.item-name{font:600 14px/1.35 var(--font);color:var(--text);margin-bottom:3px}
+.item-name .qty{font:400 12px var(--mono);color:var(--text3);margin-left:8px}
+.item-name .pr{font:400 10px var(--mono);color:var(--text4);margin-left:6px}
+.item-just{font:400 12px var(--font);color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:560px;margin-bottom:4px}
+.item-meta{display:flex;gap:12px;flex-wrap:wrap}
 .item-meta span{font:400 11px var(--font);color:var(--text3)}
 .item-meta .eta-v{color:var(--cyan)}
 .item-meta .no-vendor{color:var(--red)}
-.item-time{font:400 11px var(--mono);color:var(--text4);text-align:right;white-space:nowrap;padding-top:2px;min-width:88px;font-feature-settings:"tnum"}
-.item-body{display:none;border-top:1px solid var(--border);padding:16px;background:rgba(0,0,0,.2)}
+.item-time{font:400 11px var(--mono);color:var(--text4);text-align:right;white-space:nowrap;padding-top:2px;min-width:80px;font-feature-settings:"tnum"}
+.item-time.overdue{color:var(--red)}
+.item-time.warn{color:var(--yellow)}
+.item-body{display:none;border-top:1px solid var(--border);padding:15px;background:rgba(0,0,0,.18)}
 .item-body.open{display:block}
-.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:12px;margin-bottom:12px}
-.dc-label{font:500 9px/1 var(--mono);color:var(--text3);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:11px;margin-bottom:10px}
+.dc-label{font:500 9px/1 var(--mono);color:var(--text3);letter-spacing:1px;margin-bottom:3px;text-transform:uppercase}
 .dc-val{font:400 13px var(--font);color:var(--text);line-height:1.4}
 .dc-val.mono{font-family:var(--mono);font-size:12px}
-.just-full{font:400 13px var(--font);color:var(--text2);line-height:1.7;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.just-full{font:400 12px var(--font);color:var(--text2);line-height:1.7;margin-top:11px;padding-top:11px;border-top:1px solid var(--border)}
 
 /* ── BADGES & PILLS ──────────────────────── */
-.badge{font:600 9px/1 var(--font);padding:3px 8px;border-radius:4px;letter-spacing:.5px;display:inline-block;text-transform:uppercase}
+.badge{font:600 9px/1 var(--font);padding:3px 7px;border-radius:4px;letter-spacing:.5px;display:inline-block;text-transform:uppercase}
 .badge.critical{background:var(--red);color:#fff}
 .badge.high{background:var(--amber);color:#111}
 .badge.normal{background:var(--blue);color:#fff}
 .badge.planned{background:var(--green);color:#111}
-
 .spill{font:500 11px/1 var(--font);padding:4px 10px;border-radius:20px;border:1px solid;display:inline-flex;align-items:center;gap:4px}
 .sp-pending_requester{background:var(--yellow-bg);border-color:var(--yellow-bd);color:var(--yellow)}
 .sp-pending_sourcing{background:var(--orange-bg);border-color:var(--orange-bd);color:var(--orange)}
@@ -175,38 +205,51 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .sp-ordered{background:var(--cyan-bg);border-color:var(--cyan-bd);color:var(--cyan)}
 .sp-paid{background:var(--green-bg);border-color:var(--green-bd);color:var(--green)}
 .sp-in_transit{background:var(--purple-bg);border-color:var(--purple-bd);color:var(--purple)}
-.sp-delivered{background:var(--teal-bg);border-color:rgba(20,184,166,.25);color:var(--teal)}
-.sp-handed_over{background:var(--sky-bg);border-color:rgba(144,202,249,.2);color:var(--sky)}
+.sp-delivered{background:var(--teal-bg);border-color:var(--teal-bd);color:var(--teal)}
+.sp-handed_over{background:var(--sky-bg);border-color:var(--sky-bd);color:var(--sky)}
 .sp-cancelled{background:transparent;border-color:var(--border-hi);color:var(--text3)}
 .sp-rejected{background:var(--red-bg);border-color:var(--red-bd);color:var(--red)}
 .sp-reverify{background:var(--purple-bg);border-color:var(--purple-bd);color:var(--purple)}
 .sp-pending_founder{background:var(--amber-bg);border-color:var(--amber-bd);color:var(--amber)}
 .sp-pending_dept{background:var(--yellow-bg);border-color:var(--yellow-bd);color:var(--yellow)}
 .sp-dept_rejected{background:var(--red-bg);border-color:var(--red-bd);color:var(--red)}
-
 .sla-flag{font:500 11px/1 var(--font);padding:4px 10px;border-radius:4px;display:inline-block;margin-top:5px;border:1px solid}
 .sla-flag.sourcing{background:var(--yellow-bg);border-color:var(--yellow-bd);color:var(--yellow)}
 .sla-flag.payment,.sla-flag.payment_slow{background:var(--amber-bg);border-color:var(--amber-bd);color:var(--amber)}
 .sla-flag.transit{background:var(--red-bg);border-color:var(--red-bd);color:var(--red)}
-
-.team-tag{font:400 10px/1 var(--mono);padding:3px 8px;border:1px solid var(--border-hi);border-radius:4px;color:var(--text3)}
-
-/* ── APPROVAL STEPS ──────────────────────── */
+.team-tag{font:400 10px/1 var(--mono);padding:3px 7px;border:1px solid var(--border-hi);border-radius:4px;color:var(--text3)}
 .appr-step{font:500 10px/1 var(--font);padding:4px 9px;border-radius:4px;border:1px solid;display:inline-flex;align-items:center;gap:4px}
 .as-ok{background:var(--green-bg);border-color:var(--green-bd);color:var(--green)}
 .as-pend{background:var(--yellow-bg);border-color:var(--yellow-bd);color:var(--yellow)}
 .as-rej{background:var(--red-bg);border-color:var(--red-bd);color:var(--red)}
 .as-founder{background:var(--amber-bg);border-color:var(--amber-bd);color:var(--amber)}
-.as-arr{color:var(--text4);font-size:11px;margin:0 1px}
+.as-arr{color:var(--text4);font-size:10px;margin:0 1px}
 
-/* ── INSIGHT BOX ─────────────────────────── */
-.insight{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--r);padding:18px 20px;margin-bottom:14px;box-shadow:var(--shadow)}
-.insight-title{font:600 10px/1 var(--font);color:var(--amber);letter-spacing:1px;margin-bottom:12px;text-transform:uppercase}
-.insight-line{font:400 13px/1 var(--font);color:var(--text);line-height:2;display:flex;align-items:baseline;gap:7px}
-.il-dot{width:4px;height:4px;border-radius:50%;background:var(--text3);flex-shrink:0;margin-top:8px}
-.n{font:600 13px/1 var(--mono);font-feature-settings:"tnum"}
-.n.r{color:var(--red)}.n.y{color:var(--yellow)}.n.c{color:var(--cyan)}.n.g{color:var(--green)}.n.o{color:var(--amber)}.n.p{color:var(--purple)}
-.act{color:var(--amber);font-weight:600}
+/* ── REPORTS ─────────────────────────────── */
+.report-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-bottom:14px}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);animation:fadeUp .3s ease both}
+.kpi-lbl{font:500 10px/1 var(--font);color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px}
+.kpi-val{font:700 28px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-1px;margin-bottom:5px}
+.kpi-sub{font:400 11px var(--font);color:var(--text3)}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:860px){.report-grid{grid-template-columns:1fr}}
+.report-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow)}
+.report-card-title{font:600 13px var(--font);color:var(--text);margin-bottom:14px;padding-bottom:11px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.report-card-sub{font:400 11px var(--font);color:var(--text3);font-weight:400}
+.chart-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.chart-row:last-child{border-bottom:none}
+.chart-label{font:500 12px var(--font);color:var(--text);min-width:106px;max-width:106px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chart-track{flex:1;height:6px;background:var(--border-hi);border-radius:3px;overflow:hidden}
+.chart-fill{height:100%;border-radius:3px;transition:width .7s ease}
+.chart-val{font:500 11px var(--mono);color:var(--text3);min-width:60px;text-align:right;font-feature-settings:"tnum"}
+.chart-conv{font:400 10px var(--font);color:var(--text4);min-width:32px;text-align:right}
+.pt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.pt-card{padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs)}
+.pt-lbl{font:500 10px var(--font);color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.pt-val{font:700 24px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-.5px;margin-bottom:4px}
+.pt-sub{font:400 11px var(--font);color:var(--text4)}
+.vendor-mini-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03);font:400 12px var(--font)}
+.vendor-mini-row:last-child{border-bottom:none}
 
 /* ── BUCKETS ─────────────────────────────── */
 .bucket{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px;box-shadow:var(--shadow);animation:fadeUp .35s ease both}
@@ -214,54 +257,47 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .bucket.b-warn{border-left:3px solid var(--amber)}
 .bucket.b-cyan{border-left:3px solid var(--cyan)}
 .bucket.b-purple{border-left:3px solid var(--purple)}
-.bucket-hdr{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;cursor:pointer;transition:background .15s}
+.bucket-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;cursor:pointer;transition:background .15s}
 .bucket-hdr:hover{background:var(--card-hi)}
-.bucket-left{display:flex;align-items:center;gap:12px}
-.bucket-icon{font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;flex-shrink:0}
-.bucket-title{font:600 14px/1.3 var(--font);color:var(--text)}
-.bucket-sub{font:400 12px var(--font);color:var(--text3);margin-top:2px}
-.bucket-right{display:flex;align-items:center;gap:12px}
-.bucket-cnt{font:700 26px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-.5px}
-.bc-r{color:var(--red)}.bc-y{color:var(--yellow)}.bc-c{color:var(--cyan)}.bc-p{color:var(--purple)}.bc-g{color:var(--green)}.bc-d{color:var(--text4)}
-.bucket-toggle{font:400 13px/1 var(--mono);color:var(--text3);width:24px;height:24px;border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center}
+.bucket-left{display:flex;align-items:center;gap:11px}
+.bucket-icon{font-size:19px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;flex-shrink:0}
+.bucket-title{font:600 13px/1.3 var(--font);color:var(--text)}
+.bucket-sub{font:400 11px var(--font);color:var(--text3);margin-top:2px}
+.bucket-right{display:flex;align-items:center;gap:11px}
+.bucket-cnt{font:700 24px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-.5px}
+.bc-r{color:var(--red)}.bc-y{color:var(--yellow)}.bc-c{color:var(--cyan)}.bc-p{color:var(--purple)}.bc-g{color:var(--green)}
+.bucket-toggle{font:500 13px/1 var(--mono);color:var(--text3);width:22px;height:22px;border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center}
 .bucket-body{display:none;border-top:1px solid var(--border)}
 .bucket-body.open{display:block}
-.brow{padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.03);display:flex;justify-content:space-between;align-items:center;transition:background .12s}
+.brow{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.03);display:flex;justify-content:space-between;align-items:center;transition:background .12s}
 .brow:hover{background:var(--card-hi)}
 .brow:last-child{border-bottom:none}
 .brow-name{font:500 13px/1.3 var(--font);color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px}
-.brow-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;align-items:center}
-.brow-meta span{font:400 10px/1 var(--font);color:var(--text3)}
-.brow-right{font:500 12px/1 var(--mono);color:var(--text3);text-align:right;white-space:nowrap;min-width:80px;font-feature-settings:"tnum"}
+.brow-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;align-items:center}
+.brow-meta span{font:400 10px var(--font);color:var(--text3)}
+.brow-right{font:500 11px var(--mono);color:var(--text3);text-align:right;white-space:nowrap;min-width:72px;font-feature-settings:"tnum"}
 .brow-days.over{color:var(--red)}.brow-days.warn{color:var(--yellow)}.brow-days.ok{color:var(--green)}
 
-/* ── VENDOR CARDS ────────────────────────── */
-.vendor-card{background:var(--card);border:1px solid var(--red-bd);border-left:3px solid var(--red);border-radius:var(--r);padding:16px 18px;margin-bottom:8px;box-shadow:var(--shadow);animation:fadeUp .35s ease both}
-.vc-name{font:600 15px var(--font);color:var(--text);margin-bottom:5px}
-.vc-stats{font:400 12px var(--font);color:var(--text3);margin-bottom:10px}
-.vc-stats strong{color:var(--red)}
-.vc-item{font:400 11px var(--mono);color:var(--text3);padding:6px 0;border-top:1px solid var(--border)}
-.vc-item:first-child{border-top:none}
-.vc-late{color:var(--red);font-weight:600}
-
 /* ── EMPTY ───────────────────────────────── */
-.empty{text-align:center;padding:60px 20px;color:var(--text3)}
-.empty-icon{font-size:38px;margin-bottom:12px;opacity:.25}
+.empty{text-align:center;padding:56px 20px;color:var(--text3)}
+.empty-icon{font-size:34px;margin-bottom:11px;opacity:.22}
 .empty-text{font:500 14px var(--font);color:var(--text3);margin-bottom:4px}
 .empty-sub{font:400 12px var(--font);color:var(--text4)}
 
 /* ── FOOTER ──────────────────────────────── */
-.footer{margin-top:32px;text-align:center;font:400 11px var(--font);color:var(--text4);padding:14px}
+.footer{margin-top:28px;text-align:center;font:400 11px var(--font);color:var(--text4);padding:12px}
 
-/* ── RESPONSIVE ──────────────────────────── */
 @media(max-width:640px){
-  #app{padding:14px 14px 36px}
-  .hdr-title{font-size:18px}
+  #app{padding:12px 12px 36px}
+  .hdr{flex-direction:column;align-items:flex-start}
+  .hdr-right{width:100%;justify-content:space-between}
+  .mv-input-wrap{min-width:0;flex:1}
   .appr-node{min-width:110px;padding:14px 10px}
-  .an-num{font-size:26px}
-  .stat-val{font-size:24px}
-  .stage-card{min-width:82px}
-  .sc-num{font-size:18px}
+  .an-num{font-size:24px}
+  .stat-val{font-size:22px}
+  .stage-card{min-width:80px}
+  .sc-num{font-size:17px}
+  .report-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -278,9 +314,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
   <div class="hdr">
     <div>
       <div class="hdr-brand">Artila Robotics</div>
-      <div class="hdr-title">Procurement Dashboard</div>
+      <div style="font:700 21px/1.1 var(--font);color:var(--text);letter-spacing:-.4px">Procurement Dashboard</div>
     </div>
     <div class="hdr-right">
+      <!-- My View Filter -->
+      <div class="mv-input-wrap">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" class="mv-input" id="mv-input" placeholder="Filter by email or team…" oninput="setMyView(this.value)">
+        <button class="mv-clear" id="mv-clear" onclick="clearMyView()" style="display:none">✕</button>
+      </div>
       <div style="display:flex;align-items:center;gap:7px">
         <div class="live-dot"></div>
         <span class="ts" id="ts">—</span>
@@ -291,10 +333,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
     </div>
   </div>
 
+  <!-- MY VIEW BANNER -->
+  <div class="mv-banner" id="mv-banner">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--amber);flex-shrink:0"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+    <div class="mv-banner-txt">Filtered to: <strong id="mv-who"></strong></div>
+    <button class="mv-banner-btn" onclick="clearMyView()">Clear filter</button>
+  </div>
+
   <!-- APPROVAL PIPELINE -->
   <div class="appr-wrap">
     <div class="sec-hdr"><span class="sec-lbl">Approval Pipeline</span><div class="sec-line"></div></div>
-    <div class="card" style="overflow:hidden">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)">
       <div class="appr-nodes" id="appr-nodes"></div>
       <div class="appr-chips" id="appr-chips"></div>
     </div>
@@ -305,25 +354,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 
   <!-- PIPELINE STAGES -->
   <div class="pipe-wrap">
-    <div class="sec-hdr"><span class="sec-lbl">Pipeline Stages</span><span style="font:400 11px var(--font);color:var(--text4);margin-left:6px">· click to filter</span><div class="sec-line"></div></div>
+    <div class="sec-hdr"><span class="sec-lbl">Pipeline Stages</span><span class="sec-sub">· click to filter</span><div class="sec-line"></div></div>
     <div class="pipe-scroll" id="pipe-stages"></div>
   </div>
 
   <!-- TABS -->
   <div class="tab-bar">
-    <div class="tab active" data-tab="overview" onclick="switchTab(this)">Overview</div>
+    <div class="tab active" data-tab="aq" onclick="switchTab(this)">Action Queue <span class="tc" id="tc-aq">0</span></div>
     <div class="tab" data-tab="items" onclick="switchTab(this)">All Items <span class="tc" id="tc-items">0</span></div>
     <div class="tab" data-tab="pending" onclick="switchTab(this)">Pending Approval <span class="tc" id="tc-pending">0</span></div>
     <div class="tab" data-tab="rejected" onclick="switchTab(this)">Rejected / Reverify <span class="tc" id="tc-rejected">0</span></div>
-    <div class="tab" data-tab="sla" onclick="switchTab(this)">SLA Flags <span class="tc" id="tc-sla">0</span></div>
-    <div class="tab" data-tab="vendors" onclick="switchTab(this)">Vendor Issues <span class="tc" id="tc-vendors">0</span></div>
+    <div class="tab" data-tab="reports" onclick="switchTab(this)">Reports</div>
     <div class="tab" data-tab="completed" onclick="switchTab(this)">Completed <span class="tc" id="tc-completed">0</span></div>
   </div>
 
-  <!-- OVERVIEW -->
-  <div class="panel active" id="panel-overview">
-    <div class="insight" id="insight-box"></div>
-    <div id="overview-buckets"></div>
+  <!-- ACTION QUEUE -->
+  <div class="panel active" id="panel-aq">
+    <div class="aq-summary" id="aq-summary"></div>
+    <div id="aq-filters-wrap"></div>
+    <div class="item-list" id="list-aq"></div>
   </div>
 
   <!-- ALL ITEMS -->
@@ -373,11 +422,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
     <div class="item-list" id="list-rejected"></div>
   </div>
 
-  <!-- SLA -->
-  <div class="panel" id="panel-sla"><div class="item-list" id="list-sla"></div></div>
-
-  <!-- VENDORS -->
-  <div class="panel" id="panel-vendors"><div id="vendor-cards"></div></div>
+  <!-- REPORTS -->
+  <div class="panel" id="panel-reports"></div>
 
   <!-- COMPLETED -->
   <div class="panel" id="panel-completed">
@@ -395,8 +441,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 </div>
 
 <script>
+// ── State ─────────────────────────────────────────────────────────
 var D={activeItems:[],pendingItems:[],rejectedItems:[],completedItems:[],vendorFlags:[],approvalBreakdown:{},stageCounts:{},totalRequests:0};
-var STAGE_FILTER='all',urg_f='all',appr_f='all',rj_f='all',cmp_f='all';
+var STAGE_FILTER='all',urg_f='all',appr_f='all',rj_f='all',cmp_f='all',ACT_FILTER='all';
+var MY_VIEW='';
 var TIMER=null,REFRESH_MS=30000;
 
 var STAGES=[
@@ -414,13 +462,52 @@ var STAGES=[
 var SL={};STAGES.forEach(function(s){SL[s.key]=s;});
 var URG_RANK={CRITICAL:1,HIGH:2,NORMAL:3,PLANNED:4};
 
+// Action definitions — determines what a purchaser should do next for each item
+var ACTIONS={
+  sla:      {key:'sla',      cssKey:'sla',      label:'Past SLA',          icon:'🚨',pri:0},
+  no_vendor:{key:'no_vendor',cssKey:'vendor',   label:'Assign Vendor',     icon:'🏪',pri:1},
+  pend_req: {key:'pend_req', cssKey:'pend_req', label:'Needs Requester',   icon:'👤',pri:2},
+  start_src:{key:'start_src',cssKey:'sourcing', label:'Start Sourcing',    icon:'🔎',pri:3},
+  get_quote:{key:'get_quote',cssKey:'quote',    label:'Get Quote',         icon:'💬',pri:4},
+  raise_po: {key:'raise_po', cssKey:'po',       label:'Raise PO',          icon:'📄',pri:5},
+  dispatch: {key:'dispatch', cssKey:'dispatch', label:'Awaiting Dispatch', icon:'📦',pri:6},
+  transit:  {key:'transit',  cssKey:'transit',  label:'Monitor Transit',   icon:'🚚',pri:7}
+};
+
+function getItemAction(r){
+  if(r.slaFlag)return ACTIONS.sla;
+  if(!r.vendor&&r.statusClass!=='pending_requester')return ACTIONS.no_vendor;
+  var m={pending_requester:ACTIONS.pend_req,pending_sourcing:ACTIONS.start_src,sourcing:ACTIONS.get_quote,quotation:ACTIONS.raise_po,ordered:ACTIONS.dispatch,paid:ACTIONS.dispatch,in_transit:ACTIONS.transit};
+  return m[r.statusClass]||null;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
 function esc(s){var d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;}
 function getUrg(v){if(!v)return'NORMAL';v=v.toLowerCase();if(v.indexOf('critical')>=0)return'CRITICAL';if(v.indexOf('high')>=0)return'HIGH';if(v.indexOf('planned')>=0||v.indexOf('future')>=0)return'PLANNED';return'NORMAL';}
-function urgL(v){return getUrg(v).toLowerCase();}
 function timeAgo(ds){if(!ds)return'';try{var d,p=ds.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);if(p)d=new Date(p[3],p[2]-1,p[1],p[4],p[5],p[6]);else d=new Date(ds);if(isNaN(d.getTime()))return'';var m=Math.floor((Date.now()-d.getTime())/60000);if(m<60)return m+'m ago';if(m<1440)return Math.floor(m/60)+'h ago';return Math.floor(m/1440)+'d ago';}catch(e){return'';}}
 function pct(n,t){return t?Math.round(n/t*100)+'%':'0%';}
 function sum(arr){return arr.reduce(function(a,b){return a+b;},0);}
+function parseAmt(v){if(!v)return 0;var n=parseFloat(String(v).replace(/[^0-9.]/g,''));return isNaN(n)?0:n;}
+function fmtCurrency(n){if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return Math.round(n).toLocaleString();}
 
+// ── My View filter ────────────────────────────────────────────────
+function filterMine(items){
+  if(!MY_VIEW)return items;
+  return items.filter(function(r){
+    return((r.email||'').toLowerCase().indexOf(MY_VIEW)>=0)||((r.team||'').toLowerCase().indexOf(MY_VIEW)>=0);
+  });
+}
+function setMyView(val){
+  MY_VIEW=val.trim().toLowerCase();
+  document.getElementById('mv-clear').style.display=MY_VIEW?'block':'none';
+  var banner=document.getElementById('mv-banner');
+  if(MY_VIEW){banner.style.display='flex';document.getElementById('mv-who').textContent=val.trim();}
+  else{banner.style.display='none';}
+  renderActionQueue();renderAllItems();renderPending();renderRejected();renderCompleted();
+}
+function clearMyView(){document.getElementById('mv-input').value='';setMyView('');}
+
+// ── Data load ─────────────────────────────────────────────────────
 function loadData(){
   var b=document.getElementById('rbtn');b.classList.add('spinning');document.getElementById('rbtn-icon').textContent='↻';
   google.script.run.withSuccessHandler(onData).withFailureHandler(onErr).getDashboardData();
@@ -432,15 +519,16 @@ function onData(r){
   D=r;D.activeItems=D.activeItems||[];D.pendingItems=D.pendingItems||[];
   D.rejectedItems=D.rejectedItems||[];D.completedItems=D.completedItems||[];
   D.vendorFlags=D.vendorFlags||[];D.approvalBreakdown=D.approvalBreakdown||{};D.stageCounts=D.stageCounts||{};
-  document.getElementById('ts').textContent='Updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  document.getElementById('ts').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   renderApproval();renderStats();renderPipeline();buildTeamFilter();
-  renderOverview();renderAllItems();renderPending();renderRejected();renderSLA();renderVendors();renderCompleted();
+  renderActionQueue();renderAllItems();renderPending();renderRejected();renderReports();renderCompleted();
   updateTabs();scheduleNext();
 }
-function onErr(e){var b=document.getElementById('rbtn');b.classList.remove('spinning');scheduleNext(15000);}
+function onErr(){var b=document.getElementById('rbtn');b.classList.remove('spinning');scheduleNext(15000);}
 function doRefresh(){if(TIMER)clearTimeout(TIMER);loadData();}
 function scheduleNext(ms){if(TIMER)clearTimeout(TIMER);TIMER=setTimeout(loadData,ms||REFRESH_MS);}
 
+// ── Tabs ──────────────────────────────────────────────────────────
 function switchTab(el){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});el.classList.add('active');
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
@@ -448,33 +536,36 @@ function switchTab(el){
 }
 function updateTabs(){
   var sla=D.activeItems.filter(function(r){return r.slaFlag;}).length;
+  var aqItems=D.activeItems.filter(function(r){return getItemAction(r)!==null;});
+  document.getElementById('tc-aq').textContent=aqItems.length;
   document.getElementById('tc-items').textContent=D.activeItems.length;
   document.getElementById('tc-pending').textContent=D.pendingItems.length;
   document.getElementById('tc-rejected').textContent=D.rejectedItems.length;
-  document.getElementById('tc-sla').textContent=sla;
-  document.getElementById('tc-vendors').textContent=D.vendorFlags.length;
   document.getElementById('tc-completed').textContent=D.completedItems.length;
-  ['sla','rejected','vendors'].forEach(function(t){
+  ['pending','rejected'].forEach(function(t){
     var el=document.querySelector('[data-tab="'+t+'"]');
-    var count=t==='sla'?sla:t==='rejected'?D.rejectedItems.length:D.vendorFlags.length;
+    var count=t==='pending'?D.pendingItems.length:D.rejectedItems.length;
     if(count>0)el.classList.add('has-alert');else el.classList.remove('has-alert');
   });
+  // flag aq tab if any SLA breaches
+  var aqTab=document.querySelector('[data-tab="aq"]');
+  if(sla>0)aqTab.classList.add('has-alert');else aqTab.classList.remove('has-alert');
 }
+function goTab(key){var el=document.querySelector('[data-tab="'+key+'"]');if(el)switchTab(el);}
 
+// ── Approval Pipeline ─────────────────────────────────────────────
 function renderApproval(){
   var ab=D.approvalBreakdown,total=ab.total||0;
   var active=D.activeItems.length;
   var completed=D.completedItems.filter(function(r){return r.statusClass==='handed_over'||r.statusClass==='delivered';}).length;
-  var maxVal=Math.max(total,1);
-
   var nodes=[
-    {num:total,          lbl:'Submitted',     sub:'Total requests',          color:'var(--text)',  icon:'📝'},
-    {num:ab.deptApproved||0,lbl:'Dept Approved',sub:pct(ab.deptApproved||0,total)+' approved',   color:'var(--yellow)',icon:'🏢'},
-    {num:ab.founderApproved||0,lbl:'Founder Approved',sub:pct(ab.founderApproved||0,total)+' approved',color:'var(--green)',icon:'✅'},
-    {num:active,         lbl:'Active',         sub:'Working items',           color:'var(--cyan)',  icon:'⚡'},
-    {num:completed,      lbl:'Completed',      sub:'Delivered & handed over', color:'var(--sky)',   icon:'🎯'}
+    {num:total,              lbl:'Submitted',       sub:'Total requests',         color:'var(--text)',  icon:'📝'},
+    {num:ab.deptApproved||0, lbl:'Dept Approved',   sub:pct(ab.deptApproved||0,total)+' approved',     color:'var(--yellow)',icon:'🏢'},
+    {num:ab.founderApproved||0,lbl:'Founder Approved',sub:pct(ab.founderApproved||0,total)+' approved',color:'var(--green)', icon:'✅'},
+    {num:active,             lbl:'Active',           sub:'In pipeline',            color:'var(--cyan)',  icon:'⚡'},
+    {num:completed,          lbl:'Completed',        sub:'Delivered & handed over',color:'var(--sky)',   icon:'🎯'}
   ];
-
+  var maxVal=Math.max.apply(null,nodes.map(function(n){return n.num;}).concat([1]));
   document.getElementById('appr-nodes').innerHTML=nodes.map(function(n){
     var barW=Math.max(4,Math.round(n.num/maxVal*100));
     return '<div class="appr-node">'+
@@ -485,7 +576,6 @@ function renderApproval(){
       '<div class="an-bar-track"><div class="an-bar" style="width:'+barW+'%;background:'+n.color+'"></div></div>'+
     '</div>';
   }).join('');
-
   var chips=[];
   if((ab.deptPending||0)>0)chips.push('<span class="chip chip-yellow">⏳ '+(ab.deptPending||0)+' Pending Dept</span>');
   if((ab.founderPending||0)>0)chips.push('<span class="chip chip-amber">⏳ '+(ab.founderPending||0)+' Pending Founder</span>');
@@ -497,22 +587,21 @@ function renderApproval(){
   document.getElementById('appr-chips').innerHTML=chips.join('')||'<span class="chip chip-dim">No exceptions</span>';
 }
 
+// ── Stats ─────────────────────────────────────────────────────────
 function renderStats(){
   var items=D.activeItems,sc=D.stageCounts;
   var crit=items.filter(function(r){return getUrg(r.urgency)==='CRITICAL';}).length;
   var sla=items.filter(function(r){return r.slaFlag;}).length;
   var noV=items.filter(function(r){return !r.vendor&&r.statusClass!=='pending_requester';}).length;
-  var pend=(sc.pending_requester||0)+(sc.pending_sourcing||0)+(sc.sourcing||0);
-
   var stats=[
-    {icon:'📊',l:'Active',       v:items.length, color:'var(--text)',     cls:''},
-    {icon:'🔴',l:'Critical',     v:crit,         color:'var(--red)',      cls:crit>0?'s-alert':''},
-    {icon:'🕐',l:'Pending/Src',  v:pend,         color:'var(--yellow)',   cls:pend>0?'s-warn':''},
-    {icon:'💬',l:'Quotation',    v:sc.quotation||0,color:'var(--blue)',   cls:'s-info'},
-    {icon:'🚚',l:'In Transit',   v:sc.in_transit||0,color:'var(--purple)',cls:''},
-    {icon:'⚠️',l:'SLA Breaches', v:sla,          color:'var(--red)',      cls:sla>0?'s-alert':''},
-    {icon:'🏪',l:'No Vendor',    v:noV,          color:'var(--amber)',    cls:noV>0?'s-warn':''},
-    {icon:'⏸',l:'Pend Approval',v:D.pendingItems.length,color:'var(--yellow)',cls:D.pendingItems.length>0?'s-warn':''}
+    {icon:'📊',l:'Active',        v:items.length,          color:'var(--text)',   cls:''},
+    {icon:'🚨',l:'Critical',      v:crit,                  color:'var(--red)',    cls:crit>0?'s-alert':''},
+    {icon:'🕐',l:'Pending/Src',   v:(sc.pending_requester||0)+(sc.pending_sourcing||0)+(sc.sourcing||0),color:'var(--yellow)',cls:'s-warn'},
+    {icon:'💬',l:'Quotation',     v:sc.quotation||0,       color:'var(--blue)',   cls:'s-info'},
+    {icon:'🚚',l:'In Transit',    v:sc.in_transit||0,      color:'var(--purple)', cls:''},
+    {icon:'⚠️',l:'SLA Breaches',  v:sla,                   color:'var(--red)',    cls:sla>0?'s-alert':''},
+    {icon:'🏪',l:'No Vendor',     v:noV,                   color:'var(--amber)',  cls:noV>0?'s-warn':''},
+    {icon:'⏸',l:'Pend Approval', v:D.pendingItems.length, color:'var(--yellow)', cls:D.pendingItems.length>0?'s-warn':''}
   ];
   document.getElementById('stat-row').innerHTML=stats.map(function(s,i){
     return '<div class="stat-card '+s.cls+'" style="animation-delay:'+(i*.04)+'s">'+
@@ -523,44 +612,40 @@ function renderStats(){
   }).join('');
 }
 
+// ── Pipeline stages ───────────────────────────────────────────────
 function renderPipeline(){
   var sc=D.stageCounts,items=D.activeItems;
   var total=sum(STAGES.map(function(s){return sc[s.key]||0;}));
   var slaBySt={};
   items.forEach(function(r){if(r.slaFlag)slaBySt[r.statusClass]=(slaBySt[r.statusClass]||0)+1;});
-
   var html=STAGES.map(function(s,i){
     var cnt=sc[s.key]||0;
     var slaC=slaBySt[s.key]||0;
     var barW=total>0?Math.max(0,Math.round(cnt/total*100)):0;
+    var isEmpty=cnt===0;
     var isAct=STAGE_FILTER===s.key;
-    return '<div class="stage-card sc-'+s.key+(isAct?' active':'')+'" onclick="setStageF(\''+s.key+'\')">'+
+    return '<div class="stage-card sc-'+s.key+(isEmpty?' empty':'')+(isAct?' active':'')+'" onclick="setStageF(\''+s.key+'\')">'+
       '<span class="sc-icon">'+s.icon+'</span>'+
       '<div class="sc-num">'+cnt+'</div>'+
       '<div class="sc-lbl">'+esc(s.short)+'</div>'+
-      '<div class="sc-bar-track"><div class="sc-bar" style="width:'+barW+'%;background:currentColor;opacity:.55"></div></div>'+
+      '<div class="sc-bar-track"><div class="sc-bar" style="width:'+barW+'%;background:currentColor;opacity:.5"></div></div>'+
       '<div class="sc-sla'+(slaC>0?' show':'')+'">'+slaC+'</div>'+
     '</div>';
   }).join('');
-
   html+='<div class="stage-card sc-pend_appr" onclick="goTab(\'pending\')" style="border-style:dashed">'+
     '<span class="sc-icon">⏸</span>'+
     '<div class="sc-num">'+D.pendingItems.length+'</div>'+
     '<div class="sc-lbl">Pend Appr</div>'+
-    '<div class="sc-bar-track"><div class="sc-bar" style="width:30%;background:currentColor;opacity:.45"></div></div>'+
+    '<div class="sc-bar-track"><div class="sc-bar" style="width:30%;background:currentColor;opacity:.4"></div></div>'+
   '</div>';
-
   document.getElementById('pipe-stages').innerHTML=html;
 }
-
 function setStageF(s){
   STAGE_FILTER=(STAGE_FILTER===s)?'all':s;
   renderPipeline();
   document.getElementById('stage-f').value=STAGE_FILTER;
   goTab('items');renderAllItems();
 }
-function goTab(key){var el=document.querySelector('[data-tab="'+key+'"]');if(el)switchTab(el);}
-
 function buildTeamFilter(){
   var t={};D.activeItems.forEach(function(r){if(r.team)t[r.team]=true;});
   var l=Object.keys(t).sort();var s=document.getElementById('team-f');
@@ -568,32 +653,19 @@ function buildTeamFilter(){
   s.style.display=l.length>1?'':'none';
 }
 
+// ── Filter setters ────────────────────────────────────────────────
 function setUrgF(btn){btn.parentElement.querySelectorAll('[data-urg]').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');urg_f=btn.getAttribute('data-urg');renderAllItems();}
 function setApprF(btn){btn.parentElement.querySelectorAll('[data-appr]').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');appr_f=btn.getAttribute('data-appr');renderPending();}
 function setRjF(btn){btn.parentElement.querySelectorAll('[data-rj]').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');rj_f=btn.getAttribute('data-rj');renderRejected();}
 function setCmpF(btn){btn.parentElement.querySelectorAll('[data-cmp]').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');cmp_f=btn.getAttribute('data-cmp');renderCompleted();}
+function setActF(btn){btn.parentElement.querySelectorAll('[data-act]').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');ACT_FILTER=btn.getAttribute('data-act');renderActionQueue();}
 
+// ── Card helpers ──────────────────────────────────────────────────
 function cell(l,v,mono){if(!v)return'';return'<div><div class="dc-label">'+esc(l)+'</div><div class="dc-val'+(mono?' mono':'')+'">'+esc(v)+'</div></div>';}
 function toggleBody(id){var el=document.getElementById(id);if(el)el.classList.toggle('open');}
 
-function itemCard(r,i){
-  var u=getUrg(r.urgency),ul=u.toLowerCase();
-  var st=SL[r.statusClass]||{icon:'📋',short:r.statusClass||''};
-  var hasSla=!!r.slaFlag;
-  var id='cb-'+i+'-'+Math.random().toString(36).slice(2,5);
-
-  var tags='<span class="badge '+ul+'">'+u+'</span>'+
-    '<span class="spill sp-'+esc(r.statusClass)+'">'+esc(st.icon)+' '+esc(st.short)+'</span>'+
-    (r.team?'<span class="team-tag">'+esc(r.team)+'</span>':'');
-
-  var meta=(r.email?'<span>'+esc(r.email.split('@')[0])+'</span>':'')+
-    (r.vendor?'<span>→ '+esc(r.vendor)+'</span>':'<span class="no-vendor">No vendor</span>')+
-    (r.estimate?'<span>'+esc(r.estimate)+'</span>':'')+
-    (r.approvalDate?'<span>Approved: '+esc(r.approvalDate)+'</span>':'')+
-    (r.orderedDate?'<span>Ordered: '+esc(r.orderedDate)+'</span>':'')+
-    (r.eta?'<span class="eta-v">ETA: '+esc(r.eta)+'</span>':'');
-
-  var detail='<div class="detail-grid">'+
+function itemDetail(r){
+  return '<div class="detail-grid">'+
     cell('PR ID',r.prId,true)+cell('Item',r.item,false)+cell('Quantity',r.quantity,true)+
     cell('Estimate',r.estimate,true)+cell('Part Number',r.partNumber,true)+cell('Vendor',r.vendor,false)+
     cell('Category',r.category,false)+cell('Team',r.team,false)+cell('Urgency',r.urgency,false)+
@@ -601,44 +673,127 @@ function itemCard(r,i){
     cell('Ordered Date',r.orderedDate,true)+cell('ETA',r.eta,true)+cell('Lead Time',r.leadTime,true)+
     cell('Dept Approval',r.managerApproval,false)+cell('Founder Approval',r.finalApproval,false)+
   '</div>'+(r.justification?'<div class="just-full">'+esc(r.justification)+'</div>':'');
+}
 
-  return '<div class="item-card urg-'+ul+(hasSla?' has-sla':'')+(u==='CRITICAL'?' is-critical':'')+'" style="animation-delay:'+(i*.018)+'s">'+
+// ── Action Queue ──────────────────────────────────────────────────
+function renderActionQueue(){
+  var items=filterMine(D.activeItems);
+  var tagged=items.map(function(r){return{r:r,action:getItemAction(r)};}).filter(function(x){return x.action;});
+
+  // Summary counters
+  var slaCount=tagged.filter(function(x){return x.action.key==='sla';}).length;
+  var noVCount=tagged.filter(function(x){return x.action.key==='no_vendor';}).length;
+  var critCount=items.filter(function(r){return getUrg(r.urgency)==='CRITICAL';}).length;
+
+  document.getElementById('aq-summary').innerHTML=[
+    {icon:'🚨',num:slaCount,  lbl:'Past SLA',    color:'var(--red)',   cls:slaCount>0?'aqs-alert':''},
+    {icon:'📊',num:tagged.length,lbl:'Need Action',color:'var(--text)', cls:''},
+    {icon:'🔴',num:critCount, lbl:'Critical',    color:'var(--red)',   cls:critCount>0?'aqs-alert':''},
+    {icon:'🏪',num:noVCount,  lbl:'No Vendor',   color:'var(--amber)', cls:noVCount>0?'aqs-warn':''},
+  ].map(function(c){
+    return '<div class="aqs-card '+c.cls+'">'+
+      '<span class="aqs-icon">'+c.icon+'</span>'+
+      '<div><div class="aqs-num" style="color:'+c.color+'">'+c.num+'</div><div class="aqs-lbl">'+c.lbl+'</div></div>'+
+    '</div>';
+  }).join('');
+
+  // Build filter buttons with counts
+  var counts={all:tagged.length};
+  tagged.forEach(function(x){counts[x.action.key]=(counts[x.action.key]||0)+1;});
+  var filterDefs=[
+    {key:'all',      label:'All'},
+    {key:'sla',      label:'🚨 Past SLA'},
+    {key:'no_vendor',label:'🏪 No Vendor'},
+    {key:'pend_req', label:'👤 Needs Requester'},
+    {key:'start_src',label:'🔎 Start Sourcing'},
+    {key:'get_quote',label:'💬 Get Quote'},
+    {key:'raise_po', label:'📄 Raise PO'},
+    {key:'dispatch', label:'📦 Dispatching'},
+    {key:'transit',  label:'🚚 In Transit'},
+  ];
+  var filtersHtml='<div class="filters" style="margin-bottom:14px">';
+  filterDefs.forEach(function(f){
+    var cnt=counts[f.key]||0;
+    if(f.key!=='all'&&cnt===0)return;
+    filtersHtml+='<button class="fbtn'+(ACT_FILTER===f.key?' active':'')+'" data-act="'+f.key+'" onclick="setActF(this)">'+
+      f.label+(f.key!=='all'?' <span style="opacity:.55;font-size:11px">'+cnt+'</span>':' <span style="opacity:.55;font-size:11px">'+tagged.length+'</span>')+
+    '</button>';
+  });
+  filtersHtml+='</div>';
+  document.getElementById('aq-filters-wrap').innerHTML=filtersHtml;
+
+  // Apply filter and sort
+  var filtered=ACT_FILTER==='all'?tagged:tagged.filter(function(x){return x.action.key===ACT_FILTER;});
+  filtered.sort(function(a,b){
+    if(a.action.pri!==b.action.pri)return a.action.pri-b.action.pri;
+    var au=URG_RANK[getUrg(a.r.urgency)]||3,bu=URG_RANK[getUrg(b.r.urgency)]||3;
+    if(au!==bu)return au-bu;
+    return(b.r.daysSinceApproval||0)-(a.r.daysSinceApproval||0);
+  });
+
+  document.getElementById('list-aq').innerHTML=filtered.length
+    ?filtered.map(function(x,i){return actionCard(x.r,x.action,i);}).join('')
+    :emptyHtml('✅','No action items','All active items are on track');
+}
+
+function actionCard(r,action,i){
+  var u=getUrg(r.urgency),ul=u.toLowerCase();
+  var st=SL[r.statusClass]||{icon:'📋',short:r.statusClass||''};
+  var id='aq-'+i+'-'+Math.random().toString(36).slice(2,5);
+  var days=r.daysSinceApproval>=0?r.daysSinceApproval+'d waiting':timeAgo(r.timestamp);
+  var dayCls=r.slaFlag?'overdue':r.daysSinceApproval>5?'warn':'';
+
+  var tags='<span class="action-pill ap-'+action.cssKey+'">'+action.icon+' '+action.label+'</span>'+
+    '<span class="badge '+ul+'">'+u+'</span>'+
+    '<span class="spill sp-'+esc(r.statusClass)+'">'+esc(st.icon)+' '+esc(st.short)+'</span>'+
+    (r.team?'<span class="team-tag">'+esc(r.team)+'</span>':'');
+
+  var meta=(r.email?'<span>'+esc(r.email.split('@')[0])+'</span>':'')+
+    (r.vendor?'<span>→ '+esc(r.vendor)+'</span>':'<span class="no-vendor">No vendor</span>')+
+    (r.estimate?'<span>'+esc(r.estimate)+'</span>':'')+
+    (r.approvalDate?'<span>Appr: '+esc(r.approvalDate)+'</span>':'')+
+    (r.eta?'<span class="eta-v">ETA: '+esc(r.eta)+'</span>':'');
+
+  return '<div class="item-card urg-'+ul+(r.slaFlag?' has-sla':'')+(u==='CRITICAL'?' is-critical':'')+'" style="animation-delay:'+(i*.016)+'s">'+
     '<div class="item-hdr" onclick="toggleBody(\''+id+'\')">'+
       '<div>'+
         '<div class="item-tags">'+tags+'</div>'+
         '<div class="item-name">'+esc(r.item||'—')+(r.quantity?'<span class="qty">×'+esc(r.quantity)+'</span>':'')+(r.prId?'<span class="pr">'+esc(r.prId)+'</span>':'')+'</div>'+
         (r.justification?'<div class="item-just">'+esc(r.justification)+'</div>':'')+
-        (hasSla?'<div class="sla-flag '+esc(r.slaFlagType)+'">⚠ '+esc(r.slaFlag)+'</div>':'')+
+        (r.slaFlag?'<div class="sla-flag '+esc(r.slaFlagType)+'">⚠ '+esc(r.slaFlag)+'</div>':'')+
+        '<div class="item-meta">'+meta+'</div>'+
+      '</div>'+
+      '<div class="item-time '+dayCls+'">'+days+'</div>'+
+    '</div>'+
+    '<div class="item-body" id="'+id+'">'+itemDetail(r)+'</div>'+
+  '</div>';
+}
+
+// ── All Items ─────────────────────────────────────────────────────
+function itemCard(r,i){
+  var u=getUrg(r.urgency),ul=u.toLowerCase();
+  var st=SL[r.statusClass]||{icon:'📋',short:r.statusClass||''};
+  var id='cb-'+i+'-'+Math.random().toString(36).slice(2,5);
+  var tags='<span class="badge '+ul+'">'+u+'</span>'+
+    '<span class="spill sp-'+esc(r.statusClass)+'">'+esc(st.icon)+' '+esc(st.short)+'</span>'+
+    (r.team?'<span class="team-tag">'+esc(r.team)+'</span>':'');
+  var meta=(r.email?'<span>'+esc(r.email.split('@')[0])+'</span>':'')+
+    (r.vendor?'<span>→ '+esc(r.vendor)+'</span>':'<span class="no-vendor">No vendor</span>')+
+    (r.estimate?'<span>'+esc(r.estimate)+'</span>':'')+
+    (r.approvalDate?'<span>Approved: '+esc(r.approvalDate)+'</span>':'')+
+    (r.eta?'<span class="eta-v">ETA: '+esc(r.eta)+'</span>':'');
+  return '<div class="item-card urg-'+ul+(r.slaFlag?' has-sla':'')+(u==='CRITICAL'?' is-critical':'')+'" style="animation-delay:'+(i*.016)+'s">'+
+    '<div class="item-hdr" onclick="toggleBody(\''+id+'\')">'+
+      '<div>'+
+        '<div class="item-tags">'+tags+'</div>'+
+        '<div class="item-name">'+esc(r.item||'—')+(r.quantity?'<span class="qty">×'+esc(r.quantity)+'</span>':'')+(r.prId?'<span class="pr">'+esc(r.prId)+'</span>':'')+'</div>'+
+        (r.justification?'<div class="item-just">'+esc(r.justification)+'</div>':'')+
+        (r.slaFlag?'<div class="sla-flag '+esc(r.slaFlagType)+'">⚠ '+esc(r.slaFlag)+'</div>':'')+
         '<div class="item-meta">'+meta+'</div>'+
       '</div>'+
       '<div class="item-time">'+(r.daysSinceApproval>=0?r.daysSinceApproval+'d since appr.':timeAgo(r.timestamp))+'</div>'+
     '</div>'+
-    '<div class="item-body" id="'+id+'">'+detail+'</div>'+
-  '</div>';
-}
-
-function pendingCard(r,i){
-  var u=getUrg(r.urgency);
-  var dCls=r.approvalState==='dept_rejected'?'as-rej':r.approvalState==='pending_founder'?'as-ok':'as-pend';
-  var dLbl=r.approvalState==='dept_rejected'?'✕ Dept Rejected':r.approvalState==='pending_founder'?'✓ Dept OK':'⏳ Needs Dept';
-  var id='pc-'+i;
-  var detail='<div class="detail-grid">'+cell('PR ID',r.prId,true)+cell('Team',r.team,false)+cell('Estimate',r.estimate,true)+cell('Vendor',r.vendor,false)+cell('Category',r.category,false)+cell('Urgency',r.urgency,false)+cell('Dept Approval',r.managerApproval||'Pending',false)+cell('Founder Approval',r.finalApproval||'Pending',false)+'</div>'+(r.justification?'<div class="just-full">'+esc(r.justification)+'</div>':'');
-
-  return '<div class="item-card urg-'+u.toLowerCase()+'" style="animation-delay:'+(i*.018)+'s">'+
-    '<div class="item-hdr" onclick="toggleBody(\''+id+'\')">'+
-      '<div>'+
-        '<div class="item-tags">'+
-          '<span class="badge '+u.toLowerCase()+'">'+u+'</span>'+
-          '<span class="appr-step '+dCls+'">'+dLbl+'</span>'+
-          (r.approvalState!=='dept_rejected'?'<span class="as-arr">→</span><span class="appr-step as-founder">⏳ Needs Founder</span>':'')+
-          (r.team?'<span class="team-tag">'+esc(r.team)+'</span>':'')+
-        '</div>'+
-        '<div class="item-name">'+esc(r.item||'—')+(r.prId?'<span class="pr">'+esc(r.prId)+'</span>':'')+'</div>'+
-        '<div class="item-meta">'+(r.email?'<span>'+esc(r.email.split('@')[0])+'</span>':'')+(r.vendor?'<span>→ '+esc(r.vendor)+'</span>':'')+(r.estimate?'<span>'+esc(r.estimate)+'</span>':'')+'</div>'+
-      '</div>'+
-      '<div class="item-time">'+timeAgo(r.timestamp)+'</div>'+
-    '</div>'+
-    '<div class="item-body" id="'+id+'">'+detail+'</div>'+
+    '<div class="item-body" id="'+id+'">'+itemDetail(r)+'</div>'+
   '</div>';
 }
 
@@ -646,7 +801,7 @@ function renderAllItems(){
   var q=(document.getElementById('q-items').value||'').toLowerCase();
   var team=document.getElementById('team-f').value;
   var stage=document.getElementById('stage-f').value;
-  var filtered=D.activeItems.filter(function(r){
+  var filtered=filterMine(D.activeItems).filter(function(r){
     if(urg_f!=='all'&&getUrg(r.urgency).toLowerCase()!==urg_f)return false;
     if(team!=='all'&&(r.team||'').toLowerCase()!==team.toLowerCase())return false;
     if(stage!=='all'&&r.statusClass!==stage)return false;
@@ -660,9 +815,35 @@ function renderAllItems(){
   document.getElementById('footer').textContent=filtered.length+' of '+D.activeItems.length+' active items · Auto-refresh 30s';
 }
 
+// ── Pending Approval ──────────────────────────────────────────────
+function pendingCard(r,i){
+  var u=getUrg(r.urgency);
+  var dCls=r.approvalState==='dept_rejected'?'as-rej':r.approvalState==='pending_founder'?'as-ok':'as-pend';
+  var dLbl=r.approvalState==='dept_rejected'?'✕ Dept Rejected':r.approvalState==='pending_founder'?'✓ Dept OK':'⏳ Needs Dept';
+  var id='pc-'+i;
+  return '<div class="item-card urg-'+u.toLowerCase()+'" style="animation-delay:'+(i*.016)+'s">'+
+    '<div class="item-hdr" onclick="toggleBody(\''+id+'\')">'+
+      '<div>'+
+        '<div class="item-tags">'+
+          '<span class="badge '+u.toLowerCase()+'">'+u+'</span>'+
+          '<span class="appr-step '+dCls+'">'+dLbl+'</span>'+
+          (r.approvalState!=='dept_rejected'?'<span class="as-arr">→</span><span class="appr-step as-founder">⏳ Needs Founder</span>':'')+
+          (r.team?'<span class="team-tag">'+esc(r.team)+'</span>':'')+
+        '</div>'+
+        '<div class="item-name">'+esc(r.item||'—')+(r.prId?'<span class="pr">'+esc(r.prId)+'</span>':'')+'</div>'+
+        '<div class="item-meta">'+(r.email?'<span>'+esc(r.email.split('@')[0])+'</span>':'')+(r.vendor?'<span>→ '+esc(r.vendor)+'</span>':'')+(r.estimate?'<span>'+esc(r.estimate)+'</span>':'')+'</div>'+
+      '</div>'+
+      '<div class="item-time">'+timeAgo(r.timestamp)+'</div>'+
+    '</div>'+
+    '<div class="item-body" id="'+id+'">'+
+      '<div class="detail-grid">'+cell('PR ID',r.prId,true)+cell('Team',r.team,false)+cell('Estimate',r.estimate,true)+cell('Vendor',r.vendor,false)+cell('Category',r.category,false)+cell('Urgency',r.urgency,false)+cell('Dept Approval',r.managerApproval||'Pending',false)+cell('Founder Approval',r.finalApproval||'Pending',false)+'</div>'+
+      (r.justification?'<div class="just-full">'+esc(r.justification)+'</div>':'')+
+    '</div>'+
+  '</div>';
+}
 function renderPending(){
   var q=(document.getElementById('q-pending').value||'').toLowerCase();
-  var filtered=D.pendingItems.filter(function(r){
+  var filtered=filterMine(D.pendingItems).filter(function(r){
     if(appr_f!=='all'&&r.approvalState!==appr_f)return false;
     if(q){var h=[r.item,r.vendor,r.email,r.prId,r.team].map(function(v){return(v||'').toLowerCase();}).join(' ');if(h.indexOf(q)<0)return false;}
     return true;
@@ -670,139 +851,197 @@ function renderPending(){
   document.getElementById('list-pending').innerHTML=filtered.length?filtered.map(pendingCard).join(''):emptyHtml('✓','No items pending approval','All requests have been reviewed');
 }
 
+// ── Rejected / Reverify ───────────────────────────────────────────
 function renderRejected(){
   var q=(document.getElementById('q-rejected').value||'').toLowerCase();
-  var filtered=D.rejectedItems.filter(function(r){
+  var filtered=filterMine(D.rejectedItems).filter(function(r){
     if(rj_f!=='all'&&r.statusClass!==rj_f)return false;
     if(q){var h=[r.item,r.vendor,r.email,r.prId,r.team].map(function(v){return(v||'').toLowerCase();}).join(' ');if(h.indexOf(q)<0)return false;}
     return true;
   });
   document.getElementById('list-rejected').innerHTML=filtered.length?filtered.map(function(r,i){
     var u=getUrg(r.urgency);var isRev=r.statusClass==='reverify';var id='rj-'+i;
-    var detail='<div class="detail-grid">'+cell('PR ID',r.prId,true)+cell('Team',r.team,false)+cell('Estimate',r.estimate,true)+cell('Vendor',r.vendor,false)+cell('Dept Approval',r.managerApproval||'—',false)+cell('Founder Approval',r.finalApproval||'—',false)+'</div>'+(r.justification?'<div class="just-full">'+esc(r.justification)+'</div>':'');
-    return '<div class="item-card urg-'+u.toLowerCase()+' is-critical" style="animation-delay:'+(i*.018)+'s">'+
+    return '<div class="item-card urg-'+u.toLowerCase()+' is-critical" style="animation-delay:'+(i*.016)+'s">'+
       '<div class="item-hdr" onclick="toggleBody(\''+id+'\')">'+
-        '<div><div class="item-tags"><span class="badge '+u.toLowerCase()+'">'+u+'</span><span class="spill sp-'+r.statusClass+'">'+(isRev?'↺ Reverify':'✕ Rejected')+'</span>'+(r.team?'<span class="team-tag">'+esc(r.team)+'</span>':'')+'</div>'+
+        '<div><div class="item-tags">'+
+          '<span class="badge '+u.toLowerCase()+'">'+u+'</span>'+
+          '<span class="spill sp-'+r.statusClass+'">'+(isRev?'↺ Reverify':'✕ Rejected')+'</span>'+
+          (r.team?'<span class="team-tag">'+esc(r.team)+'</span>':'')+
+        '</div>'+
         '<div class="item-name">'+esc(r.item||'—')+(r.prId?'<span class="pr">'+esc(r.prId)+'</span>':'')+'</div>'+
         '<div class="item-meta">'+(r.email?'<span>'+esc(r.email.split('@')[0])+'</span>':'')+(r.estimate?'<span>'+esc(r.estimate)+'</span>':'')+'</div></div>'+
         '<div class="item-time">'+timeAgo(r.timestamp)+'</div>'+
       '</div>'+
-      '<div class="item-body" id="'+id+'">'+detail+'</div>'+
+      '<div class="item-body" id="'+id+'">'+
+        '<div class="detail-grid">'+cell('PR ID',r.prId,true)+cell('Team',r.team,false)+cell('Estimate',r.estimate,true)+cell('Vendor',r.vendor,false)+cell('Dept Approval',r.managerApproval||'—',false)+cell('Founder Approval',r.finalApproval||'—',false)+'</div>'+
+        (r.justification?'<div class="just-full">'+esc(r.justification)+'</div>':'')+
+      '</div>'+
     '</div>';
   }).join(''):emptyHtml('✓','No rejected or reverify items','');
 }
 
-function renderSLA(){
-  var f=D.activeItems.filter(function(r){return r.slaFlag;}).sort(function(a,b){return b.slaDaysOver-a.slaDaysOver;});
-  document.getElementById('list-sla').innerHTML=f.length?f.map(itemCard).join(''):emptyHtml('✅','No SLA breaches','All items are progressing within SLA');
-}
+// ── Reports ───────────────────────────────────────────────────────
+function renderReports(){
+  var allItems=D.activeItems.concat(D.completedItems).concat(D.pendingItems);
+  var totalSpend=0,activeSpend=0;
+  var teamSpend={},teamCount={},catCount={},catSpend={};
+  var hasSpend=false;
 
-function renderVendors(){
-  var el=document.getElementById('vendor-cards');
-  if(!D.vendorFlags.length){el.innerHTML=emptyHtml('🤝','No vendor delivery issues','All deliveries arrived on time');return;}
-  el.innerHTML=D.vendorFlags.map(function(v,i){
-    var avg=Math.round(v.totalDaysLate/v.lateCount);
-    return '<div class="vendor-card" style="animation-delay:'+(i*.05)+'s">'+
-      '<div class="vc-name">'+esc(v.vendor)+'</div>'+
-      '<div class="vc-stats"><strong>'+v.lateCount+' late deliveries</strong> · Avg delay: <strong>'+avg+'d</strong></div>'+
-      v.items.map(function(it){return'<div class="vc-item">'+esc(it.prId)+' · '+esc(it.item)+' — ETA: '+esc(it.eta)+' → Arrived: '+esc(it.actualArrival)+' <span class="vc-late">(+'+it.daysLate+'d)</span></div>';}).join('')+
+  allItems.forEach(function(r){
+    var amt=parseAmt(r.estimate);
+    if(amt>0)hasSpend=true;
+    var t=r.team||'Unassigned',c=r.category||'Uncategorized';
+    teamSpend[t]=(teamSpend[t]||0)+amt;
+    teamCount[t]=(teamCount[t]||0)+1;
+    catSpend[c]=(catSpend[c]||0)+amt;
+    catCount[c]=(catCount[c]||0)+1;
+    totalSpend+=amt;
+  });
+  D.activeItems.forEach(function(r){activeSpend+=parseAmt(r.estimate);});
+
+  var completedOrders=D.completedItems.filter(function(r){return r.daysApprovalToOrdered>=0&&r.statusClass!=='cancelled';});
+  var avgC2O=completedOrders.length?Math.round(completedOrders.reduce(function(s,r){return s+r.daysApprovalToOrdered;},0)/completedOrders.length):null;
+
+  var activeTotal=D.activeItems.length;
+  var slaBreached=D.activeItems.filter(function(r){return r.slaFlag;}).length;
+  var slaRate=activeTotal>0?Math.round((1-slaBreached/activeTotal)*100):100;
+
+  var ab=D.approvalBreakdown;
+  var apprRate=ab.total>0?Math.round((ab.founderApproved||0)/ab.total*100):0;
+  var rejRate=ab.total>0?Math.round(((ab.deptRejected||0)+(ab.founderRejected||0))/ab.total*100):0;
+
+  // KPI row
+  var kpis=[
+    {lbl:'Est. Active Spend',   val:hasSpend?fmtCurrency(activeSpend):activeTotal+' items',  sub:D.activeItems.length+' active items',      color:'var(--cyan)'},
+    {lbl:'SLA Compliance',      val:slaRate+'%',    sub:slaBreached+' breach'+(slaBreached!==1?'es':''),     color:slaRate>=80?'var(--green)':slaRate>=60?'var(--yellow)':'var(--red)'},
+    {lbl:'Approval Rate',       val:apprRate+'%',   sub:(ab.founderApproved||0)+' of '+(ab.total||0)+' approved', color:'var(--blue)'},
+    {lbl:'Avg Approval → Order',val:avgC2O!==null?avgC2O+'d':'—', sub:completedOrders.length+' completed orders', color:'var(--amber)'},
+    {lbl:'Rejection Rate',      val:rejRate+'%',    sub:((ab.deptRejected||0)+(ab.founderRejected||0))+' rejected total', color:rejRate>10?'var(--red)':'var(--text)'},
+    {lbl:'Pending Approval',    val:D.pendingItems.length+'', sub:'awaiting sign-off', color:D.pendingItems.length>5?'var(--yellow)':'var(--text)'},
+  ];
+  var html='<div class="report-kpis">'+kpis.map(function(k,i){
+    return '<div class="kpi-card" style="animation-delay:'+(i*.04)+'s">'+
+      '<div class="kpi-lbl">'+esc(k.lbl)+'</div>'+
+      '<div class="kpi-val" style="color:'+k.color+'">'+k.val+'</div>'+
+      '<div class="kpi-sub">'+esc(k.sub)+'</div>'+
     '</div>';
-  }).join('');
+  }).join('')+'</div>';
+
+  // 2-col chart grid
+  // Team breakdown
+  var teamEntries=Object.keys(teamCount).map(function(t){return{label:t,spend:teamSpend[t]||0,count:teamCount[t]};}).sort(function(a,b){return b.count-a.count;}).slice(0,10);
+  var maxTeam=Math.max.apply(null,teamEntries.map(function(t){return hasSpend?t.spend:t.count;}).concat([1]));
+  var teamChart='<div class="report-card"><div class="report-card-title">'+(hasSpend?'Spend by Team':'Items by Team')+'<span class="report-card-sub">'+(hasSpend?fmtCurrency(totalSpend)+' total':allItems.length+' total')+'</span></div>'+
+    (teamEntries.length?teamEntries.map(function(t){
+      var val=hasSpend?t.spend:t.count;
+      var w=Math.max(3,Math.round(val/maxTeam*100));
+      return '<div class="chart-row">'+
+        '<div class="chart-label" title="'+esc(t.label)+'">'+esc(t.label)+'</div>'+
+        '<div class="chart-track"><div class="chart-fill" style="width:'+w+'%;background:var(--blue)"></div></div>'+
+        '<div class="chart-val">'+(hasSpend?fmtCurrency(t.spend):t.count)+' items</div>'+
+      '</div>';
+    }).join(''):emptyHtml('📊','No team data',''))+'</div>';
+
+  // Category breakdown
+  var catEntries=Object.keys(catCount).map(function(c){return{label:c,count:catCount[c],spend:catSpend[c]||0};}).sort(function(a,b){return b.count-a.count;}).slice(0,10);
+  var maxCat=Math.max.apply(null,catEntries.map(function(c){return c.count;}).concat([1]));
+  var catChart='<div class="report-card"><div class="report-card-title">Items by Category<span class="report-card-sub">'+Object.keys(catCount).length+' categories</span></div>'+
+    (catEntries.length?catEntries.map(function(c){
+      var w=Math.max(3,Math.round(c.count/maxCat*100));
+      return '<div class="chart-row">'+
+        '<div class="chart-label" title="'+esc(c.label)+'">'+esc(c.label)+'</div>'+
+        '<div class="chart-track"><div class="chart-fill" style="width:'+w+'%;background:var(--purple)"></div></div>'+
+        '<div class="chart-val">'+c.count+' items</div>'+
+      '</div>';
+    }).join(''):emptyHtml('📂','No category data',''))+'</div>';
+
+  // Approval funnel
+  var funnelSteps=[
+    {lbl:'Submitted',        n:ab.total||0,      color:'var(--text)'},
+    {lbl:'Dept Approved',    n:ab.deptApproved||0,color:'var(--yellow)'},
+    {lbl:'Founder Approved', n:ab.founderApproved||0,color:'var(--green)'},
+    {lbl:'Active in Pipeline',n:D.activeItems.length,color:'var(--cyan)'},
+    {lbl:'Completed',        n:D.completedItems.filter(function(r){return r.statusClass!=='cancelled';}).length,color:'var(--sky)'},
+  ];
+  var maxF=Math.max(ab.total||1,1);
+  var funnelChart='<div class="report-card"><div class="report-card-title">Approval Funnel<span class="report-card-sub">Conversion at each stage</span></div>'+
+    funnelSteps.map(function(f,i){
+      var w=Math.max(3,Math.round(f.n/maxF*100));
+      var conv=i>0&&funnelSteps[i-1].n>0?Math.round(f.n/funnelSteps[i-1].n*100)+'%':'';
+      return '<div class="chart-row">'+
+        '<div class="chart-label">'+esc(f.lbl)+'</div>'+
+        '<div class="chart-track"><div class="chart-fill" style="width:'+w+'%;background:'+f.color+'"></div></div>'+
+        '<div class="chart-val">'+f.n+'</div>'+
+        '<div class="chart-conv">'+conv+'</div>'+
+      '</div>';
+    }).join('')+'</div>';
+
+  // Vendor performance
+  var vendorChart='<div class="report-card"><div class="report-card-title">Vendor Delivery<span class="report-card-sub">'+(D.vendorFlags.length?D.vendorFlags.length+' vendors with late deliveries':'All on time')+'</span></div>'+
+    (D.vendorFlags.length
+      ?D.vendorFlags.map(function(v){
+          var avg=Math.round(v.totalDaysLate/v.lateCount);
+          return '<div class="vendor-mini-row">'+
+            '<div style="font:500 12px var(--font);color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(v.vendor)+'</div>'+
+            '<div style="font:400 11px var(--font);color:var(--text3);margin:0 12px">'+v.lateCount+' late</div>'+
+            '<div style="font:600 12px var(--mono);color:var(--red)">+'+avg+'d avg</div>'+
+          '</div>';
+        }).join('')
+      :'<div class="empty" style="padding:20px"><div class="empty-icon" style="font-size:24px;margin-bottom:6px">🤝</div><div class="empty-text" style="font-size:13px">No delivery issues</div></div>'
+    )+'</div>';
+
+  html+='<div class="report-grid">'+teamChart+catChart+funnelChart+vendorChart+'</div>';
+
+  // Processing performance (full width)
+  var slaColor=slaBreached>0?'var(--red)':'var(--green)';
+  var pendColor=D.pendingItems.length>10?'var(--red)':D.pendingItems.length>5?'var(--yellow)':'var(--text)';
+  html+='<div class="report-card"><div class="report-card-title">Processing Performance<span class="report-card-sub">Operational metrics across all items</span></div>'+
+    '<div class="pt-grid">'+
+      ptCard('Avg Approval → Order',avgC2O!==null?avgC2O+'d':'—',completedOrders.length+' orders measured','var(--amber)')+
+      ptCard('SLA Breaches',slaBreached+'','out of '+activeTotal+' active items',slaColor)+
+      ptCard('Pending Sign-off',D.pendingItems.length+'','items awaiting approval',pendColor)+
+      ptCard('Rejection Rate',rejRate+'%',((ab.deptRejected||0)+(ab.founderRejected||0))+' total rejected',rejRate>10?'var(--red)':'var(--text)')+
+      ptCard('Completed',D.completedItems.filter(function(r){return r.statusClass!=='cancelled';}).length+'','delivered & handed over','var(--green)')+
+      ptCard('Total Requests',ab.total+'','all time','var(--text)')+
+    '</div></div>';
+
+  document.getElementById('panel-reports').innerHTML=html;
 }
 
+function ptCard(lbl,val,sub,color){
+  return '<div class="pt-card">'+
+    '<div class="pt-lbl">'+esc(lbl)+'</div>'+
+    '<div class="pt-val" style="color:'+color+'">'+esc(val)+'</div>'+
+    '<div class="pt-sub">'+esc(sub)+'</div>'+
+  '</div>';
+}
+
+// ── Completed ─────────────────────────────────────────────────────
 function renderCompleted(){
   var q=(document.getElementById('q-completed').value||'').toLowerCase();
-  var filtered=D.completedItems.filter(function(r){
+  var filtered=filterMine(D.completedItems).filter(function(r){
     if(cmp_f!=='all'&&r.statusClass!==cmp_f)return false;
     if(q){var h=[r.item,r.vendor,r.prId,r.team].map(function(v){return(v||'').toLowerCase();}).join(' ');if(h.indexOf(q)<0)return false;}
     return true;
   }).sort(function(a,b){var o={handed_over:0,delivered:1,cancelled:2};return(o[a.statusClass]||0)-(o[b.statusClass]||0);});
   document.getElementById('list-completed').innerHTML=filtered.length?filtered.map(function(r,i){
     var u=getUrg(r.urgency);var st=SL[r.statusClass]||{icon:'✅',short:r.statusClass};var id='cm-'+i;
-    var detail='<div class="detail-grid">'+cell('PR ID',r.prId,true)+cell('Quantity',r.quantity,true)+cell('Vendor',r.vendor,false)+cell('Team',r.team,false)+cell('Estimate',r.estimate,true)+cell('Approval Date',r.approvalDate,true)+cell('Ordered Date',r.orderedDate,true)+cell('Lead Time',r.leadTime,true)+'</div>'+(r.justification?'<div class="just-full">'+esc(r.justification)+'</div>':'');
-    return '<div class="item-card urg-'+u.toLowerCase()+'" style="opacity:.75;animation-delay:'+(i*.018)+'s">'+
+    return '<div class="item-card urg-'+u.toLowerCase()+'" style="opacity:.75;animation-delay:'+(i*.016)+'s">'+
       '<div class="item-hdr" onclick="toggleBody(\''+id+'\')">'+
         '<div><div class="item-tags"><span class="badge '+u.toLowerCase()+'">'+u+'</span><span class="spill sp-'+r.statusClass+'">'+esc(st.icon)+' '+esc(st.short)+'</span>'+(r.team?'<span class="team-tag">'+esc(r.team)+'</span>':'')+'</div>'+
         '<div class="item-name">'+esc(r.item||'—')+(r.prId?'<span class="pr">'+esc(r.prId)+'</span>':'')+'</div>'+
         '<div class="item-meta">'+(r.vendor?'<span>→ '+esc(r.vendor)+'</span>':'')+(r.orderedDate?'<span>Ordered: '+esc(r.orderedDate)+'</span>':'')+(r.leadTime?'<span>'+esc(r.leadTime)+'</span>':'')+'</div></div>'+
         '<div class="item-time">'+(r.daysApprovalToOrdered>=0?r.daysApprovalToOrdered+'d to order':timeAgo(r.timestamp))+'</div>'+
       '</div>'+
-      '<div class="item-body" id="'+id+'">'+detail+'</div>'+
+      '<div class="item-body" id="'+id+'">'+
+        '<div class="detail-grid">'+cell('PR ID',r.prId,true)+cell('Quantity',r.quantity,true)+cell('Vendor',r.vendor,false)+cell('Team',r.team,false)+cell('Estimate',r.estimate,true)+cell('Approval Date',r.approvalDate,true)+cell('Ordered Date',r.orderedDate,true)+cell('Lead Time',r.leadTime,true)+'</div>'+
+        (r.justification?'<div class="just-full">'+esc(r.justification)+'</div>':'')+
+      '</div>'+
     '</div>';
   }).join(''):emptyHtml('📦','No completed items','');
 }
 
-function renderOverview(){
-  var items=D.activeItems,sc=D.stageCounts;
-  var total=items.length,slaC=items.filter(function(r){return r.slaFlag;}).length;
-  var pend=(sc.pending_requester||0)+(sc.pending_sourcing||0)+(sc.sourcing||0);
-  var inQ=sc.quotation||0,ordered=(sc.ordered||0)+(sc.paid||0),transit=sc.in_transit||0;
-  var pastEta=items.filter(function(r){return r.statusClass==='in_transit'&&r.slaFlagType==='transit';}).length;
-  var crit=items.filter(function(r){return getUrg(r.urgency)==='CRITICAL';}).length;
-  var noV=items.filter(function(r){return !r.vendor&&r.statusClass!=='pending_requester';}).length;
-
-  var lines=[];
-  lines.push({t:'You have <span class="n">'+total+'</span> approved items actively in the procurement pipeline.'});
-  if(pend>0){var ps=items.filter(function(r){return(r.statusClass==='pending_requester'||r.statusClass==='pending_sourcing'||r.statusClass==='sourcing')&&r.slaFlag;}).length;lines.push({t:'<span class="n y">'+pend+'</span> item'+(pend>1?'s':'')+' not yet initiated with a vendor'+(ps>0?' — <span class="n r">'+ps+'</span> <span class="act">past the 2-day SLA</span>.':' — within SLA.')});}
-  if(inQ>0){var qs=items.filter(function(r){return r.statusClass==='quotation'&&r.slaFlag;}).length;lines.push({t:'<span class="n o">'+inQ+'</span> item'+(inQ>1?'s':'')+' in quotation'+(qs>0?' — <span class="n r">'+qs+'</span> exceeding SLA.':' — on track.')});}
-  if(ordered>0)lines.push({t:'<span class="n c">'+ordered+'</span> item'+(ordered>1?'s':'')+' ordered/paid, waiting to ship.'});
-  if(transit>0)lines.push({t:'<span class="n p">'+transit+'</span> item'+(transit>1?'s':'')+' in transit'+(pastEta>0?' — <span class="n r">'+pastEta+'</span> <span class="act">past ETA</span>.':' — on schedule.')});
-  if(crit>0)lines.push({t:'<span class="n r">'+crit+'</span> <span class="act">CRITICAL urgency</span> item'+(crit>1?'s':'')+' need immediate attention.'});
-  if(noV>0)lines.push({t:'<span class="n o">'+noV+'</span> item'+(noV>1?'s':'')+' have no vendor assigned — <span class="act">action needed</span>.'});
-  if(D.vendorFlags.length>0){var tl=D.vendorFlags.reduce(function(s,v){return s+v.lateCount;},0);lines.push({t:'<span class="n r">'+D.vendorFlags.length+'</span> vendor'+(D.vendorFlags.length>1?'s':'')+' flagged for late delivery ('+tl+' items).'});}
-  if(total===0)lines=[{t:'<span class="n g">✓</span> Pipeline is clear — all items completed or cancelled.'}];
-  else if(slaC===0&&pend===0)lines.push({t:'<span class="n g">✓</span> All items are progressing within SLA.'});
-
-  document.getElementById('insight-box').innerHTML='<div class="insight-title">What needs your attention</div>'+
-    lines.map(function(l){return'<div class="insight-line"><div class="il-dot"></div><span>'+l.t+'</span></div>';}).join('');
-
-  var buckets=[
-    {icon:'🔴',title:'Not initiated with vendor',sub:'Sourcing not yet begun',border:'b-alert',cntCls:'bc-r',
-     filter:function(r){return r.statusClass==='pending_requester'||r.statusClass==='pending_sourcing'||r.statusClass==='sourcing';}},
-    {icon:'💬',title:'Quotation / Negotiation',sub:'RFQ sent or negotiating price',border:'b-warn',cntCls:'bc-y',
-     filter:function(r){return r.statusClass==='quotation';}},
-    {icon:'📦',title:'Ordered / Paid',sub:'Waiting for vendor to dispatch',border:'b-cyan',cntCls:'bc-c',
-     filter:function(r){return r.statusClass==='ordered'||r.statusClass==='paid';}},
-    {icon:'🚚',title:'In Transit',sub:'Shipped, awaiting arrival',border:'b-purple',cntCls:'bc-p',
-     filter:function(r){return r.statusClass==='in_transit';}}
-  ];
-
-  document.getElementById('overview-buckets').innerHTML=buckets.map(function(b,bi){
-    var bItems=items.filter(b.filter).sort(function(a,c){return(URG_RANK[getUrg(a.urgency)]||3)-(URG_RANK[getUrg(c.urgency)]||3);});
-    if(!bItems.length)return'';
-    var autoOpen=bItems.length<=6;
-    var rows=bItems.map(function(r){
-      var ds=r.daysSinceApproval>=0?'<span class="brow-days'+(r.slaFlag?' over':r.daysSinceApproval>2?' warn':' ok')+'">'+r.daysSinceApproval+'d</span>':'';
-      return'<div class="brow">'+
-        '<div style="min-width:0;flex:1">'+
-          '<div class="brow-name">'+esc(r.item||'—')+'</div>'+
-          '<div class="brow-meta">'+
-            (r.prId?'<span>'+esc(r.prId)+'</span>':'')+
-            (r.vendor?'<span>→ '+esc(r.vendor)+'</span>':'<span style="color:var(--red)">No vendor</span>')+
-            (r.team?'<span>'+esc(r.team)+'</span>':'')+
-            '<span class="badge '+getUrg(r.urgency).toLowerCase()+'" style="font-size:8px;padding:2px 6px">'+getUrg(r.urgency)+'</span>'+
-            (r.slaFlag?'<span style="color:var(--red);font-weight:600">⚠ SLA</span>':'')+
-          '</div>'+
-        '</div>'+
-        '<div class="brow-right">'+ds+'</div>'+
-      '</div>';
-    }).join('');
-    return'<div class="bucket '+b.border+'" style="animation-delay:'+(bi*.05)+'s">'+
-      '<div class="bucket-hdr" onclick="this.nextElementSibling.classList.toggle(\'open\');this.querySelector(\'.bucket-toggle\').textContent=this.nextElementSibling.classList.contains(\'open\')?\'−\':\'+'+'\'">'+
-        '<div class="bucket-left">'+
-          '<div class="bucket-icon">'+b.icon+'</div>'+
-          '<div><div class="bucket-title">'+b.title+'</div><div class="bucket-sub">'+b.sub+'</div></div>'+
-        '</div>'+
-        '<div class="bucket-right">'+
-          '<div class="bucket-cnt '+b.cntCls+'">'+bItems.length+'</div>'+
-          '<div class="bucket-toggle">'+(autoOpen?'−':'+')+'</div>'+
-        '</div>'+
-      '</div>'+
-      '<div class="bucket-body'+(autoOpen?' open':'')+'">'+rows+'</div>'+
-    '</div>';
-  }).join('')||'<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Pipeline clear</div></div>';
-}
-
+// ── Empty state ───────────────────────────────────────────────────
 function emptyHtml(icon,text,sub){
   return'<div class="empty"><div class="empty-icon">'+icon+'</div><div class="empty-text">'+esc(text)+'</div>'+(sub?'<div class="empty-sub">'+esc(sub)+'</div>':'')+'</div>';
 }
