@@ -278,6 +278,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .brow-right{font:500 11px var(--mono);color:var(--text3);text-align:right;white-space:nowrap;min-width:72px;font-feature-settings:"tnum"}
 .brow-days.over{color:var(--red)}.brow-days.warn{color:var(--yellow)}.brow-days.ok{color:var(--green)}
 
+/* ── APPROVED STATUS ROW (primary KPIs) ──── */
+.appr-stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;animation:fadeUp .3s ease}
+@media(max-width:700px){.appr-stat-row{grid-template-columns:repeat(2,1fr)}}
+.as-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px 18px 16px;cursor:pointer;transition:all .18s;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.as-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0;background:currentColor;opacity:.6}
+.as-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-hi);border-color:var(--border-hi)}
+.as-icon{font-size:22px;margin-bottom:12px;display:block}
+.as-num{font:800 40px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-1.5px;margin-bottom:7px}
+.as-lbl{font:600 13px/1.3 var(--font);color:var(--text);margin-bottom:4px}
+.as-sub{font:400 11px var(--font);color:var(--text3);line-height:1.5}
+.as-nav{font:500 11px var(--font);color:var(--text4);margin-top:12px;display:inline-flex;align-items:center;gap:5px;transition:color .15s}
+.as-card:hover .as-nav{color:var(--amber)}
+
 /* ── HANDOVER PROGRESS TOGGLE ───────────── */
 .ho-toggle{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);margin-bottom:12px;animation:fadeUp .35s ease}
 .ho-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;cursor:pointer;transition:background .15s;gap:14px}
@@ -288,16 +301,28 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .ho-bar{height:100%;border-radius:4px;background:var(--green);transition:width .7s ease}
 .ho-stats{display:flex;align-items:center;gap:14px;flex-shrink:0}
 .ho-stat{text-align:right}
-.ho-stat-val{font:700 18px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-.5px}
+.ho-stat-val{font:700 22px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-.5px}
 .ho-stat-lbl{font:400 10px var(--font);color:var(--text3);margin-top:2px}
 .ho-chevron{color:var(--text3);font-size:12px;transition:transform .2s;flex-shrink:0}
 .ho-chevron.open{transform:rotate(180deg)}
-.ho-body{display:none;border-top:1px solid var(--border);padding:14px 18px}
+.ho-body{display:none;border-top:1px solid var(--border);padding:16px 18px}
 .ho-body.open{display:block}
-.ho-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
-.ho-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px}
-.ho-cell-val{font:700 22px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-.5px;margin-bottom:4px}
-.ho-cell-lbl{font:400 11px var(--font);color:var(--text3)}
+.ho-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.ho-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:16px 18px;transition:border-color .15s}
+.ho-cell-val{font:800 34px/1 var(--mono);font-feature-settings:"tnum";letter-spacing:-1px;margin-bottom:6px}
+.ho-cell-lbl{font:500 12px var(--font);color:var(--text2)}
+
+/* ── COMPACT APPROVAL PIPELINE ───────────── */
+.appr-compact{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.appr-compact-hdr{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;transition:background .15s}
+.appr-compact-hdr:hover{background:var(--card-hi)}
+.appr-compact-lbl{font:600 10px/1 var(--font);color:var(--text3);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;flex-shrink:0}
+.appr-compact-summary{font:400 12px var(--font);color:var(--text3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.appr-compact-summary b{color:var(--text2);font-weight:500}
+.appr-chev{color:var(--text3);font-size:11px;transition:transform .2s;flex-shrink:0}
+.appr-chev.open{transform:rotate(180deg)}
+.appr-detail{display:none;border-top:1px solid var(--border)}
+.appr-detail.open{display:block}
 
 /* ── EMPTY ───────────────────────────────── */
 .empty{text-align:center;padding:56px 20px;color:var(--text3)}
@@ -361,38 +386,45 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
     <button class="mv-banner-btn" onclick="clearMyView()">Clear filter</button>
   </div>
 
-  <!-- APPROVAL PIPELINE -->
-  <div class="appr-wrap">
-    <div class="sec-hdr"><span class="sec-lbl">Approval Pipeline</span><div class="sec-line"></div></div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)">
-      <div class="appr-nodes" id="appr-nodes"></div>
-      <div class="appr-chips" id="appr-chips"></div>
-    </div>
-  </div>
+  <!-- APPROVED STATUS ROW — primary KPIs for approved requests -->
+  <div class="appr-stat-row" id="appr-stat-row"></div>
 
-  <!-- HANDOVER PROGRESS TOGGLE -->
+  <!-- HANDOVER PROGRESS — default open -->
   <div class="ho-toggle" id="ho-toggle">
     <div class="ho-hdr" onclick="toggleHO()">
       <div class="ho-left">
         <span class="ho-label">Handover Progress</span>
         <div class="ho-track"><div class="ho-bar" id="ho-bar" style="width:0%"></div></div>
-        <span id="ho-pct" style="font:600 12px/1 var(--mono);color:var(--green);flex-shrink:0">0%</span>
+        <span id="ho-pct" style="font:600 13px/1 var(--mono);color:var(--green);flex-shrink:0">0%</span>
       </div>
       <div class="ho-stats">
         <div class="ho-stat">
           <div class="ho-stat-val" id="ho-done" style="color:var(--green)">0</div>
           <div class="ho-stat-lbl">Handed Over</div>
         </div>
-        <div style="width:1px;height:28px;background:var(--border)"></div>
+        <div style="width:1px;height:32px;background:var(--border)"></div>
         <div class="ho-stat">
           <div class="ho-stat-val" id="ho-total" style="color:var(--text)">0</div>
           <div class="ho-stat-lbl">Total Approved</div>
         </div>
       </div>
-      <span class="ho-chevron" id="ho-chevron">▼</span>
+      <span class="ho-chevron open" id="ho-chevron">▼</span>
     </div>
-    <div class="ho-body" id="ho-body">
+    <div class="ho-body open" id="ho-body">
       <div class="ho-grid" id="ho-grid"></div>
+    </div>
+  </div>
+
+  <!-- APPROVAL PIPELINE — secondary, collapsed by default -->
+  <div class="appr-compact">
+    <div class="appr-compact-hdr" onclick="toggleApprPipeline()">
+      <span class="appr-compact-lbl">Approval Pipeline</span>
+      <span class="appr-compact-summary" id="appr-compact-summary">—</span>
+      <span class="appr-chev" id="appr-chev">▼</span>
+    </div>
+    <div class="appr-detail" id="appr-detail">
+      <div class="appr-nodes" id="appr-nodes"></div>
+      <div class="appr-chips" id="appr-chips"></div>
     </div>
   </div>
 
@@ -575,7 +607,7 @@ function onData(r){
   D.rejectedItems=D.rejectedItems||[];D.completedItems=D.completedItems||[];
   D.vendorFlags=D.vendorFlags||[];D.approvalBreakdown=D.approvalBreakdown||{};D.stageCounts=D.stageCounts||{};
   document.getElementById('ts').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  renderApproval();renderHandoverProgress();renderStats();renderPipeline();buildTeamFilter();
+  renderApprovedStatus();renderHandoverProgress();renderApproval();renderStats();renderPipeline();buildTeamFilter();
   renderActionQueue();renderAllItems();renderPending();renderRejected();renderReports();renderCompleted();
   updateTabs();scheduleNext();
 }
@@ -607,6 +639,58 @@ function updateTabs(){
   if(sla>0)aqTab.classList.add('has-alert');else aqTab.classList.remove('has-alert');
 }
 function goTab(key){var el=document.querySelector('[data-tab="'+key+'"]');if(el)switchTab(el);}
+
+// ── Approved Status Row ───────────────────────────────────────────
+// Shows the 4 key post-approval states as large clickable KPI cards
+function renderApprovedStatus(){
+  var sc=D.stageCounts;
+  var pending=D.pendingItems.length;
+  var paidOrdered=(sc.paid||0)+(sc.ordered||0);
+  var inTransit=sc.in_transit||0;
+  var handedOver=D.completedItems.filter(function(r){return r.statusClass==='handed_over';}).length;
+
+  var cards=[
+    {
+      icon:'⏸', num:pending, lbl:'Pending Approval',
+      sub:'Awaiting dept or founder sign-off',
+      color:'var(--yellow)', navLbl:'View pending →',
+      onclick:'goTab(\'pending\')',
+    },
+    {
+      icon:'💳', num:paidOrdered, lbl:'Paid & Ordered',
+      sub:'Vendor paid — waiting to dispatch',
+      color:'var(--cyan)', navLbl:'View items →',
+      onclick:'goTabStage(\'ordered\')',
+    },
+    {
+      icon:'🚚', num:inTransit, lbl:'To Be Delivered',
+      sub:'In transit, en route to us',
+      color:'var(--purple)', navLbl:'View items →',
+      onclick:'goTabStage(\'in_transit\')',
+    },
+    {
+      icon:'✅', num:handedOver, lbl:'Handed Over',
+      sub:'Delivered and signed off by requester',
+      color:'var(--green)', navLbl:'View completed →',
+      onclick:'goTab(\'completed\')',
+    },
+  ];
+
+  document.getElementById('appr-stat-row').innerHTML=cards.map(function(c,i){
+    return '<div class="as-card" style="color:'+c.color+';animation-delay:'+(i*.06)+'s" onclick="'+c.onclick+'">'+
+      '<span class="as-icon">'+c.icon+'</span>'+
+      '<div class="as-num">'+c.num+'</div>'+
+      '<div class="as-lbl">'+c.lbl+'</div>'+
+      '<div class="as-sub">'+c.sub+'</div>'+
+      '<div class="as-nav">'+c.navLbl+'</div>'+
+    '</div>';
+  }).join('');
+}
+function goTabStage(stage){
+  STAGE_FILTER=stage;
+  document.getElementById('stage-f').value=stage;
+  goTab('items');renderAllItems();renderPipeline();
+}
 
 // ── Handover Progress Toggle ──────────────────────────────────────
 function renderHandoverProgress(){
@@ -655,6 +739,12 @@ function toggleHO(){
   body.classList.toggle('open');
   chev.classList.toggle('open');
 }
+function toggleApprPipeline(){
+  var det=document.getElementById('appr-detail');
+  var chev=document.getElementById('appr-chev');
+  det.classList.toggle('open');
+  chev.classList.toggle('open');
+}
 
 // ── Approval Pipeline ─────────────────────────────────────────────
 function renderApproval(){
@@ -688,6 +778,11 @@ function renderApproval(){
   var cancelled=D.completedItems.filter(function(r){return r.statusClass==='cancelled';}).length;
   if(cancelled>0)chips.push('<span class="chip chip-dim">🚫 '+cancelled+' Cancelled</span>');
   document.getElementById('appr-chips').innerHTML=chips.join('')||'<span class="chip chip-dim">No exceptions</span>';
+  // Write the compact one-line summary for the collapsed header
+  var rej2=(ab.founderRejected||0)+(ab.deptRejected||0);
+  document.getElementById('appr-compact-summary').innerHTML=
+    '<b>'+total+'</b> submitted &nbsp;·&nbsp; <b>'+(ab.deptApproved||0)+'</b> dept approved &nbsp;·&nbsp; <b>'+(ab.founderApproved||0)+'</b> founder approved'+
+    (rej2>0?' &nbsp;·&nbsp; <b style="color:var(--red)">'+rej2+'</b> rejected':'');
 }
 
 // ── Stats ─────────────────────────────────────────────────────────
