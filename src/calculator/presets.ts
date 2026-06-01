@@ -28,6 +28,7 @@ export function partFromExtraction(result: ExtractionResult): PartInput {
     part.finishedWeightKg = Math.round(result.suggestedWeightKg * 1000) / 1000;
   }
   if (result.suggestedHoles) part.holes = result.suggestedHoles;
+  if (result.provenance?.length) part.provenance = result.provenance;
   return part;
 }
 

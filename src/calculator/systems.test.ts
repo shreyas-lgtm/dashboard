@@ -98,5 +98,11 @@ endsolid s`;
     expect(typeof panel.suggestedWeightKg).toBe('number'); // mass from the STL
     expect(panel.suggestedMaterial).toBe('AL6061'); // material from the STEP
     expect(panel.suggestedHoles?.drilled).toBe(2); // holes from the DXF
+
+    // Provenance records which file each applied value came from.
+    const prov = Object.fromEntries((panel.provenance ?? []).map((p) => [p.label, p.source]));
+    expect(prov['Mass']).toBe('AMR_panel.stl');
+    expect(prov['Material']).toBe('AMR_panel.step');
+    expect(prov['Holes']).toBe('AMR_panel.dxf');
   });
 });

@@ -2,7 +2,7 @@
 // and returns a unified ExtractionResult that the form can apply.
 
 import type { MaterialId, FinishId } from '../rateCard';
-import { MATERIALS } from '../rateCard';
+import { MATERIALS, FINISHES } from '../rateCard';
 import { parseStl, stlMassKg, type StlGeometry, type StlUnit } from './stl';
 import { parseDxf, type DxfInfo } from './dxf';
 import { scanText, readableAscii, type ScanHints } from './textScan';
@@ -25,6 +25,14 @@ export interface ExtractionResult {
   scan?: ScanHints;
   /** When several files for one component are merged, the file names involved. */
   sources?: string[];
+  /** Which file each applied value came from — for verifying the quote. */
+  provenance?: InputProvenance[];
+}
+
+export interface InputProvenance {
+  label: string;
+  value: string;
+  source: string;
 }
 
 export function detectKind(name: string): FileKind {
@@ -124,55 +132,100 @@ export function stemOf(fileName: string): string {
   return dot > 0 ? base.slice(0, dot) : base;
 }
 
-// Merge several files that describe the SAME component (e.g. a STEP model, a DXF
-// flat pattern and a PDF drawing) into one extraction, so it's priced once. Each
-// file type is trusted for what it knows best:
+// Merge files that describe the SAME component (e.g. a STEP model, a DXF flat
+// pattern and a PDF drawing) into one extraction, so it's priced once. Each file
+// type is trusted for what it knows best, and we record which file every applied
+// value came from so the quote can be verified:
 //   • mass     → STL geometry first, else any scanned weight
 //   • material → STEP/IGES/PDF callouts
 //   • finish   → STEP/IGES/PDF callouts
 //   • holes    → per-type max across DXF circles and drawing callouts
 export function mergeExtractions(results: ExtractionResult[]): ExtractionResult {
-  if (results.length === 1) return results[0];
-
-  const pick = <T>(get: (r: ExtractionResult) => T | undefined, order: FileKind[]): T | undefined => {
-    for (const k of order) {
-      const v = get(results.find((r) => r.kind === k) ?? ({} as ExtractionResult));
-      if (v !== undefined) return v;
-    }
-    for (const r of results) {
+  // Pick the first defined value following a source-kind priority; remember which
+  // file supplied it so we can show provenance.
+  const pick = <T>(
+    get: (r: ExtractionResult) => T | undefined,
+    order: FileKind[],
+  ): { value: T; source: string } | undefined => {
+    const ordered = [
+      ...order.map((k) => results.find((r) => r.kind === k)).filter(Boolean),
+      ...results,
+    ] as ExtractionResult[];
+    for (const r of ordered) {
       const v = get(r);
-      if (v !== undefined) return v;
+      if (v !== undefined) return { value: v, source: r.fileName };
     }
     return undefined;
   };
 
+  const weight = pick((r) => r.suggestedWeightKg, ['stl', 'step', 'iges', 'pdf']);
+  const material = pick((r) => r.suggestedMaterial, ['step', 'iges', 'pdf', 'dxf']);
+  const finish = pick((r) => r.suggestedFinish, ['step', 'iges', 'pdf']);
+
   // Holes: take the largest count seen for each hole type across all sources.
   let holes: ExtractionResult['suggestedHoles'];
+  const holeSources: string[] = [];
   for (const r of results) {
     if (!r.suggestedHoles) continue;
+    holeSources.push(r.fileName);
     holes ??= { drilled: 0, tapped: 0, countersunk: 0 };
     holes.drilled = Math.max(holes.drilled, r.suggestedHoles.drilled);
     holes.tapped = Math.max(holes.tapped, r.suggestedHoles.tapped);
     holes.countersunk = Math.max(holes.countersunk, r.suggestedHoles.countersunk);
   }
 
+  const provenance: InputProvenance[] = [];
+  if (weight) {
+    provenance.push({
+      label: 'Mass',
+      value: `${weight.value.toLocaleString('en-IN', { maximumFractionDigits: 3 })} kg`,
+      source: weight.source,
+    });
+  }
+  if (material) {
+    provenance.push({ label: 'Material', value: MATERIALS[material.value].label, source: material.source });
+  }
+  if (finish) {
+    provenance.push({ label: 'Finish', value: FINISHES[finish.value].label, source: finish.source });
+  }
+  if (holes) {
+    const parts = [
+      holes.drilled && `${holes.drilled} drilled`,
+      holes.tapped && `${holes.tapped} tapped`,
+      holes.countersunk && `${holes.countersunk} countersunk`,
+    ].filter(Boolean);
+    if (parts.length) {
+      provenance.push({ label: 'Holes', value: parts.join(', '), source: holeSources.join(', ') });
+    }
+  }
+
+  const single = results.length === 1;
   const sources = results.map((r) => r.fileName);
   const merged: ExtractionResult = {
-    fileName: stemOf(results[0].fileName),
-    kind: pick((r) => (r.kind ? r.kind : undefined), ['step', 'iges', 'stl', 'dxf', 'pdf']) ?? 'unknown',
-    summary: [`Merged ${results.length} files for this component: ${sources.join(', ')}`],
+    // A single file keeps its own name (with extension); a merged component is
+    // named after the shared stem.
+    fileName: single ? results[0].fileName : stemOf(results[0].fileName),
+    kind: single
+      ? results[0].kind
+      : pick((r) => (r.kind ? r.kind : undefined), ['step', 'iges', 'stl', 'dxf', 'pdf'])?.value ?? 'unknown',
+    summary: single
+      ? [...results[0].summary]
+      : [`Merged ${results.length} files for this component: ${sources.join(', ')}`],
     sources,
-    suggestedWeightKg: pick((r) => r.suggestedWeightKg, ['stl', 'step', 'iges', 'pdf']),
-    suggestedMaterial: pick((r) => r.suggestedMaterial, ['step', 'iges', 'pdf', 'dxf']),
-    suggestedFinish: pick((r) => r.suggestedFinish, ['step', 'iges', 'pdf']),
+    suggestedWeightKg: weight?.value,
+    suggestedMaterial: material?.value,
+    suggestedFinish: finish?.value,
     suggestedHoles: holes,
     stl: results.find((r) => r.stl)?.stl,
     dxf: results.find((r) => r.dxf)?.dxf,
     scan: results.find((r) => r.scan)?.scan,
+    provenance,
   };
 
-  for (const r of results) {
-    for (const line of r.summary) merged.summary.push(`[${r.fileName}] ${line}`);
+  if (!single) {
+    for (const r of results) {
+      for (const line of r.summary) merged.summary.push(`[${r.fileName}] ${line}`);
+    }
   }
   return merged;
 }

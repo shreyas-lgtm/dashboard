@@ -67,6 +67,24 @@ Each component is named after its base name and filed by system; unsupported
 files in the ZIP are listed as skipped. You can re-assign any part to a
 different system from its **System** dropdown.
 
+### Verifying a quote / why formats can differ
+
+Pricing is **deterministic on the engineering inputs** (weight, material,
+process, holes, finish) — never on the file format. Two parts with identical
+inputs always produce the identical price; open the **Per-unit cost breakdown**
+on each to confirm the math line by line.
+
+Different formats can still yield different numbers because each carries
+different information: an **STL** has mass but no material, a **STEP** has
+material but often no mass, a **DXF** has only holes. To make this auditable:
+
+- Every uploaded/merged part shows a **Quote inputs & sources** panel — which
+  file each applied value (mass, material, finish, holes) came from.
+- A part with **no finished weight** raises a warning, because material,
+  processing and finishing then price at ₹0 — the usual reason a STEP/DXF-only
+  file looks far cheaper than the same part as an STL. Merging the formats (or
+  entering the weight) resolves it.
+
 ### Single drawing / CAD upload
 
 Drag a file onto any individual part to pre-fill the form (you always confirm

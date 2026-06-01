@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, ChevronDown, Sparkles } from 'lucide-react';
+import { Trash2, ChevronDown, Sparkles, AlertTriangle, FileCheck2 } from 'lucide-react';
 import {
   MATERIALS,
   PROCESSES,
@@ -99,6 +99,40 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Quote inputs & sources — lets you verify where each value came from */}
+        {part.provenance && part.provenance.length > 0 && (
+          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+            <div className="mb-1 flex items-center gap-1.5 font-semibold">
+              <FileCheck2 size={13} className="text-emerald-600" />
+              Quote inputs &amp; sources
+            </div>
+            <ul className="space-y-0.5">
+              {part.provenance.map((p, i) => (
+                <li key={i} className="flex justify-between gap-2">
+                  <span>
+                    <span className="font-medium">{p.label}:</span> {p.value}
+                  </span>
+                  <span className="text-emerald-600/80 truncate">← {p.source}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Missing-weight warning — the usual reason the same part prices
+            differently across file formats (STL carries mass, STEP/DXF may not). */}
+        {part.finishedWeightKg <= 0 && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-500" />
+            <span>
+              <strong>No finished weight set.</strong> Material, processing and finishing all
+              price at ₹0, so this line is far cheaper than it should be. This is usually why the
+              same part costs differently across file formats — an STL carries mass, but a
+              STEP/DXF/PDF often doesn&apos;t. Enter the weight below, or attach an STL.
+            </span>
+          </div>
+        )}
+
         {/* Upload */}
         <div>
           <DropZone onFile={handleFile} busy={busy} fileName={attachment?.fileName} />

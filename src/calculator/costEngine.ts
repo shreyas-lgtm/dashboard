@@ -40,6 +40,8 @@ export interface PartInput {
   holes: HoleCounts;
   finish: FinishId;
   quantity: number;
+  /** Where uploaded values came from (for quote verification). Ignored by the engine. */
+  provenance?: { label: string; value: string; source: string }[];
 }
 
 export interface PartCost {
