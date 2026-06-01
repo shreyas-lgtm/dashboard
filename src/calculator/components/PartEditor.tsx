@@ -1,0 +1,381 @@
+import { useState } from 'react';
+import { Trash2, ChevronDown, Sparkles } from 'lucide-react';
+import {
+  MATERIALS,
+  PROCESSES,
+  FINISHES,
+  type MaterialId,
+  type ProcessId,
+  type FinishId,
+} from '../rateCard';
+import { computePartCost, type PartInput } from '../costEngine';
+import { extractFromFile, type ExtractionResult } from '../fileParsers';
+import { stlMassKg, type StlUnit } from '../fileParsers/stl';
+import { inr, num } from '../format';
+import { DropZone } from './DropZone';
+
+interface Props {
+  part: PartInput;
+  index: number;
+  onChange: (part: PartInput) => void;
+  onRemove: () => void;
+}
+
+const STL_UNITS: StlUnit[] = ['mm', 'cm', 'm', 'in'];
+
+const fieldCls =
+  'w-full rounded-md border border-gray-200 px-2.5 py-1.5 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-200';
+const labelCls = 'block text-xs font-medium text-gray-500 mb-1';
+
+export function PartEditor({ part, index, onChange, onRemove }: Props) {
+  const [attachment, setAttachment] = useState<ExtractionResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [stlUnit, setStlUnit] = useState<StlUnit>('mm');
+  const [showBreakdown, setShowBreakdown] = useState(true);
+
+  const cost = computePartCost(part);
+  const proc = PROCESSES[part.process];
+
+  const set = <K extends keyof PartInput>(key: K, value: PartInput[K]) =>
+    onChange({ ...part, [key]: value });
+
+  const setHole = (key: keyof PartInput['holes'], value: number) =>
+    onChange({ ...part, holes: { ...part.holes, [key]: Math.max(0, value) } });
+
+  // Recompute STL-derived mass when material/unit change while a model is loaded.
+  const recomputeStlMass = (next: { material?: MaterialId; unit?: StlUnit }) => {
+    if (!attachment?.stl) return;
+    const unit = next.unit ?? stlUnit;
+    const matId = next.material ?? part.material;
+    const mass = stlMassKg(attachment.stl.volumeNative, unit, MATERIALS[matId].densityKgM3);
+    onChange({ ...part, material: matId, finishedWeightKg: Math.round(mass * 1000) / 1000 });
+  };
+
+  const handleFile = async (file: File) => {
+    setBusy(true);
+    try {
+      const result = await extractFromFile(file, {
+        stlUnit,
+        densityForStl: MATERIALS[part.material].densityKgM3,
+      });
+      setAttachment(result);
+      const patch: PartInput = { ...part, name: part.name === 'New part' ? file.name : part.name };
+      if (result.suggestedWeightKg !== undefined) {
+        patch.finishedWeightKg = Math.round(result.suggestedWeightKg * 1000) / 1000;
+      }
+      if (result.suggestedMaterial) patch.material = result.suggestedMaterial;
+      if (result.suggestedFinish) patch.finish = result.suggestedFinish;
+      if (result.suggestedHoles) patch.holes = result.suggestedHoles;
+      onChange(patch);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* Header row */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-gray-50/60">
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600 shrink-0">
+          {index + 1}
+        </span>
+        <input
+          value={part.name}
+          onChange={(e) => set('name', e.target.value)}
+          className="flex-1 bg-transparent text-sm font-semibold text-gray-900 focus:outline-none"
+          placeholder="Part name"
+        />
+        <span className="text-sm font-bold text-gray-900 tabular-nums">
+          {inr(cost.lineTotal)}
+        </span>
+        <button
+          onClick={onRemove}
+          className="text-gray-300 hover:text-red-500 transition-colors"
+          title="Remove part"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+
+      <div className="p-4 space-y-4">
+        {/* Upload */}
+        <div>
+          <DropZone onFile={handleFile} busy={busy} fileName={attachment?.fileName} />
+          {attachment && (
+            <div className="mt-2 flex items-start gap-2 rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
+              <Sparkles size={13} className="mt-0.5 shrink-0 text-blue-500" />
+              <div className="space-y-0.5">
+                {attachment.summary.map((line, i) => (
+                  <p key={i}>{line}</p>
+                ))}
+              </div>
+            </div>
+          )}
+          {attachment?.kind === 'stl' && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+              <span>Interpret STL units as</span>
+              <select
+                value={stlUnit}
+                onChange={(e) => {
+                  const u = e.target.value as StlUnit;
+                  setStlUnit(u);
+                  recomputeStlMass({ unit: u });
+                }}
+                className="rounded border border-gray-200 px-1.5 py-0.5"
+              >
+                {STL_UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+              <span>· mass auto-updates with material</span>
+            </div>
+          )}
+        </div>
+
+        {/* Inputs grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="col-span-2 sm:col-span-1">
+            <label className={labelCls}>Material</label>
+            <select
+              value={part.material}
+              onChange={(e) => recomputeStlMass({ material: e.target.value as MaterialId })}
+              className={fieldCls}
+            >
+              {Object.values(MATERIALS).map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label} · {inr(m.ratePerKg)}/kg
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="col-span-2">
+            <label className={labelCls}>Process</label>
+            <select
+              value={part.process}
+              onChange={(e) => {
+                const p = e.target.value as ProcessId;
+                const allows = PROCESSES[p];
+                onChange({
+                  ...part,
+                  process: p,
+                  precisionGround: allows.allowsPrecisionGround ? part.precisionGround : false,
+                  flatnessPremium: allows.allowsFlatness ? part.flatnessPremium : false,
+                });
+              }}
+              className={fieldCls}
+            >
+              {Object.entries(PROCESSES).map(([id, p]) => (
+                <option key={id} value={id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelCls}>Finished weight (kg)</label>
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={part.finishedWeightKg}
+              onChange={(e) => set('finishedWeightKg', parseFloat(e.target.value) || 0)}
+              className={`${fieldCls} tabular-nums`}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Finish</label>
+            <select
+              value={part.finish}
+              onChange={(e) => set('finish', e.target.value as FinishId)}
+              className={fieldCls}
+            >
+              {Object.entries(FINISHES).map(([id, f]) => (
+                <option key={id} value={id}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelCls}>Quantity</label>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={part.quantity}
+              onChange={(e) => set('quantity', Math.max(1, parseInt(e.target.value) || 1))}
+              className={`${fieldCls} tabular-nums`}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Drilled holes</label>
+            <input
+              type="number"
+              min={0}
+              value={part.holes.drilled}
+              onChange={(e) => setHole('drilled', parseInt(e.target.value) || 0)}
+              className={`${fieldCls} tabular-nums`}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Tapped holes</label>
+            <input
+              type="number"
+              min={0}
+              value={part.holes.tapped}
+              onChange={(e) => setHole('tapped', parseInt(e.target.value) || 0)}
+              className={`${fieldCls} tabular-nums`}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Countersunk</label>
+            <input
+              type="number"
+              min={0}
+              value={part.holes.countersunk}
+              onChange={(e) => setHole('countersunk', parseInt(e.target.value) || 0)}
+              className={`${fieldCls} tabular-nums`}
+            />
+          </div>
+        </div>
+
+        {/* Plate multiplier toggles */}
+        {(proc.allowsPrecisionGround || proc.allowsFlatness) && (
+          <div className="flex flex-wrap gap-4">
+            {proc.allowsPrecisionGround && (
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={part.precisionGround}
+                  onChange={(e) =>
+                    onChange({
+                      ...part,
+                      precisionGround: e.target.checked,
+                      // mutually exclusive with flatness premium
+                      flatnessPremium: e.target.checked ? false : part.flatnessPremium,
+                    })
+                  }
+                  className="rounded border-gray-300"
+                />
+                Precision ground (0.05mm, both faces) — 2.0× + 1.80× gross-up
+              </label>
+            )}
+            {proc.allowsFlatness && (
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={part.flatnessPremium}
+                  onChange={(e) =>
+                    onChange({
+                      ...part,
+                      flatnessPremium: e.target.checked,
+                      precisionGround: e.target.checked ? false : part.precisionGround,
+                    })
+                  }
+                  className="rounded border-gray-300"
+                />
+                Flatness premium (0.5mm) — 1.40×
+              </label>
+            )}
+          </div>
+        )}
+
+        {/* Breakdown */}
+        <div className="rounded-lg border border-gray-100 bg-gray-50">
+          <button
+            onClick={() => setShowBreakdown((s) => !s)}
+            className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide"
+          >
+            Per-unit cost breakdown
+            <ChevronDown
+              size={14}
+              className={`transition-transform ${showBreakdown ? 'rotate-180' : ''}`}
+            />
+          </button>
+          {showBreakdown && (
+            <table className="w-full text-sm px-3">
+              <tbody className="divide-y divide-gray-100">
+                <BreakdownRow
+                  label="Material"
+                  detail={`${num(cost.rawMaterialKg, 3)} kg raw @ ${inr(MATERIALS[part.material].ratePerKg)}/kg (gross-up ${cost.grossUpFactor}×)`}
+                  value={cost.material}
+                />
+                <BreakdownRow
+                  label="Processing"
+                  detail={`${num(part.finishedWeightKg, 2)} kg @ ${inr(cost.processingRatePerKg)}/kg`}
+                  value={cost.processing}
+                />
+                <BreakdownRow
+                  label="Hole operations"
+                  detail={`${part.holes.drilled}D · ${part.holes.tapped}T · ${part.holes.countersunk}CSK`}
+                  value={cost.holes}
+                />
+                {cost.finishing > 0 && (
+                  <BreakdownRow
+                    label="Finishing"
+                    detail={FINISHES[part.finish].label}
+                    value={cost.finishing}
+                  />
+                )}
+                {cost.isSmallPart && (
+                  <BreakdownRow
+                    label="Small-part penalty"
+                    detail="part < 2kg, ₹150/kg flat"
+                    value={cost.smallPartPenalty}
+                  />
+                )}
+                <BreakdownRow label="Subtotal" value={cost.subtotal} bold />
+                <BreakdownRow label="Design risk buffer (7.5%)" value={cost.designRiskBuffer} />
+                <BreakdownRow label="QC inspection (10%)" value={cost.qcInspection} />
+                <BreakdownRow label="Unit cost" value={cost.unitCost} bold />
+                <BreakdownRow
+                  label={`Line total × ${part.quantity}`}
+                  value={cost.lineTotal}
+                  bold
+                  highlight
+                />
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BreakdownRow({
+  label,
+  detail,
+  value,
+  bold,
+  highlight,
+}: {
+  label: string;
+  detail?: string;
+  value: number;
+  bold?: boolean;
+  highlight?: boolean;
+}) {
+  return (
+    <tr className={highlight ? 'bg-blue-50' : ''}>
+      <td className={`py-1.5 pl-3 ${bold ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>
+        {label}
+      </td>
+      <td className="py-1.5 text-xs text-gray-400">{detail}</td>
+      <td
+        className={`py-1.5 pr-3 text-right tabular-nums ${
+          bold ? 'font-semibold text-gray-900' : 'text-gray-700'
+        }`}
+      >
+        {inr(value, 2)}
+      </td>
+    </tr>
+  );
+}
