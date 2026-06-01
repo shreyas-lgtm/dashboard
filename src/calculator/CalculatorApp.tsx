@@ -7,7 +7,7 @@ import {
 } from './costEngine';
 import { COMMERCIAL } from './rateCard';
 import { SYSTEMS, SYSTEM_LABEL, type SystemId } from './systems';
-import { blankPart, EXAMPLE_PARTS, newId, partFromExtraction } from './presets';
+import { blankPart, blankAssembly, EXAMPLE_PARTS, newId, partFromExtraction } from './presets';
 import { inr, pct } from './format';
 import { extractFromZip } from './fileParsers/zip';
 import { PartEditor } from './components/PartEditor';
@@ -20,19 +20,22 @@ interface ImportSummary {
   total: number;
   skipped: string[];
   mergedComponents: number;
+  assemblyLines: number;
 }
 
 function exportCsv(parts: PartInput[]) {
   const pkg = computePackageCost(parts);
   const header = [
-    'System', 'Part', 'Material', 'Process', 'Finished kg', 'Qty',
-    'Material', 'Processing', 'Holes', 'Finishing', 'Small-part',
+    'System', 'Type', 'Name', 'Material', 'Process', 'Finished kg', 'Weld in', 'Qty',
+    'Material', 'Processing', 'Holes', 'Finishing', 'Small-part', 'Welding',
     'Subtotal', 'Buffer 7.5%', 'QC 10%', 'Unit cost', 'Line total',
   ];
   const rows = pkg.lines.map(({ part, cost }) => [
-    SYSTEM_LABEL[part.system], part.name, part.material, part.process,
-    part.finishedWeightKg, part.quantity,
-    cost.material, cost.processing, cost.holes, cost.finishing, cost.smallPartPenalty,
+    SYSTEM_LABEL[part.system], part.kind === 'assembly' ? 'Assembly' : 'Part', part.name,
+    part.kind === 'assembly' ? '—' : part.material,
+    part.kind === 'assembly' ? '—' : part.process,
+    part.finishedWeightKg, part.weldLengthIn ?? 0, part.quantity,
+    cost.material, cost.processing, cost.holes, cost.finishing, cost.smallPartPenalty, cost.welding,
     cost.subtotal, cost.designRiskBuffer, cost.qcInspection, cost.unitCost, cost.lineTotal,
   ]);
   const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
@@ -86,8 +89,9 @@ export default function CalculatorApp() {
       const newParts = results.map(partFromExtraction);
       const counts: Partial<Record<SystemId, number>> = {};
       for (const p of newParts) counts[p.system] = (counts[p.system] ?? 0) + 1;
+      const assemblyLines = newParts.filter((p) => p.kind === 'assembly').length;
       setParts((ps) => [...ps, ...newParts]);
-      setImportSummary({ counts, total: newParts.length, skipped, mergedComponents });
+      setImportSummary({ counts, total: newParts.length, skipped, mergedComponents, assemblyLines });
     } finally {
       setZipBusy(false);
     }
@@ -119,6 +123,8 @@ export default function CalculatorApp() {
                     Imported {importSummary.total} component{importSummary.total === 1 ? '' : 's'}.
                     {importSummary.mergedComponents > 0 &&
                       ` ${importSummary.mergedComponents} built from multiple files (STEP/DXF/PDF merged into one).`}
+                    {importSummary.assemblyLines > 0 &&
+                      ` ${importSummary.assemblyLines} assembly drawing(s) added as weld lines (assumed rate — confirm).`}
                   </p>
                   <p>
                     {Object.entries(importSummary.counts)
@@ -186,6 +192,12 @@ export default function CalculatorApp() {
               className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
             >
               <Plus size={15} /> Add part
+            </button>
+            <button
+              onClick={() => setParts((ps) => [...ps, blankAssembly('Unsorted')])}
+              className="flex items-center gap-1.5 rounded-md border border-purple-200 bg-white px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors"
+            >
+              <Plus size={15} /> Add weld/assembly
             </button>
             <button
               onClick={() => {

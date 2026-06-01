@@ -5,7 +5,7 @@
 
 import type { PartInput } from './costEngine';
 import { emptyHoles } from './costEngine';
-import { classifySystem } from './systems';
+import { classifySystem, isAssemblyFile } from './systems';
 import type { ExtractionResult } from './fileParsers';
 import type { MaterialId, ProcessId } from './rateCard';
 
@@ -21,6 +21,17 @@ function processForMaterial(material: MaterialId): ProcessId {
 export function partFromExtraction(result: ExtractionResult): PartInput {
   const part = blankPart(classifySystem(result.fileName));
   part.name = result.fileName;
+
+  // An assembly/weldment drawing is a weld line, not a cut part — don't pull
+  // weight/material/holes from it; the user enters the weld length.
+  if (isAssemblyFile(result.fileName)) {
+    part.kind = 'assembly';
+    part.weldLengthIn = 0;
+    part.finishedWeightKg = 0;
+    if (result.provenance?.length) part.provenance = result.provenance;
+    return part;
+  }
+
   if (result.suggestedMaterial) part.material = result.suggestedMaterial;
   part.process = processForMaterial(part.material);
   if (result.suggestedFinish) part.finish = result.suggestedFinish;
@@ -43,6 +54,7 @@ export function blankPart(system: PartInput['system'] = 'Unsorted'): PartInput {
     id: newId(),
     name: 'New part',
     system,
+    kind: 'part',
     material: 'CRCA',
     process: 'sheet_steel',
     finishedWeightKg: 1,
@@ -52,6 +64,10 @@ export function blankPart(system: PartInput['system'] = 'Unsorted'): PartInput {
     finish: 'none',
     quantity: 1,
   };
+}
+
+export function blankAssembly(system: PartInput['system'] = 'Unsorted'): PartInput {
+  return { ...blankPart(system), name: 'Assembly / weld', kind: 'assembly', weldLengthIn: 0, finishedWeightKg: 0 };
 }
 
 export const EXAMPLE_PARTS: PartInput[] = [

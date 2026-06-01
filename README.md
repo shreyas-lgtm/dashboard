@@ -67,6 +67,21 @@ Each component is named after its base name and filed by system; unsupported
 files in the ZIP are listed as skipped. You can re-assign any part to a
 different system from its **System** dropdown.
 
+### Assembly drawings & laser-cut holes
+
+The calculator distinguishes how a file should be priced:
+
+- **Assembly / weldment drawings** (file name contains `assembly`, `assy` or
+  `weldment`) describe how parts are *joined*, not a part to be cut. They are
+  added as a **weld line priced by weld length at ₹17/inch** — a placeholder
+  rate that is **ASSUMED and not yet confirmed**, flagged in amber wherever it
+  appears. Enter the total weld length; material/weight are not used.
+- **DXF = laser cutting.** Holes in a laser-cut sheet are part of the cut and
+  are **not charged** as drilled holes (the laser cost is already in the
+  per-kg processing rate). Tapping and countersinking are secondary operations
+  and are still charged. Drilled holes are billed only on **machined-plate**
+  parts.
+
 ### Verifying a quote / why formats can differ
 
 Pricing is **deterministic on the engineering inputs** (weight, material,

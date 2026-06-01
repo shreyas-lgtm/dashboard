@@ -76,8 +76,13 @@ export const PROCESSING = {
 } as const;
 
 // D. Hole Operations — INR per hole.
+// IMPORTANT: these are SECONDARY operations on a finished part. Holes that form
+// part of a laser-cut sheet profile are cut by the laser and are already paid for
+// in the sheet processing rate (C) — so a "drilled" hole is only charged on a
+// machined-plate part, never on a laser-cut sheet (see costEngine). Tapping and
+// countersinking are secondary ops and are charged on any part.
 export const HOLES = {
-  drilled: 8, // generic clearance hole
+  drilled: 8, // generic clearance hole — secondary drilling on machined plate only
   tapped: 16, // tapped hole M5–M10 (M6/M8 common)
   countersunk: 28, // countersunk hole Ø18 × 90°
 } as const;
@@ -92,6 +97,16 @@ export const FINISHES: Record<FinishId, { label: string; ratePerKg: number }> = 
   powder: { label: 'Powder coating (any colour, incl. RAL 9017)', ratePerKg: 75 },
   anodise: { label: 'Hard anodising (Type II / III, 25–50µm)', ratePerKg: 250 },
 };
+
+// G. Assembly / Welding.
+// ⚠️ ASSUMED RATE — NOT CONFIRMED by SPMIL. An "assembly" drawing describes how
+// already-cut parts are joined (welds, fasteners); it is not a part to be cut.
+// We price it by total weld length. This placeholder rate must be confirmed
+// before the quote is shared — `rateConfirmed: false` surfaces that in the UI.
+export const ASSEMBLY = {
+  weldRatePerInch: 17, // INR per inch of weld — ASSUMED, pending confirmation
+  rateConfirmed: false,
+} as const;
 
 // F. Adjustments.
 export const ADJUSTMENTS = {

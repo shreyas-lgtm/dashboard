@@ -41,8 +41,10 @@ describe('computePartCost — CRCA sheet bracket (small part)', () => {
     expect(c.processing).toBe(1.5 * 105); // 157.5
   });
 
-  it('sums hole operations (4×8 + 2×16)', () => {
-    expect(c.holes).toBe(64);
+  it('does NOT charge drilled holes on a laser-cut sheet (only 2 tapped × 16)', () => {
+    // 4 drilled holes are part of the laser cut profile → ₹0; tapped is a
+    // secondary op and is still charged: 2 × 16 = 32.
+    expect(c.holes).toBe(32);
   });
 
   it('charges powder coat at ₹75/kg finished', () => {
@@ -55,9 +57,36 @@ describe('computePartCost — CRCA sheet bracket (small part)', () => {
   });
 
   it('applies 7.5% buffer + 10% QC and lands the unit cost', () => {
-    // subtotal = 214.9875 + 157.5 + 64 + 112.5 + 225 = 773.9875
-    expect(round(c.subtotal)).toBe(773.99);
-    expect(round(c.unitCost)).toBe(909.44); // 773.9875 × 1.175
+    // subtotal = 214.9875 + 157.5 + 32 + 112.5 + 225 = 741.9875
+    expect(round(c.subtotal)).toBe(741.99);
+    expect(round(c.unitCost)).toBe(871.84); // 741.9875 × 1.175
+  });
+});
+
+describe('computePartCost — laser-cut holes vs machined drilling', () => {
+  it('charges drilled holes only on a machined plate, not on a sheet', () => {
+    const sheet = computePartCost({ ...base, process: 'sheet_steel', holes: { drilled: 10, tapped: 0, countersunk: 0 } });
+    expect(sheet.holes).toBe(0); // all 10 are laser-cut, included in the cut
+
+    const plate = computePartCost({ ...base, process: 'plate_machined', holes: { drilled: 10, tapped: 0, countersunk: 0 } });
+    expect(plate.holes).toBe(80); // 10 drilled × ₹8 — genuine secondary drilling
+  });
+});
+
+describe('computePartCost — assembly / welding line', () => {
+  const asm: PartInput = { ...base, kind: 'assembly', weldLengthIn: 20, finishedWeightKg: 0, quantity: 2 };
+  const c = computePartCost(asm);
+
+  it('prices weld length at the assumed ₹17/inch with no material/processing', () => {
+    expect(c.welding).toBe(20 * 17); // 340
+    expect(c.material).toBe(0);
+    expect(c.processing).toBe(0);
+    expect(c.subtotal).toBe(340);
+  });
+
+  it('still applies buffer + QC, then multiplies by quantity', () => {
+    expect(round(c.unitCost)).toBe(round(340 * 1.175)); // 399.5
+    expect(round(c.lineTotal)).toBe(round(340 * 1.175 * 2)); // 799
   });
 });
 

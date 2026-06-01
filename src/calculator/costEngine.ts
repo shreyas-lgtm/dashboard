@@ -6,6 +6,7 @@
 
 import {
   ADJUSTMENTS,
+  ASSEMBLY,
   COMMERCIAL,
   FINISHES,
   GROSS_UP,
@@ -29,6 +30,13 @@ export interface PartInput {
   name: string;
   /** Which robotic system this part belongs to (for BOM grouping). */
   system: SystemId;
+  /**
+   * 'part' = a component to be cut/machined (default).
+   * 'assembly' = a weld/assembly line (priced by weld length, not as a cut part).
+   */
+  kind?: 'part' | 'assembly';
+  /** Total weld length in inches — assembly lines only. */
+  weldLengthIn?: number;
   material: MaterialId;
   process: ProcessId;
   /** Finished part weight in kg (one piece). */
@@ -51,7 +59,9 @@ export interface PartCost {
   holes: number;
   finishing: number;
   smallPartPenalty: number;
-  /** material + processing + holes + finishing + smallPartPenalty */
+  /** Welding / assembly cost (assembly lines only; 0 for parts). */
+  welding: number;
+  /** material + processing + holes + finishing + smallPartPenalty + welding */
   subtotal: number;
   designRiskBuffer: number;
   qcInspection: number;
@@ -100,8 +110,24 @@ export function processingRateFor(part: PartInput): number {
 }
 
 export function computePartCost(part: PartInput): PartCost {
-  const weight = Math.max(0, part.finishedWeightKg);
   const qty = Math.max(0, Math.floor(part.quantity));
+
+  // Assembly / welding line — priced by weld length, not as a cut part.
+  if (part.kind === 'assembly') {
+    const welding = Math.max(0, part.weldLengthIn ?? 0) * ASSEMBLY.weldRatePerInch;
+    const subtotal = welding;
+    const designRiskBuffer = subtotal * ADJUSTMENTS.designRiskBuffer;
+    const qcInspection = subtotal * ADJUSTMENTS.qcInspection;
+    const unitCost = subtotal + designRiskBuffer + qcInspection;
+    return {
+      material: 0, processing: 0, holes: 0, finishing: 0, smallPartPenalty: 0,
+      welding, subtotal, designRiskBuffer, qcInspection,
+      unitCost, lineTotal: unitCost * qty,
+      rawMaterialKg: 0, grossUpFactor: 0, processingRatePerKg: 0, isSmallPart: false,
+    };
+  }
+
+  const weight = Math.max(0, part.finishedWeightKg);
 
   // A + B. Raw material consumed = finished × gross-up × (1 + yield loss).
   const grossUpFactor = grossUpFor(part);
@@ -112,9 +138,12 @@ export function computePartCost(part: PartInput): PartCost {
   const processingRatePerKg = processingRateFor(part);
   const processing = weight * processingRatePerKg;
 
-  // D. Hole operations.
+  // D. Hole operations. Drilled holes are only a secondary op on MACHINED plate;
+  // on a laser-cut sheet the holes are part of the cut profile (already in C), so
+  // they are not charged here. Tapping & countersinking are charged on any part.
+  const drilledCharged = part.process === 'plate_machined' ? part.holes.drilled : 0;
   const holes =
-    part.holes.drilled * HOLES.drilled +
+    drilledCharged * HOLES.drilled +
     part.holes.tapped * HOLES.tapped +
     part.holes.countersunk * HOLES.countersunk;
 
@@ -142,6 +171,7 @@ export function computePartCost(part: PartInput): PartCost {
     holes,
     finishing,
     smallPartPenalty,
+    welding: 0,
     subtotal,
     designRiskBuffer,
     qcInspection,

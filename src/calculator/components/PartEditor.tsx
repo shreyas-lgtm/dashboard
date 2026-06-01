@@ -4,6 +4,7 @@ import {
   MATERIALS,
   PROCESSES,
   FINISHES,
+  ASSEMBLY,
   type MaterialId,
   type ProcessId,
   type FinishId,
@@ -36,6 +37,10 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
 
   const cost = computePartCost(part);
   const proc = PROCESSES[part.process];
+  const isAssembly = part.kind === 'assembly';
+  // On a laser-cut sheet, through-holes are part of the cut (not charged);
+  // drilling is only billed on a machined plate.
+  const laserCut = part.process === 'sheet_steel' || part.process === 'sheet_aluminium';
 
   const set = <K extends keyof PartInput>(key: K, value: PartInput[K]) =>
     onChange({ ...part, [key]: value });
@@ -73,30 +78,127 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
     }
   };
 
+  const header = (
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-gray-50/60">
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600 shrink-0">
+        {index + 1}
+      </span>
+      <input
+        value={part.name}
+        onChange={(e) => set('name', e.target.value)}
+        className="flex-1 bg-transparent text-sm font-semibold text-gray-900 focus:outline-none"
+        placeholder={isAssembly ? 'Assembly name' : 'Part name'}
+      />
+      {isAssembly && (
+        <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-purple-700">
+          Assembly
+        </span>
+      )}
+      <span className="text-sm font-bold text-gray-900 tabular-nums">{inr(cost.lineTotal)}</span>
+      <button
+        onClick={onRemove}
+        className="text-gray-300 hover:text-red-500 transition-colors"
+        title="Remove"
+      >
+        <Trash2 size={16} />
+      </button>
+    </div>
+  );
+
+  // Assembly / welding line — a different cost model (weld length × rate), so it
+  // gets a dedicated, simpler editor instead of the cut-part form.
+  if (isAssembly) {
+    return (
+      <div className="bg-white rounded-xl border border-purple-200 shadow-sm overflow-hidden">
+        {header}
+        <div className="p-4 space-y-4">
+          {part.provenance && part.provenance.length > 0 && (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+              <div className="mb-1 flex items-center gap-1.5 font-semibold">
+                <FileCheck2 size={13} className="text-emerald-600" />
+                Source drawings
+              </div>
+              <ul className="space-y-0.5">
+                {part.provenance.map((p, i) => (
+                  <li key={i}>
+                    <span className="font-medium">{p.label}:</span> {p.value}{' '}
+                    <span className="text-emerald-600/80">← {p.source}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-500" />
+            <span>
+              <strong>Assumed rate — not yet confirmed.</strong> This is an assembly drawing (how
+              parts are welded/joined), not a part to be cut. It&apos;s priced at{' '}
+              <strong>{inr(ASSEMBLY.weldRatePerInch)}/inch of weld</strong>, a placeholder pending
+              SPMIL&apos;s confirmed welding rate. Enter the total weld length below.
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="col-span-2 sm:col-span-1">
+              <label className={labelCls}>System</label>
+              <select
+                value={part.system}
+                onChange={(e) => set('system', e.target.value as SystemId)}
+                className={fieldCls}
+              >
+                {SYSTEMS.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Weld length (inches)</label>
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                value={part.weldLengthIn ?? 0}
+                onChange={(e) => set('weldLengthIn', Math.max(0, parseFloat(e.target.value) || 0))}
+                className={`${fieldCls} tabular-nums`}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Quantity</label>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={part.quantity}
+                onChange={(e) => set('quantity', Math.max(1, parseInt(e.target.value) || 1))}
+                className={`${fieldCls} tabular-nums`}
+              />
+            </div>
+          </div>
+
+          <table className="w-full text-sm">
+            <tbody className="divide-y divide-gray-100">
+              <BreakdownRow
+                label="Welding / assembly"
+                detail={`${num(part.weldLengthIn ?? 0, 1)} in @ ${inr(ASSEMBLY.weldRatePerInch)}/in — assumed`}
+                value={cost.welding}
+              />
+              <BreakdownRow label="Design risk buffer (7.5%)" value={cost.designRiskBuffer} />
+              <BreakdownRow label="QC inspection (10%)" value={cost.qcInspection} />
+              <BreakdownRow label="Unit cost" value={cost.unitCost} bold />
+              <BreakdownRow label={`Line total × ${part.quantity}`} value={cost.lineTotal} bold highlight />
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      {/* Header row */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-gray-50/60">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600 shrink-0">
-          {index + 1}
-        </span>
-        <input
-          value={part.name}
-          onChange={(e) => set('name', e.target.value)}
-          className="flex-1 bg-transparent text-sm font-semibold text-gray-900 focus:outline-none"
-          placeholder="Part name"
-        />
-        <span className="text-sm font-bold text-gray-900 tabular-nums">
-          {inr(cost.lineTotal)}
-        </span>
-        <button
-          onClick={onRemove}
-          className="text-gray-300 hover:text-red-500 transition-colors"
-          title="Remove part"
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
+      {header}
 
       <div className="p-4 space-y-4">
         {/* Quote inputs & sources — lets you verify where each value came from */}
@@ -265,7 +367,9 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
           </div>
 
           <div>
-            <label className={labelCls}>Drilled holes</label>
+            <label className={labelCls}>
+              {laserCut ? 'Drilled / cut holes' : 'Drilled holes'}
+            </label>
             <input
               type="number"
               min={0}
@@ -273,6 +377,9 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
               onChange={(e) => setHole('drilled', parseInt(e.target.value) || 0)}
               className={`${fieldCls} tabular-nums`}
             />
+            {laserCut && (
+              <p className="mt-0.5 text-[11px] text-gray-400">Laser-cut — included in cut, ₹0</p>
+            )}
           </div>
           <div>
             <label className={labelCls}>Tapped holes</label>
@@ -364,7 +471,11 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
                 />
                 <BreakdownRow
                   label="Hole operations"
-                  detail={`${part.holes.drilled}D · ${part.holes.tapped}T · ${part.holes.countersunk}CSK`}
+                  detail={
+                    laserCut
+                      ? `${part.holes.drilled} laser-cut (in cut, ₹0) · ${part.holes.tapped}T · ${part.holes.countersunk}CSK charged`
+                      : `${part.holes.drilled}D · ${part.holes.tapped}T · ${part.holes.countersunk}CSK`
+                  }
                   value={cost.holes}
                 />
                 {cost.finishing > 0 && (

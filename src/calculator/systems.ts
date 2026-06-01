@@ -22,6 +22,12 @@ export const SYSTEM_LABEL: Record<SystemId, string> = SYSTEMS.reduce(
   {} as Record<SystemId, string>,
 );
 
+// An "assembly" drawing describes how parts are joined (welding etc.), not a part
+// to be cut — these are priced as a weld/assembly line, never as a cut component.
+export function isAssemblyFile(fileName: string): boolean {
+  return /assembl|\bassy\b|weldment|weld[\s_-]?ment/i.test(fileName);
+}
+
 // Keyword-anywhere classification. Order matters: the first match wins, so the
 // more specific patterns ("operation station") are written to be unambiguous.
 export function classifySystem(fileName: string): SystemId {

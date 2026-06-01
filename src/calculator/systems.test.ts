@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import JSZip from 'jszip';
-import { classifySystem } from './systems';
+import { classifySystem, isAssemblyFile } from './systems';
 import { partFromExtraction } from './presets';
 import { extractFromZip } from './fileParsers/zip';
 
@@ -15,6 +15,32 @@ describe('classifySystem (keyword anywhere, case-insensitive)', () => {
 
   it('falls back to Unsorted when nothing matches', () => {
     expect(classifySystem('random_part_123.stl')).toBe('Unsorted');
+  });
+});
+
+describe('isAssemblyFile', () => {
+  it('detects assembly / weldment drawings by name', () => {
+    expect(isAssemblyFile('AMR_main_assembly.pdf')).toBe(true);
+    expect(isAssemblyFile('sprayer-ASSY-rev2.step')).toBe(true);
+    expect(isAssemblyFile('frame_weldment.dxf')).toBe(true);
+    expect(isAssemblyFile('base_plate.stl')).toBe(false);
+  });
+});
+
+describe('partFromExtraction — assembly file', () => {
+  it('creates a weld line (no material/weight), not a cut part', () => {
+    const part = partFromExtraction({
+      fileName: 'AMR_assembly.pdf',
+      kind: 'pdf',
+      summary: [],
+      suggestedMaterial: 'AL6061',
+      suggestedWeightKg: 9.5,
+      suggestedHoles: { drilled: 4, tapped: 0, countersunk: 0 },
+    });
+    expect(part.kind).toBe('assembly');
+    expect(part.system).toBe('AMR');
+    expect(part.finishedWeightKg).toBe(0); // weight from the model is ignored
+    expect(part.weldLengthIn).toBe(0);
   });
 });
 

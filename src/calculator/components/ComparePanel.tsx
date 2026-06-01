@@ -94,6 +94,7 @@ export function ComparePanel({ parts, onClose }: Props) {
     { label: 'Hole operations', a: ca.holes, b: cb.holes },
     { label: 'Finishing', a: ca.finishing, b: cb.finishing },
     { label: 'Small-part penalty', a: ca.smallPartPenalty, b: cb.smallPartPenalty },
+    { label: 'Welding / assembly', a: ca.welding, b: cb.welding },
     { label: 'Design risk buffer', a: ca.designRiskBuffer, b: cb.designRiskBuffer },
     { label: 'QC inspection', a: ca.qcInspection, b: cb.qcInspection },
   ]
