@@ -37,8 +37,8 @@ export default function Root() {
                 Manufacturing Cost Calculator
               </h1>
               <p className="text-sm text-gray-500 mt-0.5">
-                Budgetary part pricing from the SPMIL Annexure A rate card · upload a
-                drawing or CAD model, or enter parameters by hand
+                Budgetary part pricing from the SPMIL Annexure A rate card · drop a ZIP
+                of drawings to bulk-import by system, or add parts one at a time
               </p>
             </div>
           </header>

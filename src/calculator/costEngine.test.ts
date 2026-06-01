@@ -9,6 +9,7 @@ import {
 const base: PartInput = {
   id: 'p',
   name: 'part',
+  system: 'Unsorted',
   material: 'CRCA',
   process: 'sheet_steel',
   finishedWeightKg: 1.5,

@@ -5,11 +5,14 @@ interface Props {
   onFile: (file: File) => void | Promise<void>;
   busy?: boolean;
   fileName?: string | null;
+  accept?: string;
+  title?: string;
+  hint?: string;
 }
 
 const ACCEPT = '.stl,.step,.stp,.iges,.igs,.dxf,.pdf';
 
-export function DropZone({ onFile, busy, fileName }: Props) {
+export function DropZone({ onFile, busy, fileName, accept, title, hint }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -39,7 +42,7 @@ export function DropZone({ onFile, busy, fileName }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPT}
+        accept={accept ?? ACCEPT}
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
       />
@@ -52,10 +55,10 @@ export function DropZone({ onFile, busy, fileName }: Props) {
       )}
       <div className="min-w-0">
         <p className="text-sm font-medium text-gray-700 truncate">
-          {busy ? 'Parsing…' : fileName ? fileName : 'Upload drawing or CAD model'}
+          {busy ? 'Parsing…' : fileName ? fileName : title ?? 'Upload drawing or CAD model'}
         </p>
         <p className="text-xs text-gray-400">
-          STL · STEP · IGES · DXF · PDF — drag & drop or click
+          {hint ?? 'STL · STEP · IGES · DXF · PDF — drag & drop or click'}
         </p>
       </div>
     </div>

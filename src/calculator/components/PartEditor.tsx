@@ -9,6 +9,7 @@ import {
   type FinishId,
 } from '../rateCard';
 import { computePartCost, type PartInput } from '../costEngine';
+import { SYSTEMS, type SystemId } from '../systems';
 import { extractFromFile, type ExtractionResult } from '../fileParsers';
 import { stlMassKg, type StlUnit } from '../fileParsers/stl';
 import { inr, num } from '../format';
@@ -136,6 +137,21 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
 
         {/* Inputs grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="col-span-2 sm:col-span-1">
+            <label className={labelCls}>System</label>
+            <select
+              value={part.system}
+              onChange={(e) => set('system', e.target.value as SystemId)}
+              className={fieldCls}
+            >
+              {SYSTEMS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="col-span-2 sm:col-span-1">
             <label className={labelCls}>Material</label>
             <select

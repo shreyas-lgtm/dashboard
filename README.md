@@ -37,9 +37,28 @@ The whole rate card lives in one file — `src/calculator/rateCard.ts` — so a
 revision is a one-line edit. The math is pure and unit-tested
 (`src/calculator/costEngine.test.ts`).
 
-### Drawing / CAD upload
+### Bulk import — drop a ZIP
 
-Drag in a file to pre-fill the form (you always confirm the values):
+Drop a single **`.zip`** of drawings/CAD files and the calculator creates a part
+for each supported file at once. Every part is **auto-filed under a system** by
+matching keywords anywhere in its file name (case-insensitive):
+
+| File name contains | Filed under |
+|---|---|
+| `amr` | AMR |
+| `spray` | Tool Station — Sprayer |
+| `sand` | Tool Station — Sander |
+| `operation` / `ostation` / `opstation` | Operation Station |
+| (no match) | Unsorted |
+
+Each part is named after its file and pre-filled from the geometry (STL mass,
+DXF holes, etc.); unsupported files in the ZIP are listed as skipped. You can
+re-assign any part to a different system from its **System** dropdown.
+
+### Single drawing / CAD upload
+
+Drag a file onto any individual part to pre-fill the form (you always confirm
+the values):
 
 | Format | What gets extracted |
 |--------|--------------------|

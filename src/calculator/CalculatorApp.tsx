@@ -1,27 +1,35 @@
 import { useMemo, useState } from 'react';
-import { Plus, Calculator, ListPlus, Trash2, Download } from 'lucide-react';
+import { Plus, Calculator, ListPlus, Trash2, Download, Sparkles, Package } from 'lucide-react';
 import {
   computePackageCost,
   type PartInput,
   type PackageOptions,
 } from './costEngine';
 import { COMMERCIAL } from './rateCard';
-import { blankPart, EXAMPLE_PARTS, newId } from './presets';
+import { SYSTEMS, SYSTEM_LABEL, type SystemId } from './systems';
+import { blankPart, EXAMPLE_PARTS, newId, partFromExtraction } from './presets';
 import { inr, pct } from './format';
+import { extractFromZip } from './fileParsers/zip';
 import { PartEditor } from './components/PartEditor';
 import { RateCardPanel } from './components/RateCardPanel';
+import { DropZone } from './components/DropZone';
 
-const SYSTEMS = ['AMR', 'Tool Station — Sprayer', 'Tool Station — Sander', 'Operation Station'];
+interface ImportSummary {
+  counts: Partial<Record<SystemId, number>>;
+  total: number;
+  skipped: string[];
+}
 
-function exportCsv(packageName: string, parts: PartInput[]) {
+function exportCsv(parts: PartInput[]) {
   const pkg = computePackageCost(parts);
   const header = [
-    'Part', 'Material', 'Process', 'Finished kg', 'Qty',
+    'System', 'Part', 'Material', 'Process', 'Finished kg', 'Qty',
     'Material', 'Processing', 'Holes', 'Finishing', 'Small-part',
     'Subtotal', 'Buffer 7.5%', 'QC 10%', 'Unit cost', 'Line total',
   ];
   const rows = pkg.lines.map(({ part, cost }) => [
-    part.name, part.material, part.process, part.finishedWeightKg, part.quantity,
+    SYSTEM_LABEL[part.system], part.name, part.material, part.process,
+    part.finishedWeightKg, part.quantity,
     cost.material, cost.processing, cost.holes, cost.finishing, cost.smallPartPenalty,
     cost.subtotal, cost.designRiskBuffer, cost.qcInspection, cost.unitCost, cost.lineTotal,
   ]);
@@ -32,13 +40,12 @@ function exportCsv(packageName: string, parts: PartInput[]) {
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${packageName.replace(/\s+/g, '_') || 'package'}_quote.csv`;
+  a.download = 'manufacturing_quote.csv';
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
 export default function CalculatorApp() {
-  const [packageName, setPackageName] = useState(SYSTEMS[0]);
   const [parts, setParts] = useState<PartInput[]>(() =>
     EXAMPLE_PARTS.map((p) => ({ ...p, id: newId() })),
   );
@@ -48,68 +55,148 @@ export default function CalculatorApp() {
     applyGst: false,
     gstRate: COMMERCIAL.gst,
   });
+  const [zipBusy, setZipBusy] = useState(false);
+  const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
 
   const pkg = useMemo(() => computePackageCost(parts, opts), [parts, opts]);
+
+  // Group the priced lines by system, in canonical system order.
+  const grouped = useMemo(() => {
+    return SYSTEMS.map((sys) => {
+      const lines = pkg.lines.filter((l) => l.part.system === sys.id);
+      const subtotal = lines.reduce((s, l) => s + l.cost.lineTotal, 0);
+      const units = lines.reduce((s, l) => s + l.part.quantity, 0);
+      return { sys, lines, subtotal, units };
+    }).filter((g) => g.lines.length > 0);
+  }, [pkg]);
 
   const updatePart = (id: string, next: PartInput) =>
     setParts((ps) => ps.map((p) => (p.id === id ? next : p)));
   const removePart = (id: string) => setParts((ps) => ps.filter((p) => p.id !== id));
+  const addPart = (system: SystemId) => setParts((ps) => [...ps, blankPart(system)]);
+
+  const handleZip = async (file: File) => {
+    setZipBusy(true);
+    setImportSummary(null);
+    try {
+      const { results, skipped } = await extractFromZip(file);
+      const newParts = results.map(partFromExtraction);
+      const counts: Partial<Record<SystemId, number>> = {};
+      for (const p of newParts) counts[p.system] = (counts[p.system] ?? 0) + 1;
+      setParts((ps) => [...ps, ...newParts]);
+      setImportSummary({ counts, total: newParts.length, skipped });
+    } finally {
+      setZipBusy(false);
+    }
+  };
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: parts list */}
+        {/* Left: bulk import + grouped parts */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="text-sm font-medium text-gray-500">System package</label>
-            <input
-              list="systems"
-              value={packageName}
-              onChange={(e) => setPackageName(e.target.value)}
-              className="flex-1 min-w-[180px] rounded-md border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-200"
+          {/* Bulk ZIP import */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Package size={16} className="text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-700">Bulk import a ZIP of drawings</h2>
+            </div>
+            <DropZone
+              onFile={handleZip}
+              busy={zipBusy}
+              accept=".zip"
+              title="Drop a .zip of drawings / CAD files"
+              hint="Each file becomes a part, auto-filed by system from its name (AMR · Sprayer · Sander · Operation)"
             />
-            <datalist id="systems">
-              {SYSTEMS.map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
+            {importSummary && (
+              <div className="mt-2 flex items-start gap-2 rounded-md bg-green-50 px-3 py-2 text-xs text-green-800">
+                <Sparkles size={13} className="mt-0.5 shrink-0 text-green-600" />
+                <div>
+                  <p className="font-medium">
+                    Imported {importSummary.total} part{importSummary.total === 1 ? '' : 's'}.
+                  </p>
+                  <p>
+                    {Object.entries(importSummary.counts)
+                      .map(([sys, n]) => `${SYSTEM_LABEL[sys as SystemId]}: ${n}`)
+                      .join(' · ')}
+                  </p>
+                  {importSummary.skipped.length > 0 && (
+                    <p className="text-green-700/70 mt-0.5">
+                      Skipped {importSummary.skipped.length} unsupported file
+                      {importSummary.skipped.length === 1 ? '' : 's'}: {importSummary.skipped.join(', ')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {parts.length === 0 && (
             <div className="rounded-xl border border-dashed border-gray-300 bg-white py-12 text-center">
               <Calculator size={28} className="mx-auto text-gray-300" />
               <p className="mt-2 text-sm text-gray-500">
-                No parts yet. Add a part or load the example BOM.
+                No parts yet. Import a ZIP, add a part, or load the example BOM.
               </p>
             </div>
           )}
 
-          {parts.map((part, i) => (
-            <PartEditor
-              key={part.id}
-              part={part}
-              index={i}
-              onChange={(next) => updatePart(part.id, next)}
-              onRemove={() => removePart(part.id)}
-            />
+          {/* Grouped sections */}
+          {grouped.map(({ sys, lines, subtotal, units }) => (
+            <section key={sys.id} className="space-y-3">
+              <div className="flex items-center justify-between border-b border-gray-200 pb-1.5">
+                <h2 className="text-sm font-bold text-gray-800">
+                  {sys.label}
+                  <span className="ml-2 text-xs font-normal text-gray-400">
+                    {lines.length} part{lines.length === 1 ? '' : 's'} · {units} pc
+                  </span>
+                </h2>
+                <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                  {inr(subtotal)}
+                </span>
+              </div>
+
+              {lines.map(({ part }) => (
+                <PartEditor
+                  key={part.id}
+                  part={part}
+                  index={parts.findIndex((p) => p.id === part.id)}
+                  onChange={(next) => updatePart(part.id, next)}
+                  onRemove={() => removePart(part.id)}
+                />
+              ))}
+
+              <button
+                onClick={() => addPart(sys.id)}
+                className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                <Plus size={14} /> Add part to {sys.label}
+              </button>
+            </section>
           ))}
 
-          <div className="flex flex-wrap gap-2">
+          {/* Global toolbar */}
+          <div className="flex flex-wrap gap-2 pt-2">
             <button
-              onClick={() => setParts((ps) => [...ps, blankPart()])}
+              onClick={() => addPart('Unsorted')}
               className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
             >
               <Plus size={15} /> Add part
             </button>
             <button
-              onClick={() => setParts(EXAMPLE_PARTS.map((p) => ({ ...p, id: newId() })))}
+              onClick={() => {
+                setParts(EXAMPLE_PARTS.map((p) => ({ ...p, id: newId() })));
+                setImportSummary(null);
+              }}
               className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <ListPlus size={15} /> Load example BOM
             </button>
             {parts.length > 0 && (
               <button
-                onClick={() => setParts([])}
+                onClick={() => {
+                  setParts([]);
+                  setImportSummary(null);
+                }}
                 className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 <Trash2 size={15} /> Clear all
@@ -123,7 +210,7 @@ export default function CalculatorApp() {
           <div className="lg:sticky lg:top-6 space-y-4">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                {packageName || 'Package'} — Estimate
+                Quote Estimate
               </h2>
               <p className="mt-1 text-xs text-gray-400">
                 {parts.length} part type{parts.length === 1 ? '' : 's'} · {pkg.totalUnits} piece
@@ -131,10 +218,17 @@ export default function CalculatorApp() {
               </p>
 
               <div className="mt-4 space-y-2 text-sm">
-                <SummaryRow label="Rate-card subtotal" value={pkg.rateCardSubtotal} strong />
-                <p className="text-xs text-gray-400 -mt-1">
-                  Material + processing + holes + finishing + buffer + QC
-                </p>
+                {/* Per-system subtotals */}
+                {grouped.map(({ sys, subtotal }) => (
+                  <div key={sys.id} className="flex items-center justify-between">
+                    <span className="text-gray-600 truncate pr-2">{sys.label}</span>
+                    <span className="tabular-nums text-gray-700">{inr(subtotal)}</span>
+                  </div>
+                ))}
+
+                <div className="border-t border-gray-100 pt-2">
+                  <SummaryRow label="Rate-card subtotal" value={pkg.rateCardSubtotal} strong />
+                </div>
 
                 <div className="border-t border-gray-100 pt-3 space-y-2">
                   <Toggle
@@ -164,7 +258,7 @@ export default function CalculatorApp() {
               </div>
 
               <button
-                onClick={() => exportCsv(packageName, parts)}
+                onClick={() => exportCsv(parts)}
                 disabled={parts.length === 0}
                 className="mt-4 w-full flex items-center justify-center gap-1.5 rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
               >

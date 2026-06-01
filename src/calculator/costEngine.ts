@@ -16,6 +16,7 @@ import {
   type MaterialId,
   type ProcessId,
 } from './rateCard';
+import type { SystemId } from './systems';
 
 export interface HoleCounts {
   drilled: number;
@@ -26,6 +27,8 @@ export interface HoleCounts {
 export interface PartInput {
   id: string;
   name: string;
+  /** Which robotic system this part belongs to (for BOM grouping). */
+  system: SystemId;
   material: MaterialId;
   process: ProcessId;
   /** Finished part weight in kg (one piece). */
