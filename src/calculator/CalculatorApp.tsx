@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Plus, Calculator, ListPlus, Trash2, Download, Sparkles, Package, GitCompareArrows } from 'lucide-react';
+import { Plus, Calculator, ListPlus, Trash2, Download, Sparkles, Package, GitCompareArrows, AlertTriangle } from 'lucide-react';
 import {
   computePackageCost,
   type PartInput,
   type PackageOptions,
 } from './costEngine';
-import { COMMERCIAL } from './rateCard';
+import { COMMERCIAL, ASSEMBLY } from './rateCard';
 import { SYSTEMS, SYSTEM_LABEL, type SystemId } from './systems';
 import { blankPart, blankAssembly, EXAMPLE_PARTS, newId, partFromExtraction } from './presets';
 import { inr, pct } from './format';
@@ -65,6 +65,13 @@ export default function CalculatorApp() {
   const [comparing, setComparing] = useState(false);
 
   const pkg = useMemo(() => computePackageCost(parts, opts), [parts, opts]);
+
+  // Total welding/assembly cost in the quote, priced at an ASSUMED, unconfirmed
+  // rate — surfaced prominently so the number is never mistaken for final.
+  const weldingTotal = useMemo(
+    () => pkg.lines.reduce((s, l) => s + l.cost.welding * Math.max(0, Math.floor(l.part.quantity)), 0),
+    [pkg],
+  );
 
   // Group the priced lines by system, in canonical system order.
   const grouped = useMemo(() => {
@@ -281,6 +288,22 @@ export default function CalculatorApp() {
                   </div>
                 </div>
               </div>
+
+              {/* Assumed-rate highlight — welding/assembly priced at an unconfirmed rate */}
+              {weldingTotal > 0 && (
+                <div className="mt-4 rounded-md border-2 border-amber-400 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+                  <div className="flex items-center gap-1.5 font-bold uppercase tracking-wide">
+                    <AlertTriangle size={13} className="text-amber-500" />
+                    Includes assumed welding rate
+                  </div>
+                  <p className="mt-1">
+                    This total includes <strong>{inr(weldingTotal)}</strong> of welding/assembly
+                    priced at <strong>{inr(ASSEMBLY.weldRatePerInch)}/inch</strong> — an{' '}
+                    <strong>ASSUMED rate, not yet confirmed</strong> by SPMIL. Confirm before
+                    sharing the quote.
+                  </p>
+                </div>
+              )}
 
               <button
                 onClick={() => exportCsv(parts)}
