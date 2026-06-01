@@ -51,9 +51,21 @@ matching keywords anywhere in its file name (case-insensitive):
 | `operation` / `ostation` / `opstation` | Operation Station |
 | (no match) | Unsorted |
 
-Each part is named after its file and pre-filled from the geometry (STL mass,
-DXF holes, etc.); unsupported files in the ZIP are listed as skipped. You can
-re-assign any part to a different system from its **System** dropdown.
+**Files that share a base name are treated as one component**, so a part
+delivered as `baseplate.step` + `baseplate.dxf` + `baseplate.pdf` is priced
+**once**, not three times. The merged component takes the best information from
+each file:
+
+| Value | Taken from |
+|---|---|
+| Mass | STL geometry first, else a scanned weight |
+| Material | STEP / IGES / PDF callouts |
+| Finish | STEP / IGES / PDF callouts |
+| Holes | Largest count per type across the DXF circles and drawing callouts |
+
+Each component is named after its base name and filed by system; unsupported
+files in the ZIP are listed as skipped. You can re-assign any part to a
+different system from its **System** dropdown.
 
 ### Single drawing / CAD upload
 

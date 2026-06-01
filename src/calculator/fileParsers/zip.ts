@@ -3,13 +3,16 @@
 // behaves exactly like dropping each file in one by one — just at scale.
 
 import JSZip from 'jszip';
-import { extractFromFile, detectKind, type ExtractionResult } from './index';
+import { extractFromFile, detectKind, mergeExtractions, stemOf, type ExtractionResult } from './index';
 import type { StlUnit } from './stl';
 
 export interface ZipImportResult {
+  /** One entry per component (files sharing a base name are merged into one). */
   results: ExtractionResult[];
   /** File names found in the ZIP that we don't know how to parse. */
   skipped: string[];
+  /** How many components were built from more than one file. */
+  mergedComponents: number;
 }
 
 export async function extractFromZip(
@@ -41,5 +44,22 @@ export async function extractFromZip(
     results.push(await extractFromFile(asFile, opts));
   }
 
-  return { results, skipped };
+  // Group files of the same component (matching base name) and merge them so
+  // a STEP + DXF + PDF of one part is priced once, not three times.
+  const groups = new Map<string, ExtractionResult[]>();
+  for (const r of results) {
+    const key = stemOf(r.fileName).toLowerCase();
+    const list = groups.get(key);
+    if (list) list.push(r);
+    else groups.set(key, [r]);
+  }
+
+  const merged: ExtractionResult[] = [];
+  let mergedComponents = 0;
+  for (const list of groups.values()) {
+    if (list.length > 1) mergedComponents++;
+    merged.push(mergeExtractions(list));
+  }
+
+  return { results: merged, skipped, mergedComponents };
 }

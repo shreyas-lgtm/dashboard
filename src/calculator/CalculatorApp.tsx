@@ -18,6 +18,7 @@ interface ImportSummary {
   counts: Partial<Record<SystemId, number>>;
   total: number;
   skipped: string[];
+  mergedComponents: number;
 }
 
 function exportCsv(parts: PartInput[]) {
@@ -79,12 +80,12 @@ export default function CalculatorApp() {
     setZipBusy(true);
     setImportSummary(null);
     try {
-      const { results, skipped } = await extractFromZip(file);
+      const { results, skipped, mergedComponents } = await extractFromZip(file);
       const newParts = results.map(partFromExtraction);
       const counts: Partial<Record<SystemId, number>> = {};
       for (const p of newParts) counts[p.system] = (counts[p.system] ?? 0) + 1;
       setParts((ps) => [...ps, ...newParts]);
-      setImportSummary({ counts, total: newParts.length, skipped });
+      setImportSummary({ counts, total: newParts.length, skipped, mergedComponents });
     } finally {
       setZipBusy(false);
     }
@@ -113,7 +114,9 @@ export default function CalculatorApp() {
                 <Sparkles size={13} className="mt-0.5 shrink-0 text-green-600" />
                 <div>
                   <p className="font-medium">
-                    Imported {importSummary.total} part{importSummary.total === 1 ? '' : 's'}.
+                    Imported {importSummary.total} component{importSummary.total === 1 ? '' : 's'}.
+                    {importSummary.mergedComponents > 0 &&
+                      ` ${importSummary.mergedComponents} built from multiple files (STEP/DXF/PDF merged into one).`}
                   </p>
                   <p>
                     {Object.entries(importSummary.counts)

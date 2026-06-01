@@ -67,4 +67,36 @@ endsolid s`;
     expect(byName['AMR_bracket.stl']).toBe('AMR');
     expect(byName['sprayer-door.dxf']).toBe('Sprayer');
   });
+
+  it('merges files that share a base name into one priced component', async () => {
+    const zip = new JSZip();
+    const asciiStl = `solid s
+ facet normal 0 0 0
+  outer loop
+   vertex 0 0 0
+   vertex 50 0 0
+   vertex 0 50 0
+  endloop
+ endfacet
+endsolid s`;
+    // Three files for ONE component: AMR_panel.{stl,dxf,step}
+    zip.file('AMR_panel.stl', asciiStl);
+    zip.file('AMR_panel.dxf', '0\nSECTION\n0\nCIRCLE\n40\n3\n0\nCIRCLE\n40\n3\n0\nENDSEC\n0\nEOF');
+    zip.file('AMR_panel.step', 'ISO-10303-21;\n/* material: Aluminium 6061 */\nEND-ISO-10303-21;');
+    // A second, single-file component.
+    zip.file('AMR_loner.dxf', '0\nSECTION\n0\nCIRCLE\n40\n5\n0\nENDSEC\n0\nEOF');
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const { results, mergedComponents } = await extractFromZip(new File([blob], 'parts.zip'));
+
+    // 4 files → 2 components (one merged from 3 files, one standalone).
+    expect(results).toHaveLength(2);
+    expect(mergedComponents).toBe(1);
+
+    const panel = results.find((r) => r.fileName === 'AMR_panel')!;
+    expect(panel.sources).toHaveLength(3);
+    expect(typeof panel.suggestedWeightKg).toBe('number'); // mass from the STL
+    expect(panel.suggestedMaterial).toBe('AL6061'); // material from the STEP
+    expect(panel.suggestedHoles?.drilled).toBe(2); // holes from the DXF
+  });
 });

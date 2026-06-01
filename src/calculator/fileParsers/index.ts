@@ -23,6 +23,8 @@ export interface ExtractionResult {
   stl?: StlGeometry & { unit: StlUnit };
   dxf?: DxfInfo;
   scan?: ScanHints;
+  /** When several files for one component are merged, the file names involved. */
+  sources?: string[];
 }
 
 export function detectKind(name: string): FileKind {
@@ -113,4 +115,64 @@ export async function extractFromFile(
 
   result.summary.push('Unrecognised file type — attached as reference. Enter parameters manually.');
   return result;
+}
+
+/** File name without its extension, used to recognise files of one component. */
+export function stemOf(fileName: string): string {
+  const base = (fileName.split('/').pop() || fileName).trim();
+  const dot = base.lastIndexOf('.');
+  return dot > 0 ? base.slice(0, dot) : base;
+}
+
+// Merge several files that describe the SAME component (e.g. a STEP model, a DXF
+// flat pattern and a PDF drawing) into one extraction, so it's priced once. Each
+// file type is trusted for what it knows best:
+//   • mass     → STL geometry first, else any scanned weight
+//   • material → STEP/IGES/PDF callouts
+//   • finish   → STEP/IGES/PDF callouts
+//   • holes    → per-type max across DXF circles and drawing callouts
+export function mergeExtractions(results: ExtractionResult[]): ExtractionResult {
+  if (results.length === 1) return results[0];
+
+  const pick = <T>(get: (r: ExtractionResult) => T | undefined, order: FileKind[]): T | undefined => {
+    for (const k of order) {
+      const v = get(results.find((r) => r.kind === k) ?? ({} as ExtractionResult));
+      if (v !== undefined) return v;
+    }
+    for (const r of results) {
+      const v = get(r);
+      if (v !== undefined) return v;
+    }
+    return undefined;
+  };
+
+  // Holes: take the largest count seen for each hole type across all sources.
+  let holes: ExtractionResult['suggestedHoles'];
+  for (const r of results) {
+    if (!r.suggestedHoles) continue;
+    holes ??= { drilled: 0, tapped: 0, countersunk: 0 };
+    holes.drilled = Math.max(holes.drilled, r.suggestedHoles.drilled);
+    holes.tapped = Math.max(holes.tapped, r.suggestedHoles.tapped);
+    holes.countersunk = Math.max(holes.countersunk, r.suggestedHoles.countersunk);
+  }
+
+  const sources = results.map((r) => r.fileName);
+  const merged: ExtractionResult = {
+    fileName: stemOf(results[0].fileName),
+    kind: pick((r) => (r.kind ? r.kind : undefined), ['step', 'iges', 'stl', 'dxf', 'pdf']) ?? 'unknown',
+    summary: [`Merged ${results.length} files for this component: ${sources.join(', ')}`],
+    sources,
+    suggestedWeightKg: pick((r) => r.suggestedWeightKg, ['stl', 'step', 'iges', 'pdf']),
+    suggestedMaterial: pick((r) => r.suggestedMaterial, ['step', 'iges', 'pdf', 'dxf']),
+    suggestedFinish: pick((r) => r.suggestedFinish, ['step', 'iges', 'pdf']),
+    suggestedHoles: holes,
+    stl: results.find((r) => r.stl)?.stl,
+    dxf: results.find((r) => r.dxf)?.dxf,
+    scan: results.find((r) => r.scan)?.scan,
+  };
+
+  for (const r of results) {
+    for (const line of r.summary) merged.summary.push(`[${r.fileName}] ${line}`);
+  }
+  return merged;
 }
