@@ -85,6 +85,20 @@ material but often no mass, a **DXF** has only holes. To make this auditable:
   file looks far cheaper than the same part as an STL. Merging the formats (or
   entering the weight) resolves it.
 
+### Compare parts
+
+With two or more parts loaded, **Compare parts** opens a side-by-side view that
+reads like a manufacturer reconciling a quote:
+
+- A headline verdict — e.g. *"Part B costs ₹430 more per piece (+18%); biggest
+  driver: Material."*
+- **Driver attribution** ranking every line item by its rupee impact, with the
+  reason in manufacturing terms (alloy rate × weight × buy-to-fly, process,
+  hole counts, finish). The driver deltas sum exactly to the unit-cost gap.
+- Inputs diffed field by field (differences highlighted).
+- **Sanity metrics**: cost per finished kg, raw stock consumed / buy-to-fly
+  ratio, and material as a share of unit cost.
+
 ### Single drawing / CAD upload
 
 Drag a file onto any individual part to pre-fill the form (you always confirm

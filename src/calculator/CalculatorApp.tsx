@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Calculator, ListPlus, Trash2, Download, Sparkles, Package } from 'lucide-react';
+import { Plus, Calculator, ListPlus, Trash2, Download, Sparkles, Package, GitCompareArrows } from 'lucide-react';
 import {
   computePackageCost,
   type PartInput,
@@ -13,6 +13,7 @@ import { extractFromZip } from './fileParsers/zip';
 import { PartEditor } from './components/PartEditor';
 import { RateCardPanel } from './components/RateCardPanel';
 import { DropZone } from './components/DropZone';
+import { ComparePanel } from './components/ComparePanel';
 
 interface ImportSummary {
   counts: Partial<Record<SystemId, number>>;
@@ -58,6 +59,7 @@ export default function CalculatorApp() {
   });
   const [zipBusy, setZipBusy] = useState(false);
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
+  const [comparing, setComparing] = useState(false);
 
   const pkg = useMemo(() => computePackageCost(parts, opts), [parts, opts]);
 
@@ -194,6 +196,14 @@ export default function CalculatorApp() {
             >
               <ListPlus size={15} /> Load example BOM
             </button>
+            {parts.length >= 2 && (
+              <button
+                onClick={() => setComparing(true)}
+                className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <GitCompareArrows size={15} /> Compare parts
+              </button>
+            )}
             {parts.length > 0 && (
               <button
                 onClick={() => {
@@ -279,6 +289,10 @@ export default function CalculatorApp() {
           </div>
         </div>
       </div>
+
+      {comparing && parts.length >= 2 && (
+        <ComparePanel parts={parts} onClose={() => setComparing(false)} />
+      )}
     </main>
   );
 }
