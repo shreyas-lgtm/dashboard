@@ -25,6 +25,8 @@ export interface Listing {
   baths: number | null;
   sqft: number | null;
   pricePerSqft: number | null;
+  furnished: boolean | null;
+  amenities: string[];
   address: string | null;
   city: string | null;
   broker: string | null;

@@ -54,7 +54,14 @@ export function scrutinize(listing, seenKeys = new Set()) {
       flag('LOW_BEDS', SEV.WARN, `${listing.beds} bed(s) — below the ${track.minBeds}-bed minimum.`);
     }
     if (track.minBaths != null && listing.baths != null && listing.baths < track.minBaths) {
-      flag('LOW_BATHS', SEV.INFO, `${listing.baths} bath(s) — below the ${track.minBaths}-bath minimum.`);
+      flag('LOW_BATHS', SEV.WARN, `${listing.baths} bath(s) — below the ${track.minBaths}-bath minimum.`);
+    }
+
+    // --- furnishing & amenities --------------------------------------------
+    if (listing.furnished === false && listing.amenities.length === 0) {
+      flag('UNFURNISHED_NO_AMENITIES', SEV.WARN, 'Unfurnished and no amenities listed.');
+    } else if (listing.furnished == null && listing.amenities.length === 0) {
+      flag('AMENITIES_UNKNOWN', SEV.INFO, 'Furnishing/amenities not in the email — open the listing to confirm.');
     }
   } else {
     if (track.minSqft != null && listing.sqft != null && listing.sqft < track.minSqft) {

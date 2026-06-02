@@ -34,6 +34,9 @@ export function rank(listing, trackKey, flags) {
   // --- location -----------------------------------------------------------
   breakdown.locationMatch = scoreLocation(listing, track);
 
+  // --- furnishing & amenities ---------------------------------------------
+  breakdown.furnishingAmenities = scoreFurnishing(listing, track);
+
   // --- value (price per sqft) ---------------------------------------------
   breakdown.pricePerSqft = scorePricePerSqft(listing, track);
 
@@ -47,6 +50,7 @@ export function rank(listing, trackKey, flags) {
     w.budgetFit * breakdown.budgetFit +
     w.bedsOrSizeFit * breakdown.bedsOrSizeFit +
     w.locationMatch * breakdown.locationMatch +
+    w.furnishingAmenities * breakdown.furnishingAmenities +
     w.pricePerSqft * breakdown.pricePerSqft +
     w.freshness * breakdown.freshness +
     w.dataCompleteness * breakdown.dataCompleteness;
@@ -78,10 +82,31 @@ function scoreBudget(listing, track) {
 
 function scoreBeds(listing, track) {
   if (listing.beds == null) return 0.4; // unknown → mild penalty, not zero
-  if (track.minBeds == null) return 1;
-  if (listing.beds < track.minBeds) return clamp01(listing.beds / track.minBeds * 0.5);
-  // At minimum = 0.8, each extra bed adds, capping at 1.
-  return clamp01(0.8 + (listing.beds - track.minBeds) * 0.1);
+  const min = track.minBeds ?? 0;
+  const ideal = track.idealBeds ?? min;
+  if (listing.beds >= ideal) return 1;                     // 4+ beds → perfect
+  if (listing.beds < min) return clamp01((listing.beds / Math.max(min, 1)) * 0.5);
+  if (ideal === min) return 0.85;
+  // Between minimum (0.7) and ideal (1.0).
+  return clamp01(0.7 + 0.3 * ((listing.beds - min) / (ideal - min)));
+}
+
+/**
+ * Furnished is ideal; unfurnished is acceptable when amenity-rich. Returns a
+ * neutral-ish score when the email is silent (common for terse alert emails).
+ */
+function scoreFurnishing(listing, track) {
+  if (!track.amenities) return 1; // not applicable (e.g. warehouse track)
+  const wants = track.amenities;
+  const maxW = Object.values(wants).reduce((a, b) => a + b, 0) || 1;
+  const gotW = (listing.amenities || []).reduce((a, k) => a + (wants[k] || 0), 0);
+  const amenityScore = clamp01(gotW / maxW);
+
+  if (listing.furnished === true) return clamp01(0.85 + 0.15 * amenityScore);
+  if (listing.furnished === false) return clamp01(0.4 + 0.6 * amenityScore);
+  // Unknown furnishing: lean on whatever amenities we found, else neutral-low.
+  if (!listing.amenities || listing.amenities.length === 0) return 0.45;
+  return clamp01(0.5 + 0.5 * amenityScore);
 }
 
 function scoreSize(listing, track) {

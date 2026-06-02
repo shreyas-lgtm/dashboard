@@ -65,6 +65,27 @@ export function ListingCard({ listing, onSetStatus }: Props) {
         )}
       </div>
 
+      {/* Furnishing + amenities */}
+      {(listing.furnished != null || listing.amenities.length > 0) && (
+        <div className="flex flex-wrap gap-1.5">
+          {listing.furnished === true && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+              Furnished
+            </span>
+          )}
+          {listing.furnished === false && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+              Unfurnished
+            </span>
+          )}
+          {listing.amenities.map((a) => (
+            <span key={a} className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 capitalize">
+              {a}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Source / broker / freshness */}
       <div className="flex items-center gap-2 text-xs text-gray-400">
         <MapPin size={12} />

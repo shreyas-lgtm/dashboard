@@ -101,6 +101,45 @@ function extractCity(address, subject) {
   return m ? m[1].trim() : null;
 }
 
+/**
+ * Furnishing: true (furnished) / false (explicitly unfurnished) / null (silent).
+ * Check "unfurnished" first since it contains the substring "furnished".
+ */
+function extractFurnished(text) {
+  if (/\bunfurnished\b|\bnot furnished\b/i.test(text)) return false;
+  if (/\b(fully\s+)?furnished\b/i.test(text)) return true;
+  return null;
+}
+
+/**
+ * Amenities → canonical tokens that match preferences.mjs keys. Alert emails
+ * are usually terse (often only "Pets"); richer broker emails / enriched
+ * listing-page text yield more. Order doesn't matter; we de-dupe.
+ */
+const AMENITY_PATTERNS = [
+  ['laundry', /in[-\s]?unit laundry|washer\s*\/?\s*dryer|washer and dryer|in[-\s]?unit washer/i],
+  ['dishwasher', /dishwasher/i],
+  ['dryer', /\bdryer\b/i],
+  ['washer', /\bwasher\b/i],
+  ['elevator', /\belevator\b/i],
+  ['doorman', /doorman|concierge/i],
+  ['gym', /\bgym\b|fitness (?:center|room)/i],
+  ['parking', /\bparking\b|\bgarage\b/i],
+  ['central air', /central air|central a\/c|air conditioning|\bA\/C\b/i],
+  ['outdoor space', /balcony|terrace|patio|backyard|private outdoor|roof ?deck/i],
+  ['pool', /\bpool\b/i],
+  ['pets', /\bpets?\b|pet[-\s]friendly|dogs? ok|cats? ok/i],
+  ['hardwood', /hardwood/i],
+];
+
+function extractAmenities(text) {
+  const found = new Set();
+  for (const [token, re] of AMENITY_PATTERNS) if (re.test(text)) found.add(token);
+  // "washer/dryer" already counts as laundry; drop the redundant singletons.
+  if (found.has('laundry')) { found.delete('washer'); found.delete('dryer'); }
+  return [...found];
+}
+
 /** "Listing by: MADEHOME" → broker/agent name. */
 function extractBroker(plaintextBody) {
   if (!plaintextBody) return null;
@@ -148,6 +187,8 @@ export function parseListing(email) {
   const broker = extractBroker(plaintextBody);
   const url = extractListingUrl(plaintextBody, source);
   const key = deriveListingKey(url, address, source);
+  const furnished = extractFurnished(combined);
+  const amenities = extractAmenities(combined);
 
   // pricePerSqft only meaningful for rent when sqft is known.
   const pricePerSqft =
@@ -163,6 +204,8 @@ export function parseListing(email) {
     baths,
     sqft,
     pricePerSqft,
+    furnished, // true | false | null (unknown)
+    amenities, // canonical tokens, e.g. ['dishwasher','laundry']
     address,
     city,
     broker,
