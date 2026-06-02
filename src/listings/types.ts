@@ -40,6 +40,8 @@ export interface Listing {
   recommendation: Recommendation;
   breakdown: Record<string, number | string>;
   status: ListingStatus;
+  /** Present when listing-page enrichment was attempted (agent --enrich). */
+  enrichment?: { attempted: boolean; ok?: boolean; error?: string };
 }
 
 export interface ListingsStore {

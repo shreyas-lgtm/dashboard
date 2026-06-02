@@ -105,7 +105,7 @@ function extractCity(address, subject) {
  * Furnishing: true (furnished) / false (explicitly unfurnished) / null (silent).
  * Check "unfurnished" first since it contains the substring "furnished".
  */
-function extractFurnished(text) {
+export function extractFurnished(text) {
   if (/\bunfurnished\b|\bnot furnished\b/i.test(text)) return false;
   if (/\b(fully\s+)?furnished\b/i.test(text)) return true;
   return null;
@@ -132,7 +132,7 @@ const AMENITY_PATTERNS = [
   ['hardwood', /hardwood/i],
 ];
 
-function extractAmenities(text) {
+export function extractAmenities(text) {
   const found = new Set();
   for (const [token, re] of AMENITY_PATTERNS) if (re.test(text)) found.add(token);
   // "washer/dryer" already counts as laundry; drop the redundant singletons.

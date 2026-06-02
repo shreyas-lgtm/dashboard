@@ -20,6 +20,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { parseListing } from './parse.mjs';
+import { enrichAll } from './enrich.mjs';
 import { scrutinize } from './scrutinize.mjs';
 import { rank } from './rank.mjs';
 
@@ -27,8 +28,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const STORE_PATH = join(__dirname, '..', 'data', 'listings.json');
 const DEFAULT_INPUT = join(__dirname, 'inbox.json');
 
+const ENRICH = process.argv.includes('--enrich');
+
 function readInput() {
-  const arg = process.argv[2];
+  const arg = process.argv.slice(2).find((a) => !a.startsWith('--'));
   if (arg === '-') return JSON.parse(readFileSync(0, 'utf8'));
   const path = arg || DEFAULT_INPUT;
   if (!existsSync(path)) {
@@ -44,7 +47,7 @@ function loadStore() {
   catch { return { listings: [], updatedAt: null }; }
 }
 
-function main() {
+async function main() {
   const emails = readInput();
   const store = loadStore();
 
@@ -52,8 +55,17 @@ function main() {
   const decisions = new Map(store.listings.map((l) => [l.key, l.status]));
   const seenKeys = new Set();
 
-  const processed = emails.map((email) => {
-    const listing = parseListing(email);
+  let parsed = emails.map(parseListing);
+
+  // Optional: open each listing page to fill furnishing/amenities (--enrich).
+  if (ENRICH) {
+    console.error('Enriching from listing pages…');
+    parsed = await enrichAll(parsed);
+    const okCount = parsed.filter((l) => l.enrichment?.ok).length;
+    console.error(`  enriched ${okCount}/${parsed.length} (rest blocked or had no URL)`);
+  }
+
+  const processed = parsed.map((listing) => {
     const { trackKey, flags } = scrutinize(listing, seenKeys);
     const { score, recommendation, breakdown } = rank(listing, trackKey, flags);
     return {
@@ -102,4 +114,7 @@ function printDigest(processed) {
   console.log(lines.join('\n'));
 }
 
-main();
+main().catch((e) => {
+  console.error('ingest failed:', e);
+  process.exit(1);
+});

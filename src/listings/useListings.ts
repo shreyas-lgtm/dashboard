@@ -22,7 +22,7 @@ function loadDecisions(): Record<string, ListingStatus> {
 }
 
 export function useListings() {
-  const store = storeData as ListingsStore;
+  const store = storeData as unknown as ListingsStore;
   const [decisions, setDecisions] = useState<Record<string, ListingStatus>>(loadDecisions);
 
   const setStatus = (key: string, status: ListingStatus) => {

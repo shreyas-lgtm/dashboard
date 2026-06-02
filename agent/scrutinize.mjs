@@ -54,7 +54,8 @@ export function scrutinize(listing, seenKeys = new Set()) {
       flag('LOW_BEDS', SEV.WARN, `${listing.beds} bed(s) — below the ${track.minBeds}-bed minimum.`);
     }
     if (track.minBaths != null && listing.baths != null && listing.baths < track.minBaths) {
-      flag('LOW_BATHS', SEV.WARN, `${listing.baths} bath(s) — below the ${track.minBaths}-bath minimum.`);
+      // Hard requirement: under the bath minimum disqualifies (forced to Skip).
+      flag('LOW_BATHS', SEV.HARD, `${listing.baths} bath(s) — below the ${track.minBaths}-bath minimum.`);
     }
 
     // --- furnishing & amenities --------------------------------------------

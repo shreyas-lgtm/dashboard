@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-02T17:17:15.223Z",
+  "updatedAt": "2026-06-02T17:23:53.945Z",
   "count": 8,
   "listings": [
     {
@@ -46,53 +46,6 @@
         "pricePerSqft": 0.5,
         "freshness": 1,
         "dataCompleteness": 0.6666666666666666
-      },
-      "status": "new"
-    },
-    {
-      "key": "zillow:462661513",
-      "source": "Zillow",
-      "dealType": "rent",
-      "price": 3799,
-      "priceUnit": "/mo",
-      "beds": 4,
-      "baths": 1,
-      "sqft": null,
-      "pricePerSqft": null,
-      "furnished": null,
-      "amenities": [
-        "pets"
-      ],
-      "address": "1132 Hancock St #9, Brooklyn, NY",
-      "city": "Brooklyn",
-      "broker": "MADEHOME",
-      "url": "https://www.zillow.com/homedetails/462661513_zpid/",
-      "receivedAt": "2026-06-01T17:29:26Z",
-      "emailId": "19e843bb97063e67",
-      "threadId": "19e843bb97063e67",
-      "track": "residential",
-      "flags": [
-        {
-          "code": "MISSING_SQFT",
-          "severity": "info",
-          "message": "Square footage not stated — value-for-money can’t be computed."
-        },
-        {
-          "code": "LOW_BATHS",
-          "severity": "warn",
-          "message": "1 bath(s) — below the 2-bath minimum."
-        }
-      ],
-      "score": 78,
-      "recommendation": "Strong match",
-      "breakdown": {
-        "budgetFit": 1,
-        "bedsOrSizeFit": 1,
-        "locationMatch": 1,
-        "furnishingAmenities": 0.5263157894736842,
-        "pricePerSqft": 0.5,
-        "freshness": 1,
-        "dataCompleteness": 0.8333333333333334
       },
       "status": "new"
     },
@@ -197,61 +150,6 @@
       "status": "new"
     },
     {
-      "key": "addr:1285-putnam-ave-floor-1-brooklyn-ny",
-      "source": "Zillow",
-      "dealType": "rent",
-      "price": 3800,
-      "priceUnit": "/mo",
-      "beds": 3,
-      "baths": 1,
-      "sqft": null,
-      "pricePerSqft": null,
-      "furnished": null,
-      "amenities": [],
-      "address": "1285 Putnam Ave Floor 1, Brooklyn, NY",
-      "city": "Brooklyn",
-      "broker": "SERHANT",
-      "url": null,
-      "receivedAt": "2026-05-29T15:35:47Z",
-      "emailId": "19e7460977609893",
-      "threadId": "19e7460977609893",
-      "track": "residential",
-      "flags": [
-        {
-          "code": "MISSING_SQFT",
-          "severity": "info",
-          "message": "Square footage not stated — value-for-money can’t be computed."
-        },
-        {
-          "code": "NO_LINK",
-          "severity": "info",
-          "message": "No listing link found to view details."
-        },
-        {
-          "code": "LOW_BATHS",
-          "severity": "warn",
-          "message": "1 bath(s) — below the 2-bath minimum."
-        },
-        {
-          "code": "AMENITIES_UNKNOWN",
-          "severity": "info",
-          "message": "Furnishing/amenities not in the email — open the listing to confirm."
-        }
-      ],
-      "score": 69,
-      "recommendation": "Worth a look",
-      "breakdown": {
-        "budgetFit": 1,
-        "bedsOrSizeFit": 0.7,
-        "locationMatch": 1,
-        "furnishingAmenities": 0.45,
-        "pricePerSqft": 0.5,
-        "freshness": 0.8061683074294532,
-        "dataCompleteness": 0.6666666666666666
-      },
-      "status": "new"
-    },
-    {
       "key": "addr:58-palmetto-st-501d-brooklyn-ny",
       "source": "Zillow",
       "dealType": "rent",
@@ -296,7 +194,7 @@
         "locationMatch": 1,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.8104578797398589,
+        "freshness": 0.8102381255511464,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -346,8 +244,98 @@
         "locationMatch": 0.15,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.8992685058421517,
+        "freshness": 0.8990487516534391,
         "dataCompleteness": 0.8333333333333334
+      },
+      "status": "new"
+    },
+    {
+      "key": "zillow:462661513",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 3799,
+      "priceUnit": "/mo",
+      "beds": 4,
+      "baths": 1,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [
+        "pets"
+      ],
+      "address": "1132 Hancock St #9, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "MADEHOME",
+      "url": "https://www.zillow.com/homedetails/462661513_zpid/",
+      "receivedAt": "2026-06-01T17:29:26Z",
+      "emailId": "19e843bb97063e67",
+      "threadId": "19e843bb97063e67",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "LOW_BATHS",
+          "severity": "hard",
+          "message": "1 bath(s) — below the 2-bath minimum."
+        }
+      ],
+      "score": 0,
+      "recommendation": "Skip",
+      "breakdown": {
+        "reason": "hard-flag"
+      },
+      "status": "new"
+    },
+    {
+      "key": "addr:1285-putnam-ave-floor-1-brooklyn-ny",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 3800,
+      "priceUnit": "/mo",
+      "beds": 3,
+      "baths": 1,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [],
+      "address": "1285 Putnam Ave Floor 1, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "SERHANT",
+      "url": null,
+      "receivedAt": "2026-05-29T15:35:47Z",
+      "emailId": "19e7460977609893",
+      "threadId": "19e7460977609893",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "NO_LINK",
+          "severity": "info",
+          "message": "No listing link found to view details."
+        },
+        {
+          "code": "LOW_BATHS",
+          "severity": "hard",
+          "message": "1 bath(s) — below the 2-bath minimum."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
+        }
+      ],
+      "score": 0,
+      "recommendation": "Skip",
+      "breakdown": {
+        "reason": "hard-flag"
       },
       "status": "new"
     },
@@ -389,7 +377,7 @@
         },
         {
           "code": "LOW_BATHS",
-          "severity": "warn",
+          "severity": "hard",
           "message": "1 bath(s) — below the 2-bath minimum."
         },
         {
@@ -398,16 +386,10 @@
           "message": "Furnishing/amenities not in the email — open the listing to confirm."
         }
       ],
-      "score": 39,
+      "score": 0,
       "recommendation": "Skip",
       "breakdown": {
-        "budgetFit": 0.1,
-        "bedsOrSizeFit": 0.7,
-        "locationMatch": 1,
-        "furnishingAmenities": 0.45,
-        "pricePerSqft": 0.5,
-        "freshness": 0.8548609882054674,
-        "dataCompleteness": 0.6666666666666666
+        "reason": "hard-flag"
       },
       "status": "new"
     }
