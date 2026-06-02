@@ -1,4 +1,13 @@
-# Zoho Procurement — Live Pipeline Dashboard
+# Origin Dashboard
+
+Two views in one React app:
+
+1. **Listings** — an automated listings agent that ingests property listing
+   emails (residential + warehouse), scrutinises them, ranks them, and shows a
+   diligence-checked shortlist you approve. See [`agent/README.md`](agent/README.md).
+2. **Procurement** — a live Zoho Procurement pipeline view (below).
+
+## Zoho Procurement — Live Pipeline Dashboard
 
 A React dashboard that pulls live data from Zoho Procurement's API and shows where things are stuck in the procurement workflow. Designed to be embedded as a native Web Tab inside Zoho Procurement.
 

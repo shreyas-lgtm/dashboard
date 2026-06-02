@@ -74,8 +74,8 @@ function computeDashboardData(
   const totalThisMonth = pos
     .filter(
       (po) =>
-        [PO_STATUS.ISSUED, PO_STATUS.PARTIALLY_RECEIVED, PO_STATUS.RECEIVED, PO_STATUS.BILLED].includes(
-          po.status as (typeof PO_STATUS)[keyof typeof PO_STATUS],
+        ([PO_STATUS.ISSUED, PO_STATUS.PARTIALLY_RECEIVED, PO_STATUS.RECEIVED, PO_STATUS.BILLED] as string[]).includes(
+          po.status,
         ) &&
         isWithinInterval(parseISO(po.date), monthInterval),
     )
@@ -143,7 +143,7 @@ export function useProcurementData() {
       // Patch in real receive billing count
       const billedValues: readonly string[] = RECEIVE_BILLED_VALUES;
       const pendingBill = receives.filter((r) => {
-        const status = (r as Record<string, unknown>)[RECEIVE_BILLING_STATUS_FIELD] as string | undefined;
+        const status = (r as unknown as Record<string, unknown>)[RECEIVE_BILLING_STATUS_FIELD] as string | undefined;
         return !status || !billedValues.includes(status);
       }).length;
 

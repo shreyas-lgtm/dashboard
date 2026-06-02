@@ -1,14 +1,19 @@
+import { useState } from 'react';
 import { Header } from './components/Header';
 import { PipelineFunnel } from './components/PipelineFunnel';
 import { VendorChart } from './components/VendorChart';
 import { SpendWidget } from './components/SpendWidget';
 import { OverduePOsTable } from './components/OverduePOsTable';
 import { StuckPRsTable } from './components/StuckPRsTable';
+import { ListingsView } from './components/listings/ListingsView';
 import { useProcurementData } from './useProcurementData';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
+type View = 'procurement' | 'listings';
+
 export default function App() {
   const { data, loading, error, lastUpdated, refresh } = useProcurementData();
+  const [view, setView] = useState<View>('listings');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -18,7 +23,34 @@ export default function App() {
         onRefresh={refresh}
       />
 
+      {/* Top-level view switcher */}
+      <nav className="bg-white border-b border-gray-200 px-6">
+        <div className="max-w-7xl mx-auto flex gap-1">
+          {([
+            ['listings', 'Listings'],
+            ['procurement', 'Procurement'],
+          ] as [View, string][]).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setView(id)}
+              className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                view === id
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        {view === 'listings' && <ListingsView />}
+
+        {view === 'procurement' && (
+        <>
 
         {/* Initial loading state */}
         {loading && !data && (
@@ -83,6 +115,8 @@ export default function App() {
               <StuckPRsTable prs={data.stuckPRList} />
             </div>
           </>
+        )}
+        </>
         )}
       </main>
     </div>
