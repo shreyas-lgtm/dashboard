@@ -48,6 +48,8 @@ function runListingsAgent() {
       if (existingKeys[listing.key]) return; // already in the sheet
       existingKeys[listing.key] = 1;
 
+      enrichFromPage_(listing); // "click the link" to fill furnishing/amenities
+
       const s = scrutinize_(listing);
       const r = rank_(listing, s.trackKey, s.flags);
       const ev = evaluate_(listing, s.flags, r.score);

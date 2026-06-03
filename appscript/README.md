@@ -43,6 +43,23 @@ Create an [Incoming Webhook](https://api.slack.com/messaging/webhooks), then in
 the editor run `setSlackWebhook('https://hooks.slack.com/services/…')` once.
 New listings get posted as a ranked digest each run.
 
+## Amenities not in the email? (enrichment)
+
+Furnishing/amenities usually aren't in the alert email, so when they're blank
+and a link exists, `Enrich.gs` opens the listing page and re-parses it. It tries:
+
+1. **Direct fetch** (free) — works for broker sites / Apartments.com.
+2. **Scraping API** — needed for **Zillow**, which blocks plain fetches (403).
+   Sign up for a service like [ScraperAPI](https://www.scraperapi.com/) (free
+   tier ~1k pages/mo covers this volume), then run once:
+   ```js
+   setScraperApiKey('your_key_here')
+   ```
+3. **Manual fallback** — if both fail, the row keeps a `⚠️ amenities unknown`
+   note and the link, so you click that one yourself.
+
+Turn the whole step off by setting `ENRICH_ENABLED = false` in `Enrich.gs`.
+
 ## How it behaves
 - **Dedupe:** processed message ids are remembered (Script Properties) and the
   Sheet's `Key` column is checked, so re-runs only append genuinely new listings.
@@ -56,6 +73,7 @@ New listings get posted as a ranked digest each run.
 |------|------|
 | `Preferences.gs` | Your criteria — budget, beds/baths, area, amenities, weights. |
 | `Parser.gs`      | Gmail message → structured listing. |
+| `Enrich.gs`      | "Click the link" — fetch the listing page for furnishing/amenities. |
 | `Scoring.gs`     | Scrutinise → flags (must/warn/info), rank, three-way verdict. |
 | `Code.gs`        | Gmail fetch, Sheet writing, Slack, triggers, setup. |
 | `appsscript.json`| Manifest + OAuth scopes. |
