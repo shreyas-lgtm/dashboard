@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-03T09:23:12.232Z",
+  "updatedAt": "2026-06-03T16:42:56.096Z",
   "count": 10,
   "listings": [
     {
@@ -13,9 +13,7 @@
       "sqft": null,
       "pricePerSqft": null,
       "furnished": null,
-      "amenities": [
-        "pets"
-      ],
+      "amenities": [],
       "address": "1543 E 19th St #4B, Brooklyn, NY",
       "city": "Brooklyn",
       "broker": "Skyhigh Realty NYC LLC",
@@ -29,15 +27,20 @@
           "code": "MISSING_SQFT",
           "severity": "info",
           "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
         }
       ],
-      "score": 80,
+      "score": 79,
       "recommendation": "Strong match",
       "breakdown": {
         "budgetFit": 1,
         "bedsOrSizeFit": 0.7,
         "locationMatch": 1,
-        "furnishingAmenities": 0.5263157894736842,
+        "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
         "freshness": 1,
         "dataCompleteness": 0.8333333333333334
@@ -55,9 +58,7 @@
       "sqft": null,
       "pricePerSqft": null,
       "furnished": null,
-      "amenities": [
-        "pets"
-      ],
+      "amenities": [],
       "address": "977 Jefferson Ave APT 2L, Brooklyn, NY",
       "city": "Brooklyn",
       "broker": "REAL NY",
@@ -76,15 +77,20 @@
           "code": "NO_LINK",
           "severity": "info",
           "message": "No listing link found to view details."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
         }
       ],
-      "score": 79,
+      "score": 77,
       "recommendation": "Strong match",
       "breakdown": {
         "budgetFit": 1,
         "bedsOrSizeFit": 0.7,
         "locationMatch": 1,
-        "furnishingAmenities": 0.5263157894736842,
+        "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
         "freshness": 1,
         "dataCompleteness": 0.6666666666666666
@@ -136,7 +142,7 @@
         "locationMatch": 1,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 1,
+        "freshness": 0.9033526036155203,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -186,7 +192,7 @@
         "locationMatch": 1,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 1,
+        "freshness": 0.9007418231922398,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -236,7 +242,7 @@
         "locationMatch": 1,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.7785150843253968,
+        "freshness": 0.7639737130731923,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -286,7 +292,7 @@
         "locationMatch": 0.15,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.8673257104276896,
+        "freshness": 0.852784339175485,
         "dataCompleteness": 0.8333333333333334
       },
       "status": "new"
@@ -302,9 +308,7 @@
       "sqft": null,
       "pricePerSqft": null,
       "furnished": null,
-      "amenities": [
-        "pets"
-      ],
+      "amenities": [],
       "address": "1132 Hancock St #9, Brooklyn, NY",
       "city": "Brooklyn",
       "broker": "MADEHOME",
@@ -323,6 +327,11 @@
           "code": "LOW_BATHS",
           "severity": "hard",
           "message": "1 bath(s) — below the 2-bath minimum."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
         }
       ],
       "score": 0,

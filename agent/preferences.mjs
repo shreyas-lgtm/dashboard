@@ -34,10 +34,12 @@ export const preferences = {
       // dishwasher matter most; the rest are nice-to-haves (apartment-complex
       // perks). Tokens must match what parse.mjs emits.
       amenities: {
-        laundry: 3,        // washer/dryer in unit
+        'in-unit laundry': 3,  // washer/dryer in unit
         dishwasher: 3,
         dryer: 2,
         washer: 2,
+        'shared laundry': 1,
+        'stainless appliances': 1,
         elevator: 1,
         doorman: 1,
         gym: 1,

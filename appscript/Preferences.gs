@@ -32,7 +32,8 @@ const PREFERENCES = {
     // Furnished ideal; unfurnished fine if amenity-rich. Tokens must match
     // what Parser.gs emits.
     amenities: {
-      laundry: 3, dishwasher: 3, dryer: 2, washer: 2,
+      'in-unit laundry': 3, dishwasher: 3, dryer: 2, washer: 2,
+      'shared laundry': 1, 'stainless appliances': 1,
       elevator: 1, doorman: 1, gym: 1, parking: 1,
       'central air': 1, 'outdoor space': 1, pool: 1, pets: 1, hardwood: 1,
     },

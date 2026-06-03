@@ -117,26 +117,28 @@ export function extractFurnished(text) {
  * listing-page text yield more. Order doesn't matter; we de-dupe.
  */
 const AMENITY_PATTERNS = [
-  ['laundry', /in[-\s]?unit laundry|washer\s*\/?\s*dryer|washer and dryer|in[-\s]?unit washer/i],
+  ['in-unit laundry', /in[-\s]?unit laundry|laundry:\s*in[-\s]?unit|washer\s*\/?\s*dryer|washer and dryer|in[-\s]?unit washer/i],
+  ['shared laundry', /shared laundry|laundry:\s*shared|laundry:\s*in building|common laundry|laundry room/i],
   ['dishwasher', /dishwasher/i],
   ['dryer', /\bdryer\b/i],
   ['washer', /\bwasher\b/i],
   ['elevator', /\belevator\b/i],
   ['doorman', /doorman|concierge/i],
   ['gym', /\bgym\b|fitness (?:center|room)/i],
-  ['parking', /\bparking\b|\bgarage\b/i],
-  ['central air', /central air|central a\/c|air conditioning|\bA\/C\b/i],
-  ['outdoor space', /balcony|terrace|patio|backyard|private outdoor|roof ?deck/i],
+  ['parking', /\bgarage\b|on[-\s]?site parking|private parking|parking (?:spot|space|included|available)|parking:\s*(?:garage|available|included|yes)/i],
+  ['central air', /central air|central a\/c|air conditioning|\bA\/C\b|cooling:\s*central/i],
+  ['outdoor space', /balcony|terrace|patio|backyard|private outdoor|roof ?deck|outdoor space/i],
   ['pool', /\bpool\b/i],
-  ['pets', /\bpets?\b|pet[-\s]friendly|dogs? ok|cats? ok/i],
+  ['pets', /pets? (?:ok|allowed|welcome)|pet[-\s]friendly|dogs? ok|cats?,? dogs? ok|cats? ok|pets allowed:\s*yes/i],
   ['hardwood', /hardwood/i],
+  ['stainless appliances', /stainless steel|s\/s appliances|stainless appliances/i],
 ];
 
 export function extractAmenities(text) {
   const found = new Set();
   for (const [token, re] of AMENITY_PATTERNS) if (re.test(text)) found.add(token);
-  // "washer/dryer" already counts as laundry; drop the redundant singletons.
-  if (found.has('laundry')) { found.delete('washer'); found.delete('dryer'); }
+  // in-unit laundry implies washer+dryer and supersedes a shared-laundry note.
+  if (found.has('in-unit laundry')) { found.delete('washer'); found.delete('dryer'); found.delete('shared laundry'); }
   return [...found];
 }
 
