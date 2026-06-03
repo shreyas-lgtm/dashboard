@@ -16,6 +16,7 @@ const SENDER_QUERY_ =
   'subject:"for rent" OR subject:"for sale" OR subject:listing)';
 
 const SHEET_NAME_ = 'Listings';
+const MAX_ENRICH_PER_RUN = 20; // max listing-page fetches per run (time/credit guard)
 const HEADERS_ = [
   'Score', 'Verdict', 'Notes / Adjustment', 'Address', 'Deal', 'Price',
   'Beds', 'Baths', 'Sqft', 'Furnished', 'Amenities', 'Source', 'Broker',
@@ -32,6 +33,7 @@ function runListingsAgent() {
   const threads = GmailApp.search(SENDER_QUERY_ + ' newer_than:7d -in:trash -in:sent', 0, 50);
   const rows = [];
   const digest = [];
+  let enriched = 0; // cap page-fetches per run to stay under the 6-min limit
 
   threads.forEach(function (thread) {
     const threadId = thread.getId();
@@ -48,7 +50,11 @@ function runListingsAgent() {
       if (existingKeys[listing.key]) return; // already in the sheet
       existingKeys[listing.key] = 1;
 
-      enrichFromPage_(listing); // "click the link" to fill furnishing/amenities
+      // "Click the link" to fill furnishing/amenities — capped per run.
+      if (enriched < MAX_ENRICH_PER_RUN && needsEnrich_(listing)) {
+        enrichFromPage_(listing);
+        enriched++;
+      }
 
       const s = scrutinize_(listing);
       const r = rank_(listing, s.trackKey, s.flags);

@@ -50,15 +50,29 @@ and a link exists, `Enrich.gs` opens the listing page and re-parses it. It tries
 
 1. **Direct fetch** (free) — works for broker sites / Apartments.com.
 2. **Scraping API** — needed for **Zillow**, which blocks plain fetches (403).
-   Sign up for a service like [ScraperAPI](https://www.scraperapi.com/) (free
-   tier ~1k pages/mo covers this volume), then run once:
-   ```js
-   setScraperApiKey('your_key_here')
-   ```
 3. **Manual fallback** — if both fail, the row keeps a `⚠️ amenities unknown`
    note and the link, so you click that one yourself.
 
-Turn the whole step off by setting `ENRICH_ENABLED = false` in `Enrich.gs`.
+### Setting up ScraperAPI (for Zillow)
+1. Sign up at [scraperapi.com](https://www.scraperapi.com/) → copy your **API key**.
+2. In the Apps Script editor, run once:
+   ```js
+   setScraperApiKey('your_key_here')
+   ```
+3. Verify it works — run `enrichTest('https://www.zillow.com/homedetails/2073616612_zpid/')`
+   and check **View → Logs**. You should see `furnished:` and `amenities:` lines.
+
+**Credit note:** Zillow needs JS-rendering + premium proxies (`SCRAPER_RENDER` /
+`SCRAPER_PREMIUM` in `Enrich.gs`), which cost more credits per page — the free
+tier (~1k credits/mo) may run thin if you get many Zillow listings daily. The
+agent only fetches listings whose amenities are missing, caps fetches at
+`MAX_ENRICH_PER_RUN` per run, and never re-fetches the same listing, to keep
+usage down. If you blow the budget, set `SCRAPER_RENDER = false` first (cheaper)
+or fall back to the manual flag.
+
+> **ToS note:** scraping Zillow is against their terms. Common for personal use,
+> but your call. To avoid it entirely, set `ENRICH_ENABLED = false` and just use
+> the `⚠️ amenities unknown` flag to click the promising few by hand.
 
 ## How it behaves
 - **Dedupe:** processed message ids are remembered (Script Properties) and the
