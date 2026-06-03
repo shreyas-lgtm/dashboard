@@ -1,7 +1,49 @@
 {
-  "updatedAt": "2026-06-02T17:23:53.945Z",
-  "count": 8,
+  "updatedAt": "2026-06-03T09:23:12.232Z",
+  "count": 10,
   "listings": [
+    {
+      "key": "zillow:2073616612",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 3695,
+      "priceUnit": "/mo",
+      "beds": 3,
+      "baths": 2,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [
+        "pets"
+      ],
+      "address": "1543 E 19th St #4B, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "Skyhigh Realty NYC LLC",
+      "url": "https://www.zillow.com/homedetails/2073616612_zpid/",
+      "receivedAt": "2026-06-03T02:25:00Z",
+      "emailId": "19e8b4c6bafd4063",
+      "threadId": "19e8b4c6bafd4063",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        }
+      ],
+      "score": 80,
+      "recommendation": "Strong match",
+      "breakdown": {
+        "budgetFit": 1,
+        "bedsOrSizeFit": 0.7,
+        "locationMatch": 1,
+        "furnishingAmenities": 0.5263157894736842,
+        "pricePerSqft": 0.5,
+        "freshness": 1,
+        "dataCompleteness": 0.8333333333333334
+      },
+      "status": "new"
+    },
     {
       "key": "addr:977-jefferson-ave-apt-2l-brooklyn-ny",
       "source": "Zillow",
@@ -194,7 +236,7 @@
         "locationMatch": 1,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.8102381255511464,
+        "freshness": 0.7785150843253968,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -244,7 +286,7 @@
         "locationMatch": 0.15,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.8990487516534391,
+        "freshness": 0.8673257104276896,
         "dataCompleteness": 0.8333333333333334
       },
       "status": "new"
@@ -374,6 +416,55 @@
           "code": "ABOVE_BUDGET",
           "severity": "warn",
           "message": "Rent $4,550/mo is over the $4,500 cap."
+        },
+        {
+          "code": "LOW_BATHS",
+          "severity": "hard",
+          "message": "1 bath(s) — below the 2-bath minimum."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
+        }
+      ],
+      "score": 0,
+      "recommendation": "Skip",
+      "breakdown": {
+        "reason": "hard-flag"
+      },
+      "status": "new"
+    },
+    {
+      "key": "addr:565-evergreen-ave-2g-brooklyn-ny",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 3690,
+      "priceUnit": "/mo",
+      "beds": 3,
+      "baths": 1,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [],
+      "address": "565 Evergreen Ave #2G, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "REAL BROKER NY",
+      "url": null,
+      "receivedAt": "2026-06-02T17:08:10Z",
+      "emailId": "19e894e9d3223bd7",
+      "threadId": "19e894e9d3223bd7",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "NO_LINK",
+          "severity": "info",
+          "message": "No listing link found to view details."
         },
         {
           "code": "LOW_BATHS",

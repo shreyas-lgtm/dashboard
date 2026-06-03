@@ -1,5 +1,23 @@
 [
   {
+    "id": "19e8b4c6bafd4063",
+    "threadId": "19e8b4c6bafd4063",
+    "sender": "my-saved-home@mail.zillow.com",
+    "subject": "New For Rent: 1543 E 19th St #4B, Brooklyn, NY 11230",
+    "date": "2026-06-03T02:25:00Z",
+    "snippet": "This home has been listed for rent at $3,695/mo. 3 bd | 2 ba | -- sqft",
+    "plaintextBody": "This home has been listed for rent at $3,695/mo.\nFor rent.\n$3,695/mo\n3 bd | 2 ba | -- sqft | Pets\n1543 E 19th St #4B, Brooklyn, NY\nListing by: Skyhigh Realty NYC LLC\nView this listing -\nhttps://click.mail.zillow.com/f/a/x~~/AAAAARA~/3D?target=https%3A%2F%2Fwww.zillow.com%2Fhomedetails%2F2073616612_zpid%2F"
+  },
+  {
+    "id": "19e894e9d3223bd7",
+    "threadId": "19e894e9d3223bd7",
+    "sender": "recommendations@mail.zillow.com",
+    "subject": "New listing for rent in Brooklyn for $3,690/mo",
+    "date": "2026-06-02T17:08:10Z",
+    "snippet": "565 Evergreen Ave #2G 3 bd | 1 ba | -- sqft",
+    "plaintextBody": "New listing for rent in Brooklyn for $3,690/mo\n565 Evergreen Ave #2G 3 bd | 1 ba | -- sqft\n\n$3,690/mo\n3 bd | 1 ba | -- sqft\n565 Evergreen Ave #2G, Brooklyn, NY\nListing by: REAL BROKER NY"
+  },
+  {
     "id": "19e89173738808bf",
     "threadId": "19e89173738808bf",
     "sender": "recommendations@mail.zillow.com",
