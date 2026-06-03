@@ -1,0 +1,185 @@
+/**
+ * Parser.gs — turn a Gmail message into a structured listing.
+ * Ported from the Node agent's parse.mjs; same heuristics, Apps Script style.
+ */
+
+const SOURCE_BY_SENDER_ = [
+  [/zillow\.com/i, 'Zillow'],
+  [/apartments\.com/i, 'Apartments.com'],
+  [/vrbo\.com/i, 'Vrbo'],
+  [/weplacerealty\.com/i, 'WePlace Realty'],
+  [/realtor\.com/i, 'Realtor.com'],
+  [/loopnet\.com/i, 'LoopNet'],
+  [/crexi\.com/i, 'Crexi'],
+];
+
+function detectSource_(sender) {
+  sender = sender || '';
+  for (const pair of SOURCE_BY_SENDER_) if (pair[0].test(sender)) return pair[1];
+  const m = sender.match(/@([^>\s]+)/);
+  return m ? m[1] : 'Unknown';
+}
+
+function detectDealType_(text) {
+  if (/\bfor sale\b/i.test(text) && !/\/mo\b|\bfor rent\b/i.test(text)) return 'sale';
+  if (/\/mo\b|\bfor rent\b|\brental\b|\brent\b|\blease\b/i.test(text)) return 'rent';
+  if (/\bfor sale\b/i.test(text)) return 'sale';
+  return 'rent';
+}
+
+function toNum_(s) {
+  const n = Number(String(s).replace(/[^\d.]/g, ''));
+  return isFinite(n) ? n : null;
+}
+
+function extractPrice_(text) {
+  const monthly = text.match(/\$\s?([\d,]+)\s*\/\s*mo\b/i);
+  if (monthly) return { price: toNum_(monthly[1]), perMonth: true };
+  const any = text.match(/\$\s?([\d,]{3,})/);
+  if (any) return { price: toNum_(any[1]), perMonth: false };
+  return { price: null, perMonth: null };
+}
+
+function extractBeds_(text) {
+  const m = text.match(/(\d+)\s*bd\b/i) || text.match(/(\d+)\s*(?:bed|bedroom)s?\b/i);
+  return m ? Number(m[1]) : null;
+}
+
+function extractBaths_(text) {
+  const m = text.match(/(\d+(?:\.\d)?)\s*ba\b/i) || text.match(/(\d+(?:\.\d)?)\s*(?:bath|bathroom)s?\b/i);
+  return m ? Number(m[1]) : null;
+}
+
+function extractSqft_(text) {
+  const m = text.match(/([\d,]{3,})\s*(?:sq\s?\.?\s?ft|sqft|square feet)\b/i);
+  return m ? toNum_(m[1]) : null;
+}
+
+function extractAddress_(body, subject) {
+  const haystacks = [body, subject].filter(Boolean);
+  for (const text of haystacks) {
+    const lines = text.split(/\r?\n/);
+    for (const raw of lines) {
+      const line = raw.trim();
+      const m = line.match(/^(\d+[^,]*?,\s*[A-Za-z .'-]+,\s*[A-Z]{2}(?:\s*\d{5})?)/);
+      if (m) return m[1].replace(/\s*,\s*/g, ', ').trim();
+    }
+  }
+  for (const text of haystacks) {
+    const m = text.match(/(\d{1,5}\s+[A-Z][A-Za-z0-9 .'#-]{3,40}(?:St|Ave|Blvd|Rd|Lane|Ln|Dr|Way|Pl|Street|Avenue))\b/);
+    if (m) return m[1].trim();
+  }
+  return null;
+}
+
+function extractCity_(address, subject) {
+  if (address) {
+    const parts = address.split(',').map(function (s) { return s.trim(); });
+    if (parts.length >= 2) return parts[1];
+  }
+  const m = subject.match(/\bin\s+([A-Z][A-Za-z .'-]+?)\s+(?:for|\$|–|-)/);
+  return m ? m[1].trim() : null;
+}
+
+function extractBroker_(body) {
+  if (!body) return null;
+  const m = body.match(/Listing by:\s*([^\n\r]+)/i);
+  return m ? m[1].trim() : null;
+}
+
+function extractListingUrl_(body) {
+  if (!body) return null;
+  const re = /[?&]target=([^&\s]+)/g;
+  let m;
+  while ((m = re.exec(body)) !== null) {
+    let u;
+    try { u = decodeURIComponent(m[1]); } catch (e) { u = m[1]; }
+    if (/homedetails|\/property|\/listing|\/home|rentals?\//i.test(u)) return u.split('?')[0];
+  }
+  const plain = body.match(/https?:\/\/[^\s)]+/);
+  return plain ? plain[0] : null;
+}
+
+function deriveKey_(url, address, source) {
+  if (url) {
+    const zpid = url.match(/(\d{6,})_zpid/);
+    if (zpid) return 'zillow:' + zpid[1];
+    const idish = url.match(/\/(\d{6,})\b/);
+    if (idish) return source.toLowerCase() + ':' + idish[1];
+  }
+  if (address) return 'addr:' + address.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  return null;
+}
+
+function extractFurnished_(text) {
+  if (/\bunfurnished\b|\bnot furnished\b/i.test(text)) return false;
+  if (/\b(fully\s+)?furnished\b/i.test(text)) return true;
+  return null;
+}
+
+const AMENITY_PATTERNS_ = [
+  ['laundry', /in[-\s]?unit laundry|washer\s*\/?\s*dryer|washer and dryer|in[-\s]?unit washer/i],
+  ['dishwasher', /dishwasher/i],
+  ['dryer', /\bdryer\b/i],
+  ['washer', /\bwasher\b/i],
+  ['elevator', /\belevator\b/i],
+  ['doorman', /doorman|concierge/i],
+  ['gym', /\bgym\b|fitness (?:center|room)/i],
+  ['parking', /\bparking\b|\bgarage\b/i],
+  ['central air', /central air|central a\/c|air conditioning|\bA\/C\b/i],
+  ['outdoor space', /balcony|terrace|patio|backyard|private outdoor|roof ?deck/i],
+  ['pool', /\bpool\b/i],
+  ['pets', /\bpets?\b|pet[-\s]friendly|dogs? ok|cats? ok/i],
+  ['hardwood', /hardwood/i],
+];
+
+function extractAmenities_(text) {
+  const found = {};
+  for (const pair of AMENITY_PATTERNS_) if (pair[1].test(text)) found[pair[0]] = true;
+  if (found['laundry']) { delete found['washer']; delete found['dryer']; }
+  return Object.keys(found);
+}
+
+/** Gmail message-ish object → structured listing. */
+function parseListing_(email) {
+  const sender = email.sender || '';
+  const subject = email.subject || '';
+  const body = email.plaintextBody || '';
+  const combined = [subject, body].join('\n');
+
+  const source = detectSource_(sender);
+  const dealType = detectDealType_(combined);
+  const priceInfo = extractPrice_(combined);
+  const beds = extractBeds_(combined);
+  const baths = extractBaths_(combined);
+  const sqft = extractSqft_(combined);
+  const address = extractAddress_(body, subject);
+  const city = extractCity_(address, subject);
+  const url = extractListingUrl_(body);
+  const key = deriveKey_(url, address, source) || ('msg:' + email.id);
+
+  return {
+    key: key,
+    source: source,
+    dealType: dealType,
+    price: priceInfo.price,
+    priceUnit: priceInfo.perMonth || dealType === 'rent' ? '/mo' : 'total',
+    beds: beds,
+    baths: baths,
+    sqft: sqft,
+    pricePerSqft: priceInfo.price != null && sqft ? Number((priceInfo.price / sqft).toFixed(2)) : null,
+    furnished: extractFurnished_(combined),
+    amenities: extractAmenities_(combined),
+    address: address,
+    city: city,
+    broker: extractBroker_(body),
+    url: url,
+    receivedAt: email.date || null,
+    emailId: email.id || null,
+  };
+}
+
+/** Worth keeping? Needs at least an address and a price. */
+function isListing_(l) {
+  return !!l.address && l.price != null;
+}
