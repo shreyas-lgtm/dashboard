@@ -48,27 +48,27 @@ New listings get posted as a ranked digest each run.
 Furnishing/amenities usually aren't in the alert email, so when they're blank
 and a link exists, `Enrich.gs` opens the listing page and re-parses it. It tries:
 
-1. **Direct fetch** (free) — works for broker sites / Apartments.com.
-2. **Scraping API** — needed for **Zillow**, which blocks plain fetches (403).
+1. **Firecrawl** (if key set) — returns clean markdown, handles JS + anti-bot;
+   this is what reads **Zillow** reliably. Has a free tier.
+2. **Direct fetch** (free fallback, no key) — works for simple broker sites /
+   Apartments.com; Zillow blocks it (403).
 3. **Manual fallback** — if both fail, the row keeps a `⚠️ amenities unknown`
    note and the link, so you click that one yourself.
 
-### Setting up ScraperAPI (for Zillow)
-1. Sign up at [scraperapi.com](https://www.scraperapi.com/) → copy your **API key**.
+### Setting up Firecrawl (for Zillow)
+1. Sign up at [firecrawl.dev](https://www.firecrawl.dev/) → copy your **API key**
+   (starts with `fc-`).
 2. In the Apps Script editor, run once:
    ```js
-   setScraperApiKey('your_key_here')
+   setFirecrawlKey('fc-your_key_here')
    ```
 3. Verify it works — run `enrichTest('https://www.zillow.com/homedetails/2073616612_zpid/')`
    and check **View → Logs**. You should see `furnished:` and `amenities:` lines.
 
-**Credit note:** Zillow needs JS-rendering + premium proxies (`SCRAPER_RENDER` /
-`SCRAPER_PREMIUM` in `Enrich.gs`), which cost more credits per page — the free
-tier (~1k credits/mo) may run thin if you get many Zillow listings daily. The
-agent only fetches listings whose amenities are missing, caps fetches at
-`MAX_ENRICH_PER_RUN` per run, and never re-fetches the same listing, to keep
-usage down. If you blow the budget, set `SCRAPER_RENDER = false` first (cheaper)
-or fall back to the manual flag.
+**Credit note:** Firecrawl bills ~1 credit per scrape. The agent only fetches
+listings whose amenities are missing, caps fetches at `MAX_ENRICH_PER_RUN` per
+run, and never re-fetches the same listing — so usage stays low. If you exhaust
+the free tier, the agent just falls back to the `⚠️ amenities unknown` flag.
 
 > **ToS note:** scraping Zillow is against their terms. Common for personal use,
 > but your call. To avoid it entirely, set `ENRICH_ENABLED = false` and just use

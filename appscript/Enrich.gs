@@ -7,21 +7,20 @@
  * on email bodies (extractFurnished_ / extractAmenities_ in Parser.gs).
  *
  * Three levels, tried in order, degrading gracefully:
- *   1. Direct fetch (free)        — works for broker sites / Apartments.com.
- *   2. Scraping API (if key set)  — real browser + IP rotation; beats Zillow's
- *                                   403 bot-block. Set with setScraperApiKey().
- *   3. Give up cleanly            — keep the AMENITIES_UNKNOWN flag + the link
- *                                   so you open that one listing by hand.
+ *   1. Firecrawl (if key set)  — returns clean markdown, handles JS + anti-bot;
+ *                                this is what beats Zillow's 403. Free tier
+ *                                available. Set with setFirecrawlKey().
+ *   2. Direct fetch (free)      — fallback when no key; works for simple
+ *                                broker sites / Apartments.com, blocked by Zillow.
+ *   3. Give up cleanly          — keep the AMENITIES_UNKNOWN flag + the link
+ *                                so you open that one listing by hand.
  */
 
 // Master switch. Set false to skip page fetching entirely (email data only).
 const ENRICH_ENABLED = true;
 
-// ScraperAPI options. Zillow's page is JS-rendered AND bot-protected, so it
-// needs both of these on. They cost more ScraperAPI credits per request — turn
-// them off (false) for cheaper fetches of simpler broker sites.
-const SCRAPER_RENDER = true;   // execute JavaScript on the page
-const SCRAPER_PREMIUM = true;  // premium/residential proxies (usually required for Zillow)
+const ENRICH_UA_ = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
+  'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 
 /** Does this listing still need a page fetch? (missing furnishing/amenities) */
 function needsEnrich_(listing) {
@@ -32,10 +31,9 @@ function needsEnrich_(listing) {
 function enrichFromPage_(listing) {
   if (!needsEnrich_(listing)) return listing;
 
-  const html = fetchListingHtml_(listing.url);
-  if (!html) { listing.enrichStatus = 'blocked'; return listing; }
+  const text = fetchListingText_(listing.url);
+  if (!text) { listing.enrichStatus = 'blocked'; return listing; }
 
-  const text = htmlToText_(html);
   const pageAmenities = extractAmenities_(text);
   const pageFurnished = extractFurnished_(text);
 
@@ -48,53 +46,38 @@ function enrichFromPage_(listing) {
   return listing;
 }
 
-/** Fetch page HTML — via ScraperAPI if a key is configured, else directly. */
-function fetchListingHtml_(url) {
-  const key = PropertiesService.getScriptProperties().getProperty('SCRAPER_API_KEY');
+/** Fetch page text — via Firecrawl if a key is configured, else a direct GET. */
+function fetchListingText_(url) {
+  const fcKey = PropertiesService.getScriptProperties().getProperty('FIRECRAWL_KEY');
   try {
-    const target = key ? buildScraperUrl_(key, url) : url;
-    const resp = UrlFetchApp.fetch(target, {
-      muteHttpExceptions: true,
-      followRedirects: true,
-      headers: key ? {} : { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
-        'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36' },
-    });
-    const code = resp.getResponseCode();
-    if (code !== 200) {
-      Logger.log('enrich fetch ' + code + ' for ' + url + (key ? ' (via ScraperAPI)' : ''));
-      return null;
+    if (fcKey) {
+      const resp = UrlFetchApp.fetch('https://api.firecrawl.dev/v1/scrape', {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { Authorization: 'Bearer ' + fcKey },
+        payload: JSON.stringify({ url: url, formats: ['markdown'], onlyMainContent: true }),
+        muteHttpExceptions: true,
+      });
+      if (resp.getResponseCode() !== 200) {
+        Logger.log('Firecrawl ' + resp.getResponseCode() + ': ' + resp.getContentText().slice(0, 200));
+        return null;
+      }
+      const json = JSON.parse(resp.getContentText());
+      const d = json && json.data ? json.data : {};
+      return d.markdown || (d.html ? htmlToText_(d.html) : null);
     }
-    return resp.getContentText();
+    // Direct fallback (no key): plain GET with a browser UA.
+    const resp = UrlFetchApp.fetch(url, {
+      muteHttpExceptions: true, followRedirects: true, headers: { 'User-Agent': ENRICH_UA_ },
+    });
+    return resp.getResponseCode() === 200 ? htmlToText_(resp.getContentText()) : null;
   } catch (e) {
     Logger.log('enrich fetch failed for ' + url + ': ' + e);
     return null;
   }
 }
 
-/** Build the ScraperAPI request URL with the configured options. */
-function buildScraperUrl_(key, url) {
-  let u = 'https://api.scraperapi.com/?api_key=' + encodeURIComponent(key) +
-    '&url=' + encodeURIComponent(url);
-  if (SCRAPER_RENDER) u += '&render=true';
-  if (SCRAPER_PREMIUM) u += '&premium=true';
-  return u;
-}
-
-/**
- * One-shot test: run this with a real listing URL after setting your key to
- * confirm enrichment works. Check View → Logs for the result.
- *   enrichTest('https://www.zillow.com/homedetails/2073616612_zpid/')
- */
-function enrichTest(url) {
-  const html = fetchListingHtml_(url);
-  if (!html) { Logger.log('✗ No HTML returned — blocked, bad key, or no key set.'); return; }
-  const text = htmlToText_(html);
-  Logger.log('✓ Got ' + text.length + ' chars');
-  Logger.log('furnished: ' + extractFurnished_(text));
-  Logger.log('amenities: ' + (extractAmenities_(text).join(', ') || '(none found)'));
-}
-
-/** Crude, dependency-free HTML → visible text. */
+/** Crude, dependency-free HTML → visible text (used for the direct-fetch path). */
 function htmlToText_(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
@@ -106,8 +89,21 @@ function htmlToText_(html) {
     .trim();
 }
 
-/** Configure a scraping-API key (run once). Needed for Zillow links. */
-function setScraperApiKey(key) {
-  PropertiesService.getScriptProperties().setProperty('SCRAPER_API_KEY', key);
-  Logger.log('Scraper API key saved — Zillow enrichment enabled.');
+/** Configure your Firecrawl API key (run once). Needed for Zillow links. */
+function setFirecrawlKey(key) {
+  PropertiesService.getScriptProperties().setProperty('FIRECRAWL_KEY', key);
+  Logger.log('Firecrawl key saved — Zillow enrichment enabled.');
+}
+
+/**
+ * One-shot test: run this with a real listing URL after setting your key to
+ * confirm enrichment works. Check View → Logs for the result.
+ *   enrichTest('https://www.zillow.com/homedetails/2073616612_zpid/')
+ */
+function enrichTest(url) {
+  const text = fetchListingText_(url);
+  if (!text) { Logger.log('✗ No text returned — blocked, bad key, or no key set.'); return; }
+  Logger.log('✓ Got ' + text.length + ' chars');
+  Logger.log('furnished: ' + extractFurnished_(text));
+  Logger.log('amenities: ' + (extractAmenities_(text).join(', ') || '(none found)'));
 }
