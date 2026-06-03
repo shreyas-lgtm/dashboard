@@ -3,11 +3,29 @@
 // CRCA sheet brackets). Loading these gives the user a realistic starting BOM
 // that mirrors how the rate card describes each item.
 
-import type { PartInput } from './costEngine';
+import type { PartInput, PartMetrics } from './costEngine';
 import { emptyHoles } from './costEngine';
 import { classifySystem, isAssemblyFile } from './systems';
 import type { ExtractionResult } from './fileParsers';
 import type { MaterialId, ProcessId } from './rateCard';
+
+const UNIT_TO_MM: Record<string, number> = { mm: 1, cm: 10, m: 1000, in: 25.4 };
+
+/** Pull displayable geometry metrics (size, volume, holes) from a parsed file. */
+export function metricsFromExtraction(r: ExtractionResult): PartMetrics | undefined {
+  const m: PartMetrics = {};
+  if (r.stl) {
+    const f = UNIT_TO_MM[r.stl.unit] ?? 1;
+    m.bboxMm = [r.stl.bbox[0] * f, r.stl.bbox[1] * f, r.stl.bbox[2] * f];
+    m.volumeMm3 = r.stl.volumeNative * f * f * f;
+    m.triangleCount = r.stl.triangleCount;
+  }
+  if (r.dxf) {
+    if (r.dxf.extents) m.footprintMm = r.dxf.extents;
+    if (r.dxf.diameters.length) m.holeDiametersMm = r.dxf.diameters;
+  }
+  return Object.keys(m).length ? m : undefined;
+}
 
 // Pick a sensible default process for a material so auto-imported parts land on
 // the right rate (sheet vs plate). The user can override per part.
@@ -29,6 +47,7 @@ export function partFromExtraction(result: ExtractionResult): PartInput {
     part.weldLengthIn = 0;
     part.finishedWeightKg = 0;
     if (result.provenance?.length) part.provenance = result.provenance;
+    part.metrics = metricsFromExtraction(result);
     return part;
   }
 
@@ -40,6 +59,7 @@ export function partFromExtraction(result: ExtractionResult): PartInput {
   }
   if (result.suggestedHoles) part.holes = result.suggestedHoles;
   if (result.provenance?.length) part.provenance = result.provenance;
+  part.metrics = metricsFromExtraction(result);
   return part;
 }
 
@@ -101,6 +121,7 @@ export const EXAMPLE_PARTS: PartInput[] = [
     id: newId(),
     name: 'Enclosure door (Al 5052)',
     system: 'Sprayer',
+    bends: 4,
     material: 'AL5052',
     process: 'sheet_aluminium',
     finishedWeightKg: 1.8,
@@ -114,6 +135,7 @@ export const EXAMPLE_PARTS: PartInput[] = [
     id: newId(),
     name: 'Mounting bracket (CRCA 3mm)',
     system: 'Sander',
+    bends: 2,
     material: 'CRCA',
     process: 'sheet_steel',
     finishedWeightKg: 0.9,

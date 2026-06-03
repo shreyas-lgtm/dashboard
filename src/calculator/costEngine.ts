@@ -48,8 +48,24 @@ export interface PartInput {
   holes: HoleCounts;
   finish: FinishId;
   quantity: number;
+  /** Number of press-brake bends (sheet parts) — a captured metric. */
+  bends?: number;
+  /** Geometry metrics read from the uploaded file(s), for display/verification. */
+  metrics?: PartMetrics;
   /** Where uploaded values came from (for quote verification). Ignored by the engine. */
   provenance?: { label: string; value: string; source: string }[];
+}
+
+export interface PartMetrics {
+  /** Bounding-box size [x, y, z] in mm (from STL). */
+  bboxMm?: [number, number, number];
+  /** Solid volume in mm³ (from STL). */
+  volumeMm3?: number;
+  /** Flat-pattern footprint [width, height] in mm (from DXF extents). */
+  footprintMm?: [number, number];
+  /** Hole diameters in mm, ascending (from DXF). */
+  holeDiametersMm?: number[];
+  triangleCount?: number;
 }
 
 export interface PartCost {

@@ -67,6 +67,22 @@ Each component is named after its base name and filed by system; unsupported
 files in the ZIP are listed as skipped. You can re-assign any part to a
 different system from its **System** dropdown.
 
+### Cost-driver metrics (per part)
+
+Every part shows a **Cost-driver metrics** panel listing the parameters the rate
+is calculated from, each with its cost basis:
+
+- **Overall size** — 3D bounding box (from STL) or flat-pattern footprint (from DXF)
+- **Solid volume** (from STL)
+- **Finished weight** — drives material, processing and finishing
+- **Raw stock / buy-to-fly** — finished weight × gross-up, at the material ₹/kg
+- **Bends** (press-brake, sheet parts) — currently included in the sheet processing rate
+- **Holes** — drilled/cut, tapped, countersunk, with the per-hole basis (laser-cut
+  holes show ₹0, drilling is billed only on machined plate)
+- **Hole sizes** — diameters read from the DXF
+- **Finish** — ₹/kg
+- For assembly lines: **weld length** at the assumed ₹/inch rate
+
 ### Assembly drawings & laser-cut holes
 
 The calculator distinguishes how a file should be priced:

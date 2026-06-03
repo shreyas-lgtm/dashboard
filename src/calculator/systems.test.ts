@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import JSZip from 'jszip';
 import { classifySystem, isAssemblyFile } from './systems';
-import { partFromExtraction } from './presets';
+import { partFromExtraction, metricsFromExtraction } from './presets';
 import { extractFromZip } from './fileParsers/zip';
 
 describe('classifySystem (keyword anywhere, case-insensitive)', () => {
@@ -24,6 +24,25 @@ describe('isAssemblyFile', () => {
     expect(isAssemblyFile('sprayer-ASSY-rev2.step')).toBe(true);
     expect(isAssemblyFile('frame_weldment.dxf')).toBe(true);
     expect(isAssemblyFile('base_plate.stl')).toBe(false);
+  });
+});
+
+describe('metricsFromExtraction', () => {
+  it('converts STL bbox to mm and carries DXF footprint + hole sizes', () => {
+    const stl = metricsFromExtraction({
+      fileName: 'p.stl', kind: 'stl', summary: [],
+      stl: { triangleCount: 12, volumeNative: 1000, bbox: [1, 2, 3], unit: 'cm', isBinary: false },
+    });
+    // cm → mm: ×10 on each axis, ×1000 on volume
+    expect(stl?.bboxMm).toEqual([10, 20, 30]);
+    expect(stl?.volumeMm3).toBe(1_000_000);
+
+    const dxf = metricsFromExtraction({
+      fileName: 'p.dxf', kind: 'dxf', summary: [],
+      dxf: { circleCount: 2, diameters: [3, 6.5], extents: [120, 80] },
+    });
+    expect(dxf?.footprintMm).toEqual([120, 80]);
+    expect(dxf?.holeDiametersMm).toEqual([3, 6.5]);
   });
 });
 

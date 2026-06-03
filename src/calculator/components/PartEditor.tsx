@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, ChevronDown, Sparkles, AlertTriangle, FileCheck2 } from 'lucide-react';
+import { Trash2, ChevronDown, Sparkles, AlertTriangle, FileCheck2, Ruler } from 'lucide-react';
 import {
   MATERIALS,
   PROCESSES,
@@ -11,6 +11,7 @@ import {
 } from '../rateCard';
 import { computePartCost, type PartInput } from '../costEngine';
 import { SYSTEMS, type SystemId } from '../systems';
+import { metricsFromExtraction } from '../presets';
 import { extractFromFile, type ExtractionResult } from '../fileParsers';
 import { stlMassKg, type StlUnit } from '../fileParsers/stl';
 import { inr, num } from '../format';
@@ -42,6 +43,14 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
   // drilling is only billed on a machined plate.
   const laserCut = part.process === 'sheet_steel' || part.process === 'sheet_aluminium';
 
+  // Overall size for the metrics panel: 3D bbox from STL, else flat footprint from DXF.
+  const m = part.metrics;
+  const dims = m?.bboxMm
+    ? `${num(m.bboxMm[0], 1)} × ${num(m.bboxMm[1], 1)} × ${num(m.bboxMm[2], 1)} mm`
+    : m?.footprintMm
+      ? `${num(m.footprintMm[0], 1)} × ${num(m.footprintMm[1], 1)} mm (flat pattern)`
+      : null;
+
   const set = <K extends keyof PartInput>(key: K, value: PartInput[K]) =>
     onChange({ ...part, [key]: value });
 
@@ -72,6 +81,7 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
       if (result.suggestedMaterial) patch.material = result.suggestedMaterial;
       if (result.suggestedFinish) patch.finish = result.suggestedFinish;
       if (result.suggestedHoles) patch.holes = result.suggestedHoles;
+      patch.metrics = metricsFromExtraction(result);
       onChange(patch);
     } finally {
       setBusy(false);
@@ -176,6 +186,22 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
                 className={`${fieldCls} tabular-nums`}
               />
             </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-100">
+            <div className="flex items-center gap-1.5 border-b border-gray-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <Ruler size={13} /> Cost-driver metrics
+            </div>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-gray-50">
+                <MetricLine
+                  label="Weld length"
+                  value={`${num(part.weldLengthIn ?? 0, 1)} in`}
+                  basis={`${inr(ASSEMBLY.weldRatePerInch)}/in — assumed, unconfirmed`}
+                />
+                {dims && <MetricLine label="Overall size" value={dims} basis="geometry (informational)" />}
+              </tbody>
+            </table>
           </div>
 
           <table className="w-full text-sm">
@@ -401,6 +427,19 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
               className={`${fieldCls} tabular-nums`}
             />
           </div>
+          {laserCut && (
+            <div>
+              <label className={labelCls}>Bends (press brake)</label>
+              <input
+                type="number"
+                min={0}
+                value={part.bends ?? 0}
+                onChange={(e) => set('bends', Math.max(0, parseInt(e.target.value) || 0))}
+                className={`${fieldCls} tabular-nums`}
+              />
+              <p className="mt-0.5 text-[11px] text-gray-400">In sheet processing rate</p>
+            </div>
+          )}
         </div>
 
         {/* Plate multiplier toggles */}
@@ -443,6 +482,70 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
             )}
           </div>
         )}
+
+        {/* Cost-driver metrics — the parameters the rate is calculated from */}
+        <div className="rounded-lg border border-gray-100">
+          <div className="flex items-center gap-1.5 border-b border-gray-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <Ruler size={13} /> Cost-driver metrics
+          </div>
+          <table className="w-full text-sm">
+            <tbody className="divide-y divide-gray-50">
+              {dims && <MetricLine label="Overall size" value={dims} basis="geometry (informational)" />}
+              {part.metrics?.volumeMm3 !== undefined && (
+                <MetricLine
+                  label="Solid volume"
+                  value={`${num(part.metrics.volumeMm3 / 1000, 1)} cm³`}
+                  basis="informational"
+                />
+              )}
+              <MetricLine
+                label="Finished weight"
+                value={`${num(part.finishedWeightKg, 3)} kg`}
+                basis="drives material + processing + finishing"
+              />
+              <MetricLine
+                label="Raw stock (buy-to-fly)"
+                value={`${num(cost.rawMaterialKg, 3)} kg @ ${cost.grossUpFactor}×`}
+                basis={`material @ ${inr(MATERIALS[part.material].ratePerKg)}/kg`}
+              />
+              <MetricLine
+                label="Processing"
+                value={proc.label.split(' — ')[0]}
+                basis={`${inr(cost.processingRatePerKg)}/kg of finished weight`}
+              />
+              {laserCut && (
+                <MetricLine
+                  label="Bends (press brake)"
+                  value={`${part.bends ?? 0}`}
+                  basis="included in sheet processing rate"
+                />
+              )}
+              <MetricLine
+                label="Holes — drilled / cut"
+                value={`${part.holes.drilled}`}
+                basis={part.process === 'plate_machined' ? `drilling @ ${inr(8)}/hole` : 'laser-cut — included (₹0)'}
+              />
+              <MetricLine label="Holes — tapped" value={`${part.holes.tapped}`} basis={`tapping @ ${inr(16)}/hole`} />
+              <MetricLine
+                label="Holes — countersunk"
+                value={`${part.holes.countersunk}`}
+                basis={`countersink @ ${inr(28)}/hole`}
+              />
+              {part.metrics?.holeDiametersMm && part.metrics.holeDiametersMm.length > 0 && (
+                <MetricLine
+                  label="Hole sizes"
+                  value={`Ø ${part.metrics.holeDiametersMm.map((d) => num(d, 1)).join(', ')} mm`}
+                  basis="from DXF"
+                />
+              )}
+              <MetricLine
+                label="Finish"
+                value={FINISHES[part.finish].label}
+                basis={cost.finishing > 0 ? `${inr(FINISHES[part.finish].ratePerKg)}/kg` : 'no cost'}
+              />
+            </tbody>
+          </table>
+        </div>
 
         {/* Breakdown */}
         <div className="rounded-lg border border-gray-100 bg-gray-50">
@@ -508,6 +611,16 @@ export function PartEditor({ part, index, onChange, onRemove }: Props) {
         </div>
       </div>
     </div>
+  );
+}
+
+function MetricLine({ label, value, basis }: { label: string; value: string; basis: string }) {
+  return (
+    <tr>
+      <td className="py-1.5 pl-3 pr-2 text-gray-600 whitespace-nowrap">{label}</td>
+      <td className="py-1.5 px-2 font-medium text-gray-900 tabular-nums">{value}</td>
+      <td className="py-1.5 pr-3 text-right text-xs text-gray-400">{basis}</td>
+    </tr>
   );
 }
 
