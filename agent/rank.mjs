@@ -34,6 +34,10 @@ export function rank(listing, trackKey, flags) {
   // --- location -----------------------------------------------------------
   breakdown.locationMatch = scoreLocation(listing, track);
 
+  // --- commute: computed in the Apps Script edition (Maps service); the Node
+  // agent has no geocoder, so it stays neutral here.
+  breakdown.commuteFit = 0.7;
+
   // --- furnishing & amenities ---------------------------------------------
   breakdown.furnishingAmenities = scoreFurnishing(listing, track);
 
@@ -50,6 +54,7 @@ export function rank(listing, trackKey, flags) {
     w.budgetFit * breakdown.budgetFit +
     w.bedsOrSizeFit * breakdown.bedsOrSizeFit +
     w.locationMatch * breakdown.locationMatch +
+    w.commuteFit * breakdown.commuteFit +
     w.furnishingAmenities * breakdown.furnishingAmenities +
     w.pricePerSqft * breakdown.pricePerSqft +
     w.freshness * breakdown.freshness +

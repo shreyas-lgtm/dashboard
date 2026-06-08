@@ -90,14 +90,15 @@ function rank_(listing, trackKey, flags) {
   b.budgetFit = scoreBudget_(listing, t);
   b.bedsFit = trackKey === 'residential' ? scoreBeds_(listing, t) : scoreSize_(listing, t);
   b.locationMatch = scoreLocation_(listing, t);
+  b.commuteFit = scoreCommute_(listing);
   b.furnishingAmenities = scoreFurnishing_(listing, t);
   b.pricePerSqft = scorePricePerSqft_(listing, t);
   b.freshness = scoreFreshness_(listing);
   b.dataCompleteness = scoreCompleteness_(listing);
 
   let raw = w.budgetFit * b.budgetFit + w.bedsFit * b.bedsFit + w.locationMatch * b.locationMatch +
-    w.furnishingAmenities * b.furnishingAmenities + w.pricePerSqft * b.pricePerSqft +
-    w.freshness * b.freshness + w.dataCompleteness * b.dataCompleteness;
+    w.commuteFit * b.commuteFit + w.furnishingAmenities * b.furnishingAmenities +
+    w.pricePerSqft * b.pricePerSqft + w.freshness * b.freshness + w.dataCompleteness * b.dataCompleteness;
 
   const warns = flags.filter(function (f) { return f.severity === 'warn'; }).length;
   raw -= Math.min(0.12, warns * 0.04);
@@ -192,4 +193,56 @@ function scoreCompleteness_(l) {
   const fields = ['price', 'beds', 'baths', 'sqft', 'address', 'url'];
   let present = 0; fields.forEach(function (f) { if (l[f] != null) present++; });
   return present / fields.length;
+}
+
+// --- commute (travel time to a fixed destination) --------------------------
+
+/**
+ * Scores how close the listing is to PREFERENCES.commute destination (set as
+ * the COMMUTE_DEST script property). Also stashes the minutes on the listing
+ * (l.commuteMins) so it can be shown in the sheet. Neutral when not configured
+ * or when the trip can't be computed.
+ */
+function scoreCommute_(l) {
+  const dest = PropertiesService.getScriptProperties().getProperty('COMMUTE_DEST');
+  if (!dest) return 0.7;            // not configured → dormant
+  if (!l.address) return 0.5;
+  const c = PREFERENCES.commute || {};
+  const mins = commuteMinutes_(l.address, dest, c.mode || 'transit');
+  l.commuteMins = mins;
+  if (mins == null) return 0.5;     // couldn't compute → neutral
+  const ideal = c.idealMinutes || 30, max = c.maxMinutes || 60;
+  if (mins <= ideal) return 1;
+  if (mins >= max) return 0.1;
+  return clamp01_(1 - 0.9 * ((mins - ideal) / (max - ideal)));
+}
+
+/** Travel time in minutes via Google's Maps service, or null on failure. */
+function commuteMinutes_(origin, dest, mode) {
+  try {
+    const MODES = {
+      transit: Maps.DirectionFinder.Mode.TRANSIT,
+      driving: Maps.DirectionFinder.Mode.DRIVING,
+      walking: Maps.DirectionFinder.Mode.WALKING,
+    };
+    const finder = Maps.newDirectionFinder()
+      .setOrigin(origin).setDestination(dest)
+      .setMode(MODES[mode] || Maps.DirectionFinder.Mode.TRANSIT);
+    if (mode === 'transit') finder.setDepart(nextWeekdayMorning_());
+    const res = finder.getDirections();
+    const legs = res && res.routes && res.routes[0] && res.routes[0].legs;
+    if (!legs || !legs[0] || !legs[0].duration) return null;
+    return Math.round(legs[0].duration.value / 60);
+  } catch (e) {
+    Logger.log('commute calc failed (' + origin + '): ' + e);
+    return null;
+  }
+}
+
+/** Next weekday at 9am — transit directions need a future departure time. */
+function nextWeekdayMorning_() {
+  const d = new Date();
+  d.setHours(9, 0, 0, 0);
+  do { d.setDate(d.getDate() + 1); } while (d.getDay() === 0 || d.getDay() === 6);
+  return d;
 }

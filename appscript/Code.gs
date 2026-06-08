@@ -18,7 +18,7 @@ const SENDER_QUERY_ =
 const SHEET_NAME_ = 'Listings';
 const MAX_ENRICH_PER_RUN = 20; // max listing-page fetches per run (time/credit guard)
 const HEADERS_ = [
-  'Score', 'Verdict', 'Notes / Adjustment', 'Address', 'Deal', 'Price',
+  'Score', 'Verdict', 'Notes / Adjustment', 'Address', 'Commute', 'Deal', 'Price',
   'Beds', 'Baths', 'Sqft', 'Furnished', 'Amenities', 'Source', 'Broker',
   'Status', 'Link', 'Received', 'Key',
 ];
@@ -80,8 +80,9 @@ function runListingsAgent() {
 
 function toRow_(l, score, ev) {
   const link = l.url ? '=HYPERLINK("' + l.url + '","view")' : '';
+  const commute = l.commuteMins != null ? l.commuteMins + ' min' : '';
   return [
-    score, ev.verdict, ev.note, l.address || '', l.dealType,
+    score, ev.verdict, ev.note, l.address || '', commute, l.dealType,
     l.price != null ? l.price : '', l.beds != null ? l.beds : '',
     l.baths != null ? l.baths : '', l.sqft != null ? l.sqft : '',
     l.furnished === true ? 'Yes' : l.furnished === false ? 'No' : '?',
@@ -114,7 +115,7 @@ function ensureSheet_(ss) {
   if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, HEADERS_.length).setValues([HEADERS_]).setFontWeight('bold');
     sheet.setFrozenRows(1);
-    sheet.getRange(2, 14, sheet.getMaxRows() - 1, 1) // Status column dropdown
+    sheet.getRange(2, HEADERS_.indexOf('Status') + 1, sheet.getMaxRows() - 1, 1) // Status dropdown
       .setDataValidation(SpreadsheetApp.newDataValidation()
         .requireValueInList(['New', 'Shortlist', 'Pass', 'Contacted'], true).build());
     applyScoreColors_(sheet);

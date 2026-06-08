@@ -51,14 +51,25 @@ const PREFERENCES = {
 
   freshnessDays: 21,
 
+  // Commute scoring: travel time from each listing to a fixed destination.
+  // The destination ADDRESS is set as a Script Property named COMMUTE_DEST
+  // (Project Settings → Script Properties) so you can change it without code.
+  // If it's not set, commute scoring stays neutral (no effect).
+  commute: {
+    mode: 'transit',     // 'transit' | 'driving' | 'walking'
+    idealMinutes: 30,    // <= this → full marks
+    maxMinutes: 60,      // >= this → near-zero
+  },
+
   // Score weights (soft desirability, 0–1 each). The verdict layer handles the
   // hard musts separately, so these just say "how good is it, ignoring gates."
   weights: {
-    budgetFit: 0.24,
-    bedsFit: 0.20,
-    locationMatch: 0.18,
-    furnishingAmenities: 0.20,
-    pricePerSqft: 0.06,
+    budgetFit: 0.22,
+    bedsFit: 0.18,
+    locationMatch: 0.10,
+    commuteFit: 0.15,
+    furnishingAmenities: 0.18,
+    pricePerSqft: 0.05,
     freshness: 0.04,
     dataCompleteness: 0.08,
   },

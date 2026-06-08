@@ -66,11 +66,12 @@ export const preferences = {
 
   // Weights for the ranking score (must roughly sum to 1.0). Tune to taste.
   weights: {
-    budgetFit: 0.24,           // how comfortably it sits under budget
-    bedsOrSizeFit: 0.20,       // beds (residential) or sqft (warehouse)
-    locationMatch: 0.18,       // is it where you want
-    furnishingAmenities: 0.20, // furnished, or unfurnished + good amenities
-    pricePerSqft: 0.06,        // value for money (only when sqft known)
+    budgetFit: 0.22,           // how comfortably it sits under budget
+    bedsOrSizeFit: 0.18,       // beds (residential) or sqft (warehouse)
+    locationMatch: 0.10,       // is it in a target area
+    commuteFit: 0.15,          // travel time to destination (Apps Script edition)
+    furnishingAmenities: 0.18, // furnished, or unfurnished + good amenities
+    pricePerSqft: 0.05,        // value for money (only when sqft known)
     freshness: 0.04,           // newer is better
     dataCompleteness: 0.08,    // fully-specced listings rank above vague ones
   },

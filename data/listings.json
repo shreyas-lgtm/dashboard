@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-08T15:36:14.716Z",
+  "updatedAt": "2026-06-08T15:49:33.505Z",
   "count": 10,
   "listings": [
     {
@@ -34,15 +34,16 @@
           "message": "Furnishing/amenities not in the email — open the listing to confirm."
         }
       ],
-      "score": 78,
+      "score": 75,
       "recommendation": "Strong match",
       "breakdown": {
         "budgetFit": 1,
         "bedsOrSizeFit": 0.7,
         "locationMatch": 1,
+        "commuteFit": 0.7,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.7357392768959435,
+        "freshness": 0.7352990310846561,
         "dataCompleteness": 0.8333333333333334
       },
       "status": "new"
@@ -84,15 +85,16 @@
           "message": "Furnishing/amenities not in the email — open the listing to confirm."
         }
       ],
-      "score": 76,
-      "recommendation": "Strong match",
+      "score": 74,
+      "recommendation": "Worth a look",
       "breakdown": {
         "budgetFit": 1,
         "bedsOrSizeFit": 0.7,
         "locationMatch": 1,
+        "commuteFit": 0.7,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.7153242636684303,
+        "freshness": 0.7148840178571428,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -134,15 +136,16 @@
           "message": "Furnishing/amenities not in the email — open the listing to confirm."
         }
       ],
-      "score": 76,
-      "recommendation": "Strong match",
+      "score": 74,
+      "recommendation": "Worth a look",
       "breakdown": {
         "budgetFit": 1,
         "bedsOrSizeFit": 0.7,
         "locationMatch": 1,
+        "commuteFit": 0.7,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.6674627116402116,
+        "freshness": 0.6670224658289241,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -184,15 +187,16 @@
           "message": "Furnishing/amenities not in the email — open the listing to confirm."
         }
       ],
-      "score": 76,
-      "recommendation": "Strong match",
+      "score": 74,
+      "recommendation": "Worth a look",
       "breakdown": {
         "budgetFit": 1,
         "bedsOrSizeFit": 0.7,
         "locationMatch": 1,
+        "commuteFit": 0.7,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.6648519312169312,
+        "freshness": 0.6644116854056438,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -234,15 +238,16 @@
           "message": "Furnishing/amenities not in the email — open the listing to confirm."
         }
       ],
-      "score": 65,
+      "score": 63,
       "recommendation": "Worth a look",
       "breakdown": {
         "budgetFit": 0.55,
         "bedsOrSizeFit": 0.7,
         "locationMatch": 1,
+        "commuteFit": 0.7,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.5280838210978837,
+        "freshness": 0.527643570877425,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -284,15 +289,16 @@
           "message": "Airmont is outside the target areas."
         }
       ],
-      "score": 43,
+      "score": 48,
       "recommendation": "Skip",
       "breakdown": {
         "budgetFit": 0.2875,
         "bedsOrSizeFit": 1,
         "locationMatch": 0.15,
+        "commuteFit": 0.7,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.6168944472001763,
+        "freshness": 0.6164541969797178,
         "dataCompleteness": 0.8333333333333334
       },
       "status": "new"
