@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-06-08T15:49:33.505Z",
+  "updatedAt": "2026-06-08T16:45:20.745Z",
   "count": 10,
   "listings": [
     {
@@ -43,7 +43,7 @@
         "commuteFit": 0.7,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.7352990310846561,
+        "freshness": 0.7334542063492063,
         "dataCompleteness": 0.8333333333333334
       },
       "status": "new"
@@ -94,7 +94,7 @@
         "commuteFit": 0.7,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.7148840178571428,
+        "freshness": 0.7130391931216931,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -145,7 +145,7 @@
         "commuteFit": 0.7,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.6670224658289241,
+        "freshness": 0.6651776410934744,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -196,7 +196,7 @@
         "commuteFit": 0.7,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.6644116854056438,
+        "freshness": 0.662566860670194,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -247,7 +247,7 @@
         "commuteFit": 0.7,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.527643570877425,
+        "freshness": 0.5257987522045855,
         "dataCompleteness": 0.6666666666666666
       },
       "status": "new"
@@ -298,7 +298,7 @@
         "commuteFit": 0.7,
         "furnishingAmenities": 0.45,
         "pricePerSqft": 0.5,
-        "freshness": 0.6164541969797178,
+        "freshness": 0.6146093783068782,
         "dataCompleteness": 0.8333333333333334
       },
       "status": "new"

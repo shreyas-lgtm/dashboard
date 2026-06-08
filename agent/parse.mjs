@@ -48,17 +48,20 @@ function extractPrice(text) {
 }
 
 function extractBeds(text) {
-  const m =
-    text.match(/(\d+)\s*bd\b/i) ||
-    text.match(/(\d+)\s*(?:bed|bedroom)s?\b/i);
-  return m ? Number(m[1]) : null;
+  // Prefer the co-located "3 bd | 1 ba" form so a stray number can't hijack it.
+  const combo = text.match(/(\d{1,2})\s*(?:bd|beds?)\b\s*[|·,\/-]?\s*\d{1,2}(?:\.\d)?\s*(?:ba|baths?)\b/i);
+  if (combo) return Number(combo[1]);
+  const m = text.match(/(\d{1,2})\s*bd\b/i) || text.match(/(\d{1,2})\s*(?:bed|bedroom)s?\b/i);
+  const n = m ? Number(m[1]) : null;
+  return n != null && n >= 0 && n <= 12 ? n : null;
 }
 
 function extractBaths(text) {
-  const m =
-    text.match(/(\d+(?:\.\d)?)\s*ba\b/i) ||
-    text.match(/(\d+(?:\.\d)?)\s*(?:bath|bathroom)s?\b/i);
-  return m ? Number(m[1]) : null;
+  const combo = text.match(/\d{1,2}\s*(?:bd|beds?)\b\s*[|·,\/-]?\s*(\d{1,2}(?:\.\d)?)\s*(?:ba|baths?)\b/i);
+  if (combo) return Number(combo[1]);
+  const m = text.match(/(\d{1,2}(?:\.\d)?)\s*ba\b/i) || text.match(/(\d{1,2}(?:\.\d)?)\s*(?:bath|bathroom)s?\b/i);
+  const n = m ? Number(m[1]) : null;
+  return n != null && n > 0 && n <= 10 ? n : null;
 }
 
 function extractSqft(text) {
