@@ -1,0 +1,503 @@
+{
+  "updatedAt": "2026-06-08T16:45:20.745Z",
+  "count": 10,
+  "listings": [
+    {
+      "key": "zillow:2073616612",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 3695,
+      "priceUnit": "/mo",
+      "beds": 3,
+      "baths": 2,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [],
+      "address": "1543 E 19th St #4B, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "Skyhigh Realty NYC LLC",
+      "url": "https://www.zillow.com/homedetails/2073616612_zpid/",
+      "receivedAt": "2026-06-03T02:25:00Z",
+      "emailId": "19e8b4c6bafd4063",
+      "threadId": "19e8b4c6bafd4063",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
+        }
+      ],
+      "score": 75,
+      "recommendation": "Strong match",
+      "breakdown": {
+        "budgetFit": 1,
+        "bedsOrSizeFit": 0.7,
+        "locationMatch": 1,
+        "commuteFit": 0.7,
+        "furnishingAmenities": 0.45,
+        "pricePerSqft": 0.5,
+        "freshness": 0.7334542063492063,
+        "dataCompleteness": 0.8333333333333334
+      },
+      "status": "new"
+    },
+    {
+      "key": "addr:977-jefferson-ave-apt-2l-brooklyn-ny",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 3650,
+      "priceUnit": "/mo",
+      "beds": 3,
+      "baths": 2,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [],
+      "address": "977 Jefferson Ave APT 2L, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "REAL NY",
+      "url": null,
+      "receivedAt": "2026-06-02T16:07:39Z",
+      "emailId": "19e89173738808bf",
+      "threadId": "19e89173738808bf",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "NO_LINK",
+          "severity": "info",
+          "message": "No listing link found to view details."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
+        }
+      ],
+      "score": 74,
+      "recommendation": "Worth a look",
+      "breakdown": {
+        "budgetFit": 1,
+        "bedsOrSizeFit": 0.7,
+        "locationMatch": 1,
+        "commuteFit": 0.7,
+        "furnishingAmenities": 0.45,
+        "pricePerSqft": 0.5,
+        "freshness": 0.7130391931216931,
+        "dataCompleteness": 0.6666666666666666
+      },
+      "status": "new"
+    },
+    {
+      "key": "addr:640-kosciuszko-st-2l-brooklyn-ny",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 4000,
+      "priceUnit": "/mo",
+      "beds": 3,
+      "baths": 3,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [],
+      "address": "640 Kosciuszko St #2L, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "BOND NY",
+      "url": null,
+      "receivedAt": "2026-06-01T16:00:19Z",
+      "emailId": "19e83ea220889906",
+      "threadId": "19e83ea220889906",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "NO_LINK",
+          "severity": "info",
+          "message": "No listing link found to view details."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
+        }
+      ],
+      "score": 74,
+      "recommendation": "Worth a look",
+      "breakdown": {
+        "budgetFit": 1,
+        "bedsOrSizeFit": 0.7,
+        "locationMatch": 1,
+        "commuteFit": 0.7,
+        "furnishingAmenities": 0.45,
+        "pricePerSqft": 0.5,
+        "freshness": 0.6651776410934744,
+        "dataCompleteness": 0.6666666666666666
+      },
+      "status": "new"
+    },
+    {
+      "key": "addr:63-malcolm-x-blvd-3b-brooklyn-ny",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 3999,
+      "priceUnit": "/mo",
+      "beds": 3,
+      "baths": 3,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [],
+      "address": "63 Malcolm X Blvd #3B, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "COMPASS",
+      "url": null,
+      "receivedAt": "2026-06-01T14:41:22Z",
+      "emailId": "19e83a1e034a14e2",
+      "threadId": "19e83a1e034a14e2",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "NO_LINK",
+          "severity": "info",
+          "message": "No listing link found to view details."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
+        }
+      ],
+      "score": 74,
+      "recommendation": "Worth a look",
+      "breakdown": {
+        "budgetFit": 1,
+        "bedsOrSizeFit": 0.7,
+        "locationMatch": 1,
+        "commuteFit": 0.7,
+        "furnishingAmenities": 0.45,
+        "pricePerSqft": 0.5,
+        "freshness": 0.662566860670194,
+        "dataCompleteness": 0.6666666666666666
+      },
+      "status": "new"
+    },
+    {
+      "key": "addr:58-palmetto-st-501d-brooklyn-ny",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 4250,
+      "priceUnit": "/mo",
+      "beds": 3,
+      "baths": 2,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [],
+      "address": "58 Palmetto St #501D, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "KW NYC",
+      "url": null,
+      "receivedAt": "2026-05-29T17:45:30Z",
+      "emailId": "19e74d75c250bd6c",
+      "threadId": "19e74d75c250bd6c",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "NO_LINK",
+          "severity": "info",
+          "message": "No listing link found to view details."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
+        }
+      ],
+      "score": 63,
+      "recommendation": "Worth a look",
+      "breakdown": {
+        "budgetFit": 0.55,
+        "bedsOrSizeFit": 0.7,
+        "locationMatch": 1,
+        "commuteFit": 0.7,
+        "furnishingAmenities": 0.45,
+        "pricePerSqft": 0.5,
+        "freshness": 0.5257987522045855,
+        "dataCompleteness": 0.6666666666666666
+      },
+      "status": "new"
+    },
+    {
+      "key": "addr:31-dawn-lane-airmont-ny-10901",
+      "source": "WePlace Realty",
+      "dealType": "sale",
+      "price": 1150000,
+      "priceUnit": "total",
+      "beds": 5,
+      "baths": 3,
+      "sqft": 3200,
+      "pricePerSqft": 359.38,
+      "furnished": null,
+      "amenities": [],
+      "address": "31 Dawn Lane, Airmont, NY 10901",
+      "city": "Airmont",
+      "broker": "WePlace Realty",
+      "url": null,
+      "receivedAt": "2026-05-31T14:31:08Z",
+      "emailId": "19e7e72207990825",
+      "threadId": "19e7e72207990825",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "NO_LINK",
+          "severity": "info",
+          "message": "No listing link found to view details."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
+        },
+        {
+          "code": "LOCATION_MISMATCH",
+          "severity": "warn",
+          "message": "Airmont is outside the target areas."
+        }
+      ],
+      "score": 48,
+      "recommendation": "Skip",
+      "breakdown": {
+        "budgetFit": 0.2875,
+        "bedsOrSizeFit": 1,
+        "locationMatch": 0.15,
+        "commuteFit": 0.7,
+        "furnishingAmenities": 0.45,
+        "pricePerSqft": 0.5,
+        "freshness": 0.6146093783068782,
+        "dataCompleteness": 0.8333333333333334
+      },
+      "status": "new"
+    },
+    {
+      "key": "zillow:462661513",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 3799,
+      "priceUnit": "/mo",
+      "beds": 4,
+      "baths": 1,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [],
+      "address": "1132 Hancock St #9, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "MADEHOME",
+      "url": "https://www.zillow.com/homedetails/462661513_zpid/",
+      "receivedAt": "2026-06-01T17:29:26Z",
+      "emailId": "19e843bb97063e67",
+      "threadId": "19e843bb97063e67",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "LOW_BATHS",
+          "severity": "hard",
+          "message": "1 bath(s) — below the 2-bath minimum."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
+        }
+      ],
+      "score": 0,
+      "recommendation": "Skip",
+      "breakdown": {
+        "reason": "hard-flag"
+      },
+      "status": "new"
+    },
+    {
+      "key": "addr:1285-putnam-ave-floor-1-brooklyn-ny",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 3800,
+      "priceUnit": "/mo",
+      "beds": 3,
+      "baths": 1,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [],
+      "address": "1285 Putnam Ave Floor 1, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "SERHANT",
+      "url": null,
+      "receivedAt": "2026-05-29T15:35:47Z",
+      "emailId": "19e7460977609893",
+      "threadId": "19e7460977609893",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "NO_LINK",
+          "severity": "info",
+          "message": "No listing link found to view details."
+        },
+        {
+          "code": "LOW_BATHS",
+          "severity": "hard",
+          "message": "1 bath(s) — below the 2-bath minimum."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
+        }
+      ],
+      "score": 0,
+      "recommendation": "Skip",
+      "breakdown": {
+        "reason": "hard-flag"
+      },
+      "status": "new"
+    },
+    {
+      "key": "addr:254-palmetto-st-apt-3a-brooklyn-ny",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 4550,
+      "priceUnit": "/mo",
+      "beds": 3,
+      "baths": 1,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [],
+      "address": "254 Palmetto St APT 3A, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "DOUGLAS ELLIMAN",
+      "url": null,
+      "receivedAt": "2026-05-30T16:08:15Z",
+      "emailId": "19e79a4adc8dc93f",
+      "threadId": "19e79a4adc8dc93f",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "NO_LINK",
+          "severity": "info",
+          "message": "No listing link found to view details."
+        },
+        {
+          "code": "ABOVE_BUDGET",
+          "severity": "warn",
+          "message": "Rent $4,550/mo is over the $4,500 cap."
+        },
+        {
+          "code": "LOW_BATHS",
+          "severity": "hard",
+          "message": "1 bath(s) — below the 2-bath minimum."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
+        }
+      ],
+      "score": 0,
+      "recommendation": "Skip",
+      "breakdown": {
+        "reason": "hard-flag"
+      },
+      "status": "new"
+    },
+    {
+      "key": "addr:565-evergreen-ave-2g-brooklyn-ny",
+      "source": "Zillow",
+      "dealType": "rent",
+      "price": 3690,
+      "priceUnit": "/mo",
+      "beds": 3,
+      "baths": 1,
+      "sqft": null,
+      "pricePerSqft": null,
+      "furnished": null,
+      "amenities": [],
+      "address": "565 Evergreen Ave #2G, Brooklyn, NY",
+      "city": "Brooklyn",
+      "broker": "REAL BROKER NY",
+      "url": null,
+      "receivedAt": "2026-06-02T17:08:10Z",
+      "emailId": "19e894e9d3223bd7",
+      "threadId": "19e894e9d3223bd7",
+      "track": "residential",
+      "flags": [
+        {
+          "code": "MISSING_SQFT",
+          "severity": "info",
+          "message": "Square footage not stated — value-for-money can’t be computed."
+        },
+        {
+          "code": "NO_LINK",
+          "severity": "info",
+          "message": "No listing link found to view details."
+        },
+        {
+          "code": "LOW_BATHS",
+          "severity": "hard",
+          "message": "1 bath(s) — below the 2-bath minimum."
+        },
+        {
+          "code": "AMENITIES_UNKNOWN",
+          "severity": "info",
+          "message": "Furnishing/amenities not in the email — open the listing to confirm."
+        }
+      ],
+      "score": 0,
+      "recommendation": "Skip",
+      "breakdown": {
+        "reason": "hard-flag"
+      },
+      "status": "new"
+    }
+  ]
+}
