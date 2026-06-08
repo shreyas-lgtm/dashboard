@@ -16,7 +16,8 @@ const SENDER_QUERY_ =
   'subject:"for rent" OR subject:"for sale" OR subject:listing)';
 
 const SHEET_NAME_ = 'Listings';
-const MAX_ENRICH_PER_RUN = 20; // max listing-page fetches per run (time/credit guard)
+const MAX_ENRICH_PER_RUN = 8;          // max listing-page fetches per run (slow)
+const RUN_BUDGET_MS = 4.5 * 60 * 1000; // stop & save before the 6-min hard limit
 const HEADERS_ = [
   'Score', 'Verdict', 'Notes / Adjustment', 'Address', 'Commute', 'Deal', 'Price',
   'Beds', 'Baths', 'Sqft', 'Furnished', 'Amenities', 'Source', 'Broker',
@@ -26,6 +27,7 @@ const HEADERS_ = [
 // === Main loop ============================================================
 
 function runListingsAgent() {
+  const start = Date.now();
   const sheet = ensureSheet_(getSpreadsheet_());
   const existingKeys = getExistingKeys_(sheet);
   const processed = getProcessedIds_();
@@ -33,14 +35,20 @@ function runListingsAgent() {
   const threads = GmailApp.search(SENDER_QUERY_ + ' newer_than:7d -in:trash -in:sent', 0, 50);
   const rows = [];
   const digest = [];
-  let enriched = 0; // cap page-fetches per run to stay under the 6-min limit
+  let enriched = 0;
+  let stopped = false;
 
   threads.forEach(function (thread) {
+    if (stopped) return;
     const threadId = thread.getId();
     thread.getMessages().forEach(function (msg) {
+      if (stopped) return;
+      // Out of time? Stop collecting and go save what we have; the next
+      // scheduled run picks up the rest (this email stays unmarked).
+      if (Date.now() - start > RUN_BUDGET_MS) { stopped = true; return; }
+
       const id = msg.getId();
       if (processed[id]) return;
-      processed[id] = 1;
 
       // One email may contain many units (Zillow digests) — parse them all.
       const listings = parseListings_({
@@ -66,6 +74,8 @@ function runListingsAgent() {
         rows.push(toRow_(listing, r.score, ev));
         digest.push({ listing: listing, score: r.score, ev: ev });
       });
+
+      processed[id] = 1; // mark only after the whole email is handled
     });
   });
 
@@ -75,7 +85,7 @@ function runListingsAgent() {
     notifySlack_(digest);
   }
   saveProcessedIds_(processed);
-  Logger.log(rows.length + ' new listing(s) added.');
+  Logger.log(rows.length + ' new listing(s) added.' + (stopped ? ' (hit time budget — more next run)' : ''));
 }
 
 function toRow_(l, score, ev) {
