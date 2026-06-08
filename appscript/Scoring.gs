@@ -48,7 +48,7 @@ function scrutinize_(listing) {
       add('BELOW_IDEAL_BEDS', 'info', listing.beds + ' beds (' + t.idealBeds + ' is ideal).');
     }
     if (listing.baths != null && listing.baths < t.minBaths) {
-      add('BELOW_MIN_BATHS', 'must', listing.baths + ' bath(s) — under your ' + t.minBaths + '-bath minimum.');
+      add('BELOW_MIN_BATHS', 'reject', listing.baths + ' bath(s) — under your ' + t.minBaths + '-bath minimum.');
     }
     if (listing.furnished === false && listing.amenities.length === 0) {
       add('UNFURNISHED_NO_AMENITIES', 'warn', 'Unfurnished and no amenities listed.');
@@ -100,6 +100,9 @@ function rank_(listing, trackKey, flags) {
     w.commuteFit * b.commuteFit + w.furnishingAmenities * b.furnishingAmenities +
     w.pricePerSqft * b.pricePerSqft + w.freshness * b.freshness + w.dataCompleteness * b.dataCompleteness;
 
+  // A 'reject' flag (e.g. under the bath minimum) disqualifies outright → 0.
+  if (flags.some(function (f) { return f.severity === 'reject'; })) return { score: 0, breakdown: b };
+
   const warns = flags.filter(function (f) { return f.severity === 'warn'; }).length;
   raw -= Math.min(0.12, warns * 0.04);
 
@@ -108,9 +111,21 @@ function rank_(listing, trackKey, flags) {
 
 /** Combine score + musts into a verdict and a human note. */
 function evaluate_(listing, flags, score) {
+  const rejects = flags.filter(function (f) { return f.severity === 'reject'; });
   const musts = flags.filter(function (f) { return f.severity === 'must'; });
   const warns = flags.filter(function (f) { return f.severity === 'warn'; });
   const th = PREFERENCES.thresholds;
+
+  // A reject flag (e.g. under the bath minimum) is an outright no — never a
+  // "needs a compromise."
+  if (rejects.length) {
+    return {
+      verdict: '🚫 Doesn’t fit', emoji: '🚫',
+      note: 'Reject: ' + rejects.concat(musts).map(function (f) { return f.message; }).join(' '),
+      meetsMusts: false,
+    };
+  }
+
   const meetsMusts = musts.length === 0;
 
   let verdict, emoji;
