@@ -218,6 +218,35 @@ export function parseListing(email) {
   };
 }
 
+/**
+ * Split a possibly-multi-listing email into one listing per unit. Zillow
+ * digests / saved-home alerts pack several listings in one mail, each ending
+ * with its own homedetails/<zpid> link. Falls back to single-listing parse.
+ */
+export function parseListings(email) {
+  const body = email.plaintextBody || '';
+  const re = /homedetails(?:%2F|\/)(\d{6,})_zpid/gi;
+  const marks = [];
+  let m;
+  while ((m = re.exec(body)) !== null) marks.push({ zpid: m[1], start: m.index, end: re.lastIndex });
+  if (marks.length <= 1) return [parseListing(email)];
+
+  const out = [];
+  let prev = 0;
+  for (const mark of marks) {
+    const chunk = body.substring(prev, mark.start);
+    prev = mark.end;
+    const l = parseListing({
+      id: `${email.id}:${mark.zpid}`, threadId: email.threadId,
+      sender: email.sender, subject: '', date: email.date, plaintextBody: chunk,
+    });
+    l.url = `https://www.zillow.com/homedetails/${mark.zpid}_zpid/`;
+    l.key = `zillow:${mark.zpid}`;
+    out.push(l);
+  }
+  return out;
+}
+
 // --- small helpers ---------------------------------------------------------
 function toNum(s) {
   const n = Number(String(s).replace(/[^\d.]/g, ''));

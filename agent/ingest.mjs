@@ -19,7 +19,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { parseListing } from './parse.mjs';
+import { parseListings } from './parse.mjs';
 import { enrichAll } from './enrich.mjs';
 import { scrutinize } from './scrutinize.mjs';
 import { rank } from './rank.mjs';
@@ -55,7 +55,7 @@ async function main() {
   const decisions = new Map(store.listings.map((l) => [l.key, l.status]));
   const seenKeys = new Set();
 
-  let parsed = emails.map(parseListing);
+  let parsed = emails.flatMap(parseListings);
 
   // Optional: open each listing page to fill furnishing/amenities (--enrich).
   if (ENRICH) {

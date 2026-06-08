@@ -186,3 +186,34 @@ function parseListing_(email) {
 function isListing_(l) {
   return !!l.address && l.price != null;
 }
+
+/**
+ * Split a possibly-multi-listing email into ONE listing per unit.
+ * Zillow digests ("10 Rentals…") and saved-home alerts pack several listings
+ * in one mail, each ending with its own homedetails/<zpid> link. We cut the
+ * body at those links and parse each block separately. Falls back to the
+ * single-listing parser when there's 0–1 detail link.
+ */
+function parseListings_(email) {
+  const body = email.plaintextBody || '';
+  const re = /homedetails(?:%2F|\/)(\d{6,})_zpid/gi;
+  const marks = [];
+  let m;
+  while ((m = re.exec(body)) !== null) marks.push({ zpid: m[1], start: m.index, end: re.lastIndex });
+  if (marks.length <= 1) return [parseListing_(email)];
+
+  const out = [];
+  let prev = 0;
+  for (let i = 0; i < marks.length; i++) {
+    const chunk = body.substring(prev, marks[i].start); // this unit's block precedes its link
+    prev = marks[i].end;
+    const l = parseListing_({
+      id: email.id + ':' + marks[i].zpid, threadId: email.threadId,
+      sender: email.sender, subject: '', date: email.date, plaintextBody: chunk,
+    });
+    l.url = 'https://www.zillow.com/homedetails/' + marks[i].zpid + '_zpid/';
+    l.key = 'zillow:' + marks[i].zpid;
+    out.push(l);
+  }
+  return out;
+}

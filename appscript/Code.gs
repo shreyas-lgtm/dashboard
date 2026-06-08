@@ -42,26 +42,30 @@ function runListingsAgent() {
       if (processed[id]) return;
       processed[id] = 1;
 
-      const listing = parseListing_({
+      // One email may contain many units (Zillow digests) — parse them all.
+      const listings = parseListings_({
         id: id, threadId: threadId, sender: msg.getFrom(), subject: msg.getSubject(),
         date: msg.getDate().toISOString(), plaintextBody: msg.getPlainBody(),
       });
-      if (!isListing_(listing)) return;
-      if (existingKeys[listing.key]) return; // already in the sheet
-      existingKeys[listing.key] = 1;
 
-      // "Click the link" to fill furnishing/amenities — capped per run.
-      if (enriched < MAX_ENRICH_PER_RUN && needsEnrich_(listing)) {
-        enrichFromPage_(listing);
-        enriched++;
-      }
+      listings.forEach(function (listing) {
+        if (!isListing_(listing)) return;
+        if (existingKeys[listing.key]) return; // already in the sheet
+        existingKeys[listing.key] = 1;
 
-      const s = scrutinize_(listing);
-      const r = rank_(listing, s.trackKey, s.flags);
-      const ev = evaluate_(listing, s.flags, r.score);
+        // "Click the link" to fill furnishing/amenities — capped per run.
+        if (enriched < MAX_ENRICH_PER_RUN && needsEnrich_(listing)) {
+          enrichFromPage_(listing);
+          enriched++;
+        }
 
-      rows.push(toRow_(listing, r.score, ev));
-      digest.push({ listing: listing, score: r.score, ev: ev });
+        const s = scrutinize_(listing);
+        const r = rank_(listing, s.trackKey, s.flags);
+        const ev = evaluate_(listing, s.flags, r.score);
+
+        rows.push(toRow_(listing, r.score, ev));
+        digest.push({ listing: listing, score: r.score, ev: ev });
+      });
     });
   });
 
