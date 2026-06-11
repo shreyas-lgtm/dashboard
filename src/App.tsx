@@ -4,6 +4,7 @@ import { VendorChart } from './components/VendorChart';
 import { SpendWidget } from './components/SpendWidget';
 import { OverduePOsTable } from './components/OverduePOsTable';
 import { StuckPRsTable } from './components/StuckPRsTable';
+import { LaptopSuggester } from './components/LaptopSuggester';
 import { useProcurementData } from './useProcurementData';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
@@ -84,6 +85,9 @@ export default function App() {
             </div>
           </>
         )}
+
+        {/* Standalone tool — independent of live procurement data */}
+        <LaptopSuggester />
       </main>
     </div>
   );
