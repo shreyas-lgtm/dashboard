@@ -42,6 +42,17 @@ export interface Laptop {
   highlights: string[];
 }
 
+/** Coarse performance tiers used when exact specs aren't known (e.g. parsed
+ *  from a pasted link or described by the user). */
+export type PerfTier = 'entry' | 'mainstream' | 'high' | 'pro';
+
+export const PERF_TIERS: Record<PerfTier, { label: string; cpuScore: number; gpuScore: number }> = {
+  entry: { label: 'Entry (basic / older)', cpuScore: 38, gpuScore: 22 },
+  mainstream: { label: 'Mainstream', cpuScore: 54, gpuScore: 38 },
+  high: { label: 'High performance', cpuScore: 72, gpuScore: 64 },
+  pro: { label: 'Pro / workstation', cpuScore: 92, gpuScore: 90 },
+};
+
 export const USE_CASE_LABELS: Record<UseCase, string> = {
   general: 'Everyday / general use',
   development: 'Software development',

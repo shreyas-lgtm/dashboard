@@ -7,11 +7,15 @@ import {
   Check,
   AlertTriangle,
   Info,
+  Link2,
+  Loader2,
 } from 'lucide-react';
 import {
   LAPTOP_CATALOG,
+  PERF_TIERS,
   USE_CASE_LABELS,
   type OS,
+  type PerfTier,
   type UseCase,
 } from '../laptopCatalog';
 import {
@@ -19,15 +23,9 @@ import {
   type CurrentSetup,
   type Suggestion,
 } from '../suggestLaptops';
+import { interpretLink, type Confidence, type LinkResult } from '../parseLaptopUrl';
 
-type PerfTier = 'entry' | 'mainstream' | 'high' | 'pro';
-
-const PERF_TIERS: Record<PerfTier, { label: string; cpuScore: number; gpuScore: number }> = {
-  entry: { label: 'Entry (basic / older)', cpuScore: 38, gpuScore: 22 },
-  mainstream: { label: 'Mainstream', cpuScore: 54, gpuScore: 38 },
-  high: { label: 'High performance', cpuScore: 72, gpuScore: 64 },
-  pro: { label: 'Pro / workstation', cpuScore: 92, gpuScore: 90 },
-};
+type Mode = 'link' | 'catalog' | 'custom';
 
 const BUDGET_PRESETS = [1000, 1500, 2000, 3000];
 
@@ -38,8 +36,16 @@ const usd = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
+const CONFIDENCE_RANK: Record<Confidence, number> = { low: 0, medium: 1, high: 2 };
+
 export function LaptopSuggester() {
-  const [mode, setMode] = useState<'catalog' | 'custom'>('catalog');
+  const [mode, setMode] = useState<Mode>('link');
+
+  // Link mode
+  const [url, setUrl] = useState('');
+  const [resolved, setResolved] = useState<LinkResult | null>(null);
+  const [resolving, setResolving] = useState(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
 
   // Catalog mode
   const [currentLaptopId, setCurrentLaptopId] = useState<string>(LAPTOP_CATALOG[0].id);
@@ -55,7 +61,22 @@ export function LaptopSuggester() {
   const [useCase, setUseCase] = useState<UseCase>('general');
   const [keepOS, setKeepOS] = useState(false);
 
-  const current: CurrentSetup = useMemo(() => {
+  // Client-side parse of the pasted link (instant, no network).
+  const clientLink = useMemo<LinkResult | null>(
+    () => (url.trim() ? interpretLink(url) : null),
+    [url],
+  );
+  // Prefer a server-resolved result when it's more confident.
+  const linkResult = useMemo<LinkResult | null>(() => {
+    if (!clientLink) return null;
+    if (resolved && CONFIDENCE_RANK[resolved.confidence] >= CONFIDENCE_RANK[clientLink.confidence]) {
+      return resolved;
+    }
+    return clientLink;
+  }, [clientLink, resolved]);
+
+  const current: CurrentSetup | null = useMemo(() => {
+    if (mode === 'link') return linkResult?.setup ?? null;
     if (mode === 'catalog') {
       const l = LAPTOP_CATALOG.find((x) => x.id === currentLaptopId)!;
       return {
@@ -78,12 +99,39 @@ export function LaptopSuggester() {
       ramGB,
       storageGB,
     };
-  }, [mode, currentLaptopId, perfTier, ramGB, storageGB, os]);
+  }, [mode, linkResult, currentLaptopId, perfTier, ramGB, storageGB, os]);
 
   const suggestions = useMemo(
-    () => suggestLaptops({ current, budgetUSD: budget, useCase, keepOS }),
+    () => (current ? suggestLaptops({ current, budgetUSD: budget, useCase, keepOS }) : []),
     [current, budget, useCase, keepOS],
   );
+
+  async function resolveLink() {
+    if (!url.trim()) return;
+    setResolving(true);
+    setResolveError(null);
+    try {
+      const res = await fetch(`/api/laptop?url=${encodeURIComponent(url.trim())}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not read that link');
+
+      const fromUrl = data.resolvedUrl ? interpretLink(data.resolvedUrl) : null;
+      const fromTitle = data.title ? interpretLink(data.title) : null;
+      const best = [fromUrl, fromTitle]
+        .filter((r): r is LinkResult => !!r)
+        .sort((a, b) => CONFIDENCE_RANK[b.confidence] - CONFIDENCE_RANK[a.confidence])[0];
+
+      if (!best || best.confidence === 'low') {
+        setResolveError("Still couldn't read laptop details — try the full product URL or enter specs.");
+      } else {
+        setResolved(best);
+      }
+    } catch (e) {
+      setResolveError(e instanceof Error ? e.message : 'Could not read that link');
+    } finally {
+      setResolving(false);
+    }
+  }
 
   const inputClass =
     'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400';
@@ -100,8 +148,8 @@ export function LaptopSuggester() {
         </h2>
       </div>
       <p className="text-xs text-gray-400 mb-5">
-        Describe your current laptop and a budget — get better alternatives you
-        can buy within it.
+        Paste a link to your laptop (or describe it) and set a budget — get
+        better alternatives you can buy within it.
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -111,26 +159,52 @@ export function LaptopSuggester() {
           <div>
             <span className={labelClass}>Your current laptop</span>
             <div className="inline-flex rounded-lg border border-gray-200 p-0.5 text-xs font-medium">
-              <button
-                onClick={() => setMode('catalog')}
-                className={`px-3 py-1 rounded-md transition-colors ${
-                  mode === 'catalog' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Pick a model
-              </button>
-              <button
-                onClick={() => setMode('custom')}
-                className={`px-3 py-1 rounded-md transition-colors ${
-                  mode === 'custom' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Describe specs
-              </button>
+              {([
+                ['link', 'Paste a link'],
+                ['catalog', 'Pick a model'],
+                ['custom', 'Describe specs'],
+              ] as [Mode, string][]).map(([m, label]) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={`px-3 py-1 rounded-md transition-colors ${
+                    mode === m ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {mode === 'catalog' ? (
+          {mode === 'link' && (
+            <div className="space-y-2">
+              <label className={labelClass}>Product link</label>
+              <input
+                type="url"
+                inputMode="url"
+                placeholder="Paste an Amazon (or store) link…"
+                className={inputClass}
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setResolved(null);
+                  setResolveError(null);
+                }}
+              />
+              {url.trim() && linkResult && (
+                <DetectedBox
+                  result={linkResult}
+                  resolving={resolving}
+                  resolveError={resolveError}
+                  onResolve={resolveLink}
+                  onSwitchMode={() => setMode('catalog')}
+                />
+              )}
+            </div>
+          )}
+
+          {mode === 'catalog' && (
             <div>
               <label className={labelClass}>Model</label>
               <select
@@ -145,7 +219,9 @@ export function LaptopSuggester() {
                 ))}
               </select>
             </div>
-          ) : (
+          )}
+
+          {mode === 'custom' && (
             <div className="space-y-3">
               <div>
                 <label className={labelClass}>Performance level</label>
@@ -227,15 +303,17 @@ export function LaptopSuggester() {
             </select>
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={keepOS}
-              onChange={(e) => setKeepOS(e.target.checked)}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400"
-            />
-            Stay on {current.os}
-          </label>
+          {current && (
+            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={keepOS}
+                onChange={(e) => setKeepOS(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400"
+              />
+              Stay on {current.os}
+            </label>
+          )}
         </div>
 
         {/* ---- Results ---- */}
@@ -244,19 +322,28 @@ export function LaptopSuggester() {
             <p className="text-xs text-gray-500">
               {suggestions.length > 0
                 ? `${suggestions.length} alternative${suggestions.length > 1 ? 's' : ''} under ${usd(budget)}`
-                : 'No matches'}
+                : current ? 'No matches' : 'Awaiting your laptop'}
             </p>
-            <p className="text-xs text-gray-400 truncate max-w-[55%] text-right">
-              vs. {current.label}
-            </p>
+            {current && (
+              <p className="text-xs text-gray-400 truncate max-w-[55%] text-right">
+                vs. {current.label}
+              </p>
+            )}
           </div>
 
-          {suggestions.length === 0 ? (
+          {!current ? (
+            <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center">
+              <Link2 size={18} className="mx-auto text-gray-300 mb-2" />
+              <p className="text-sm text-gray-500">
+                {mode === 'link'
+                  ? 'Paste a product link above to see alternatives.'
+                  : 'Tell us about your current laptop to see alternatives.'}
+              </p>
+            </div>
+          ) : suggestions.length === 0 ? (
             <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center">
               <Info size={18} className="mx-auto text-gray-300 mb-2" />
-              <p className="text-sm text-gray-500">
-                Nothing in the catalog fits these filters.
-              </p>
+              <p className="text-sm text-gray-500">Nothing in the catalog fits these filters.</p>
               <p className="mt-1 text-xs text-gray-400">
                 Try raising the budget{keepOS ? ` or unchecking “Stay on ${current.os}”` : ''}.
               </p>
@@ -272,10 +359,76 @@ export function LaptopSuggester() {
       </div>
 
       <p className="mt-5 text-[11px] leading-relaxed text-gray-400 border-t border-gray-100 pt-3">
-        Specs and prices are approximate (USD, pre-tax) and for guidance only.
+        Laptop details are read from the link's web address; specs and prices in
+        the catalog are approximate (USD, pre-tax) and for guidance only.
         Performance is a relative index, not a benchmark score.
       </p>
     </section>
+  );
+}
+
+function DetectedBox({
+  result,
+  resolving,
+  resolveError,
+  onResolve,
+  onSwitchMode,
+}: {
+  result: LinkResult;
+  resolving: boolean;
+  resolveError: string | null;
+  onResolve: () => void;
+  onSwitchMode: () => void;
+}) {
+  const weak = result.confidence === 'low' || !result.setup;
+
+  if (weak) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+        <p className="flex items-center gap-1.5 font-medium">
+          <AlertTriangle size={13} /> Couldn't read enough from that link.
+        </p>
+        <p className="mt-1 text-amber-700">
+          Try the full product page URL (not a shortened share link), or{' '}
+          <button onClick={onSwitchMode} className="underline font-medium">
+            pick a model
+          </button>
+          .
+        </p>
+        <button
+          onClick={onResolve}
+          disabled={resolving}
+          className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50"
+        >
+          {resolving ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
+          {resolving ? 'Reading link…' : 'Try to resolve link'}
+        </button>
+        {resolveError && <p className="mt-1.5 text-amber-700">{resolveError}</p>}
+      </div>
+    );
+  }
+
+  const tone =
+    result.confidence === 'high'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+      : 'border-blue-200 bg-blue-50 text-blue-800';
+
+  return (
+    <div className={`rounded-lg border p-3 text-xs ${tone}`}>
+      <p className="flex items-center gap-1.5 font-medium">
+        <Check size={13} /> Detected: {result.summary}
+      </p>
+      <p className="mt-1 opacity-80">
+        {result.confidence === 'high'
+          ? 'Matched to a known model.'
+          : 'Read from the link — not exact? '}
+        {result.confidence !== 'high' && (
+          <button onClick={onSwitchMode} className="underline font-medium">
+            pick a model instead
+          </button>
+        )}
+      </p>
+    </div>
   );
 }
 
