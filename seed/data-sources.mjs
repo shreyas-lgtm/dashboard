@@ -5,8 +5,9 @@
  * each row is a part with its vendor). Duplicates (same Part Number, or a vendor
  * appearing on many rows) are handled automatically by the idempotent upsert.
  *
- * Sheet URL comes from .env (published-as-CSV link):
- *   SHEET_PARTS_URL
+ * Source file/URL comes from .env:
+ *   SHEET_PARTS_FILE   path to your local Excel/CSV   (e.g. seed/data/parts.xlsx)
+ *   SHEET_PARTS_URL    OR a published-as-CSV link     (fallback if no file)
  * Default placeholder HSN (overridable):
  *   DEFAULT_HSN_CODE  (default 84799090 — "other machines & mechanical appliances")
  */
@@ -18,13 +19,13 @@ const num = (v) => {
 };
 const cap = (s, n = 140) => (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s);
 
-const SHEET_URL = process.env.SHEET_PARTS_URL;
+const SOURCE = process.env.SHEET_PARTS_FILE || process.env.SHEET_PARTS_URL;
 const DEFAULT_HSN = process.env.DEFAULT_HSN_CODE || '84799090';
 
 export const sources = [
   {
     name: 'Items (parts)',
-    csvUrl: SHEET_URL,
+    source: SOURCE,
     doctype: 'Item',
     match: (doc) => [['item_code', '=', doc.item_code]],
     update: false, // set true to overwrite existing items from the sheet
@@ -48,7 +49,7 @@ export const sources = [
   },
   {
     name: 'Suppliers (vendors)',
-    csvUrl: SHEET_URL,
+    source: SOURCE,
     doctype: 'Supplier',
     match: (doc) => [['supplier_name', '=', doc.supplier_name]],
     update: false,

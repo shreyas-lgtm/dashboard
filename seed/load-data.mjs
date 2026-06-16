@@ -9,7 +9,7 @@
  *   node --env-file=.env seed/load-data.mjs             # apply
  */
 
-import { fetchSheet } from './sheets.mjs';
+import { readRows } from './sheets.mjs';
 import { upsert, DRY_RUN } from './frappe.mjs';
 import { sources } from './data-sources.mjs';
 
@@ -17,13 +17,13 @@ const tally = { created: 0, exists: 0, updated: 0, skipped: 0, failed: 0 };
 
 async function loadSource(src) {
   console.log(`\n▸ ${src.name}`);
-  if (!src.csvUrl) {
-    console.log(`  (no URL set — skipping; set its *_URL in .env to enable)`);
+  if (!src.source) {
+    console.log(`  (no source set — set SHEET_PARTS_FILE or SHEET_PARTS_URL in .env)`);
     return;
   }
 
-  const rows = await fetchSheet(src.csvUrl);
-  console.log(`  read ${rows.length} rows from sheet`);
+  const rows = await readRows(src.source);
+  console.log(`  read ${rows.length} rows`);
 
   for (const row of rows) {
     let doc;

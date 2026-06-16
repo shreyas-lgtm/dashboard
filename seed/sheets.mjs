@@ -1,16 +1,16 @@
 /**
- * Reads a Google Sheet (or any CSV URL) into an array of row objects.
- *
- * No Google login required: publish the sheet/tab as CSV and use that link.
- *   In Google Sheets:  File → Share → Publish to web → choose the tab →
- *   "Comma-separated values (.csv)" → Publish, then copy the link.
- * (Or, for a shared sheet, a link of the form:
- *   https://docs.google.com/spreadsheets/d/<ID>/export?format=csv&gid=<TAB_GID> )
+ * Reads tabular data into an array of row objects, from any of:
+ *   - a local Excel file   (.xlsx / .xls)   ← needs the `xlsx` package
+ *   - a local CSV file     (.csv)
+ *   - a URL to CSV         (e.g. a published Google Sheet)
  *
  * Returns: [{ "Header A": "val", "Header B": "val", ... }, ...]
+ * (headers trimmed, values trimmed to strings, blank rows dropped)
  */
 
-/** Minimal RFC-4180 CSV parser: handles quotes, embedded commas and newlines. */
+import { readFile } from 'node:fs/promises';
+
+/** Minimal RFC-4180 CSV parser → array of arrays. Handles quotes/commas/newlines. */
 function parseCSV(text) {
   const rows = [];
   let field = '';
@@ -38,23 +38,51 @@ function parseCSV(text) {
   return rows;
 }
 
-export async function fetchSheet(csvUrl) {
-  if (!csvUrl) throw new Error('No sheet URL provided.');
-  const res = await fetch(csvUrl, { redirect: 'follow' });
-  if (!res.ok) {
-    throw new Error(
-      `Failed to fetch sheet (${res.status}). Is it published to the web as CSV?\n  ${csvUrl}`
-    );
-  }
-  const text = await res.text();
-  const rows = parseCSV(text);
-  if (rows.length === 0) return [];
-
-  const headers = rows[0].map((h) => h.trim());
-  return rows
+/** Turn a matrix (array of arrays, first row = headers) into row objects. */
+function rowsFromMatrix(matrix) {
+  if (!matrix.length) return [];
+  const headers = matrix[0].map((h) => String(h ?? '').trim());
+  return matrix
     .slice(1)
-    .filter((r) => r.some((c) => (c ?? '').trim() !== '')) // drop blank rows
+    .filter((r) => r.some((c) => String(c ?? '').trim() !== ''))
     .map((r) =>
-      Object.fromEntries(headers.map((h, idx) => [h, (r[idx] ?? '').trim()]))
+      Object.fromEntries(headers.map((h, i) => [h, String(r[i] ?? '').trim()]))
     );
 }
+
+async function readExcel(path) {
+  let XLSX;
+  try {
+    const mod = await import('xlsx');
+    XLSX = mod.default ?? mod;
+  } catch {
+    throw new Error(
+      "Reading Excel files needs the 'xlsx' package. Run:  npm install"
+    );
+  }
+  const wb = XLSX.readFile(path);
+  const ws = wb.Sheets[wb.SheetNames[0]]; // first tab
+  const matrix = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+  return rowsFromMatrix(matrix);
+}
+
+/** Main entry: read rows from an Excel/CSV file path or a CSV URL. */
+export async function readRows(source) {
+  if (!source) throw new Error('No data source provided (set the *_FILE or *_URL in .env).');
+
+  if (/^https?:\/\//i.test(source)) {
+    const res = await fetch(source, { redirect: 'follow' });
+    if (!res.ok) {
+      throw new Error(`Failed to fetch (${res.status}). Published as CSV?\n  ${source}`);
+    }
+    return rowsFromMatrix(parseCSV(await res.text()));
+  }
+
+  if (/\.(xlsx|xls)$/i.test(source)) return readExcel(source);
+
+  // assume a local CSV/text file
+  return rowsFromMatrix(parseCSV(await readFile(source, 'utf8')));
+}
+
+// Backwards-compatible alias.
+export const fetchSheet = readRows;
