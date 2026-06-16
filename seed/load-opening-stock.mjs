@@ -19,7 +19,7 @@
  */
 
 import { readRows } from './sheets.mjs';
-import { createDoc, companyAbbr, DRY_RUN } from './frappe.mjs';
+import { createDoc, getDoc, findName, DRY_RUN } from './frappe.mjs';
 import { COMPANY } from './structure.mjs';
 
 const SOURCE = process.env.SHEET_PARTS_FILE || process.env.SHEET_PARTS_URL;
@@ -48,8 +48,27 @@ for (const row of rows) {
   if (!byCode.has(code)) byCode.set(code, qty);
 }
 
-const abbr = await companyAbbr(COMPANY);
+const company = await getDoc('Company', COMPANY);
+if (!company) throw new Error(`Company "${COMPANY}" not found on the site.`);
+const abbr = company.abbr;
 const warehouse = `${WAREHOUSE_BASE} - ${abbr}`;
+
+// Opening Stock needs a Difference Account of Asset/Liability type — the
+// company's "Temporary Opening" account. Use the configured default, else find it.
+let diffAccount = company.default_temporary_opening_account;
+if (!diffAccount) {
+  diffAccount = await findName('Account', [
+    ['company', '=', COMPANY],
+    ['account_name', 'like', '%Temporary Opening%'],
+    ['is_group', '=', 0],
+  ]);
+}
+if (!diffAccount) {
+  throw new Error(
+    'Could not find a "Temporary Opening" account for opening stock. Set the ' +
+      'company\'s Default Temporary Opening Account in ERPNext (Company → Accounts).'
+  );
+}
 
 const items = [...byCode.entries()].map(([item_code, qty]) => ({
   item_code,
@@ -66,6 +85,7 @@ console.log(
 );
 console.log(`Company:   ${COMPANY}`);
 console.log(`Warehouse: ${warehouse}`);
+console.log(`Diff a/c:  ${diffAccount}`);
 console.log(`Items with stock: ${items.length}\n`);
 for (const it of items) console.log(`  ${it.item_code.padEnd(10)} qty ${it.qty}`);
 
@@ -78,6 +98,7 @@ const doc = await createDoc('Stock Reconciliation', {
   doctype: 'Stock Reconciliation',
   purpose: 'Opening Stock',
   company: COMPANY,
+  expense_account: diffAccount,
   items,
 });
 
