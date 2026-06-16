@@ -34,6 +34,7 @@ keep the header row exactly as-is, and save as CSV.
 | Item Name | Human-readable name. |
 | Item Group | Must be one of: Raw Materials, Spares & Maintenance, Finished Goods. |
 | Default Unit of Measure | e.g. Nos, Kg, Litre (must already exist). |
+| HSN/SAC Code | Required (GST/India). Goods use an HSN code, services a SAC code. Must be a valid code that exists in ERPNext's GST HSN Code list. Put each product's real code here. |
 | Maintain Stock | 1 = stock item (tracked in inventory), 0 = non-stock/service. |
 | Has Batch No | 1 = track by batch/lot. |
 | Create New Batches Automatically | 1 = ERPNext makes a batch on receipt (use with Has Batch No). |
