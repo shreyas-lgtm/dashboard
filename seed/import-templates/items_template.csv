@@ -1,4 +1,4 @@
-Item Code,Item Name,Item Group,Default Unit of Measure,HSN/SAC Code,Maintain Stock,Has Batch No,Create New Batches Automatically,Has Expiry Date,Shelf Life In Days,Has Serial No,Valuation Rate,Description
+Item Code,Item Name,Item Group,Default Unit of Measure,HSN/SAC Code,Maintain Stock,Has Batch No,Automatically Create New Batch,Has Expiry Date,Shelf Life In Days,Has Serial No,Valuation Rate,Description
 RM-0001,Sample Raw Material,Raw Materials,Kg,39269099,1,1,1,1,365,0,100,Raw material tracked by batch with a 1-year shelf life
 FG-0001,Sample Finished Good,Finished Goods,Nos,39269099,1,0,0,0,,1,500,Finished good tracked individually by serial number
 SP-0001,Sample Spare Part,Spares & Maintenance,Nos,39269099,1,0,0,0,,0,50,Spare part with no special tracking
