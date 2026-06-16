@@ -64,6 +64,11 @@ async function request(method, path, body) {
   return data;
 }
 
+/** Call a whitelisted server method: POST /api/method/<dotted.path> with params. */
+export async function callMethod(method, params = {}) {
+  return request('POST', `/api/method/${method}`, params);
+}
+
 /**
  * Return the `name` of the first record matching `filters`, or null.
  * filters: array of [field, operator, value], e.g. [["warehouse_name","=","Stores"]]

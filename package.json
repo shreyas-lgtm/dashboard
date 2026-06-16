@@ -12,6 +12,7 @@
     "load:dry": "node --env-file=.env seed/load-data.mjs --dry-run",
     "load:stock": "node --env-file=.env seed/load-opening-stock.mjs",
     "load:stock:dry": "node --env-file=.env seed/load-opening-stock.mjs --dry-run",
+    "clear-demo": "node --env-file=.env seed/clear-demo-data.mjs",
     "inspect": "node --env-file=.env seed/inspect-sheet.mjs"
   },
   "dependencies": {
