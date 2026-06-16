@@ -9,7 +9,7 @@
 
 import { fetchSheet } from './sheets.mjs';
 
-const url = process.argv.find((a) => a.startsWith('http')) || process.env.SHEET_ITEMS_URL;
+const url = process.argv.find((a) => a.startsWith('http')) || process.env.SHEET_PARTS_URL;
 
 if (!url) {
   console.error(

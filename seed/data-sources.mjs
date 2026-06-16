@@ -1,66 +1,65 @@
 /**
- * Maps your Google Sheet columns → ERPNext fields, for the data loader.
+ * Maps your "MOMA EBOM / procurement tracker" sheet → ERPNext fields.
  *
- * ⚠️ The mapping below is a PLACEHOLDER. Once you share your sheet's real
- * column names (run `node seed/inspect-sheet.mjs <url>`), we fill in the
- * `mapRow` functions so they read YOUR columns.
+ * Both Items and Suppliers are pulled from the SAME sheet (one wide table where
+ * each row is a part with its vendor). Duplicates (same Part Number, or a vendor
+ * appearing on many rows) are handled automatically by the idempotent upsert.
  *
- * Sheet URLs come from .env so your specific sheets aren't committed:
- *   SHEET_ITEMS_URL, SHEET_SUPPLIERS_URL  (published-as-CSV links)
+ * Sheet URL comes from .env (published-as-CSV link):
+ *   SHEET_PARTS_URL
+ * Default placeholder HSN (overridable):
+ *   DEFAULT_HSN_CODE  (default 84799090 — "other machines & mechanical appliances")
  */
 
-// --- small helpers for cleaning sheet values ---
-const bool = (v) => (/^(1|y|yes|true|x)$/i.test(String(v).trim()) ? 1 : 0);
+const clean = (v) => String(v ?? '').trim();
 const num = (v) => {
-  const n = Number(String(v).replace(/[^0-9.\-]/g, ''));
+  const n = Number(String(v ?? '').replace(/[^0-9.\-]/g, ''));
   return Number.isFinite(n) ? n : undefined;
 };
-const clean = (v) => String(v ?? '').trim();
+const cap = (s, n = 140) => (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s);
+
+const SHEET_URL = process.env.SHEET_PARTS_URL;
+const DEFAULT_HSN = process.env.DEFAULT_HSN_CODE || '84799090';
 
 export const sources = [
   {
-    name: 'Items',
-    csvUrl: process.env.SHEET_ITEMS_URL,
+    name: 'Items (parts)',
+    csvUrl: SHEET_URL,
     doctype: 'Item',
-    // Identify an existing record so re-runs update instead of duplicate.
     match: (doc) => [['item_code', '=', doc.item_code]],
     update: false, // set true to overwrite existing items from the sheet
-    // TODO: rewrite using YOUR real column names (left side = your headers).
     mapRow: (row) => {
-      const code = clean(row['Item Code'] || row['SKU'] || row['Code']);
-      if (!code) return null; // skip rows with no code
+      const code = clean(row['Part Number']);
+      if (!code) return null; // skip rows without a part number
+
+      const desc = clean(row['Component Description']);
+      const name = desc ? `${code} — ${desc}` : code;
+
       return {
         item_code: code,
-        item_name: clean(row['Item Name'] || row['Name'] || code),
-        item_group: clean(row['Item Group'] || row['Category'] || 'Raw Materials'),
-        stock_uom: clean(row['UOM'] || row['Unit'] || 'Nos'),
-        gst_hsn_code: clean(row['HSN'] || row['HSN/SAC Code']),
+        item_name: cap(name),
+        item_group: 'Raw Materials',
+        stock_uom: 'Nos',
+        gst_hsn_code: DEFAULT_HSN,
         is_stock_item: 1,
-        has_batch_no: bool(row['Has Batch No']),
-        create_new_batch: bool(row['Has Batch No']),
-        has_expiry_date: bool(row['Has Expiry Date']),
-        shelf_life_in_days: num(row['Shelf Life In Days']),
-        has_serial_no: bool(row['Has Serial No']),
-        valuation_rate: num(row['Rate'] || row['Valuation Rate']),
-        description: clean(row['Description']),
+        description: desc || code,
       };
     },
   },
   {
-    name: 'Suppliers',
-    csvUrl: process.env.SHEET_SUPPLIERS_URL,
+    name: 'Suppliers (vendors)',
+    csvUrl: SHEET_URL,
     doctype: 'Supplier',
     match: (doc) => [['supplier_name', '=', doc.supplier_name]],
     update: false,
-    // TODO: rewrite using YOUR real column names.
     mapRow: (row) => {
-      const name = clean(row['Supplier Name'] || row['Vendor'] || row['Name']);
-      if (!name) return null;
+      const vendor = clean(row['Vendor']);
+      if (!vendor) return null; // many rows have no vendor — skip them
       return {
-        supplier_name: name,
-        supplier_group: clean(row['Supplier Group'] || row['Type'] || 'Local'),
-        supplier_type: clean(row['Supplier Type'] || 'Company'),
-        country: clean(row['Country'] || 'India'),
+        supplier_name: vendor,
+        supplier_group: 'Local',
+        supplier_type: 'Company',
+        country: 'India',
       };
     },
   },
