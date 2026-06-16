@@ -30,11 +30,14 @@ export const sources = [
     match: (doc) => [['item_code', '=', doc.item_code]],
     update: false, // set true to overwrite existing items from the sheet
     mapRow: (row) => {
-      const code = clean(row['Part Number']);
-      if (!code) return null; // skip rows without a part number
+      // Item code = your internal UID (P0473…); fall back to Part Number if missing.
+      const uid = clean(row['UID']);
+      const partNo = clean(row['Part Number']);
+      const code = uid || partNo;
+      if (!code) return null; // skip rows with neither UID nor Part Number
 
       const desc = clean(row['Component Description']);
-      const name = desc ? `${code} — ${desc}` : code;
+      const name = [partNo, desc].filter(Boolean).join(' — ') || code;
 
       return {
         item_code: code,
@@ -43,7 +46,8 @@ export const sources = [
         stock_uom: 'Nos',
         gst_hsn_code: DEFAULT_HSN,
         is_stock_item: 1,
-        description: desc || code,
+        // Keep the manufacturer Part Number searchable in the item details.
+        description: [partNo && `Part No: ${partNo}`, desc].filter(Boolean).join(' — ') || code,
       };
     },
   },
