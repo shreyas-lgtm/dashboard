@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed": "node --env-file=.env seed/seed.mjs",
+    "seed:dry": "node --env-file=.env seed/seed.mjs --dry-run"
   },
   "dependencies": {
     "date-fns": "^3.6.0",
