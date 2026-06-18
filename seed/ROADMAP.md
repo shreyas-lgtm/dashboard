@@ -66,3 +66,26 @@ been doing). Phase 4 is config. **Phase 6 needs a custom app** (custom DocTypes,
 fields, workflows, server scripts) — at that point we graduate from loader
 scripts to a versioned Frappe app, which also makes the whole structure
 replicable on any site.
+
+## Full workbook tab inventory (Origin V3 Tracker)
+The source workbook has 24 tabs. How each maps:
+
+| Tab | Purpose | ERPNext | Verdict |
+|---|---|---|---|
+| Design Tracker | part master + design/release status | Items + custom design fields | core + custom |
+| AMR JIG BOM, Harness BOM | BOMs (clean PRT codes; harness = AWG/cores/len) | BOM (multi-level) | ✅ native |
+| Inventory | batch MRP (req for N robots vs stock vs to-order) | Production Plan | ✅ native (this is MRP) |
+| Procurement Pivot | procurement rollup | Buying reports | ✅ native |
+| Manpower | crew capacity + man-days/phase | Project capacity / custom | ⚠️ weak — consider keep in sheet |
+| Gantt | plan vs forecast schedule | Project + Tasks (Gantt) | ⚠️ partial — consider keep in sheet |
+| Assembly Sign-off | per-component assembly checklist | Quality Inspection / custom DocType | custom |
+| Actuals | phase-gated built/validated, buffer | Work Order / Project actuals | partial |
+| Major Components, Mech Sys Requirements, Component Placement Status | design requirements | custom fields / DocType | custom |
+| ToDos, Dashboard, Subsystem ownership, Scrap, Principles | PM/admin | Project/Task, reports | partial |
+| *- Orig tabs | backups of originals | — | ignore |
+
+### Recommended scope decision
+- **Build in ERPNext:** Items, BOMs, Production Plan/MRP, Buying, Quality Inspection.
+- **Custom app (Phase 6):** design-release/PLM, Assembly Sign-off, auto-status.
+- **Keep in the sheet / a PM tool (don't ERP-ify):** Manpower man-day model and
+  Gantt plan-vs-forecast — poor native fit, high custom cost, low payoff.
