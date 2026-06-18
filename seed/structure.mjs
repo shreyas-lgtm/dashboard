@@ -35,11 +35,18 @@ export const uoms = [
   'Dozen',
 ];
 
-/** Top-level item categories. Items are assigned to these at import time. */
+/** Top-level item categories. Items are assigned to these at import time.
+ *  (Extended for the MOMA tracker's Part Categories — see data-sources CATEGORY.) */
 export const itemGroups = [
   'Raw Materials',
   'Spares & Maintenance',
   'Finished Goods',
+  'Sub-Assemblies',
+  'Fabricated Parts',
+  'Purchased Parts',
+  'Fasteners',
+  'Consumables',
+  'Packing Material',
 ];
 
 /** Supplier categories. "Subcontractor" is used for the contract manufacturer. */

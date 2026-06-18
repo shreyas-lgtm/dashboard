@@ -38,19 +38,19 @@ function parseCSV(text) {
   return rows;
 }
 
-/** Turn a matrix (array of arrays, first row = headers) into row objects. */
-function rowsFromMatrix(matrix) {
-  if (!matrix.length) return [];
-  const headers = matrix[0].map((h) => String(h ?? '').trim());
+/** Turn a matrix (array of arrays) into row objects, headers at `headerRow`. */
+function rowsFromMatrix(matrix, headerRow = 0) {
+  if (matrix.length <= headerRow) return [];
+  const headers = matrix[headerRow].map((h) => String(h ?? '').trim());
   return matrix
-    .slice(1)
+    .slice(headerRow + 1)
     .filter((r) => r.some((c) => String(c ?? '').trim() !== ''))
     .map((r) =>
       Object.fromEntries(headers.map((h, i) => [h, String(r[i] ?? '').trim()]))
     );
 }
 
-async function readExcel(path) {
+async function readExcel(path, { sheet, headerRow = 0 } = {}) {
   let XLSX;
   try {
     const mod = await import('xlsx');
@@ -61,13 +61,19 @@ async function readExcel(path) {
     );
   }
   const wb = XLSX.readFile(path);
-  const ws = wb.Sheets[wb.SheetNames[0]]; // first tab
+  const name = sheet && wb.Sheets[sheet] ? sheet : wb.SheetNames[0];
+  if (sheet && !wb.Sheets[sheet]) {
+    throw new Error(`Tab "${sheet}" not found. Tabs: ${wb.SheetNames.join(', ')}`);
+  }
+  const ws = wb.Sheets[name];
   const matrix = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
-  return rowsFromMatrix(matrix);
+  return rowsFromMatrix(matrix, headerRow);
 }
 
-/** Main entry: read rows from an Excel/CSV file path or a CSV URL. */
-export async function readRows(source) {
+/** Main entry: read rows from an Excel/CSV file path or a CSV URL.
+ *  opts: { sheet }  — Excel tab name (default first)
+ *        { headerRow } — 0-based row index holding column headers (default 0) */
+export async function readRows(source, opts = {}) {
   if (!source) throw new Error('No data source provided (set the *_FILE or *_URL in .env).');
 
   if (/^https?:\/\//i.test(source)) {
@@ -75,13 +81,13 @@ export async function readRows(source) {
     if (!res.ok) {
       throw new Error(`Failed to fetch (${res.status}). Published as CSV?\n  ${source}`);
     }
-    return rowsFromMatrix(parseCSV(await res.text()));
+    return rowsFromMatrix(parseCSV(await res.text()), opts.headerRow ?? 0);
   }
 
-  if (/\.(xlsx|xls)$/i.test(source)) return readExcel(source);
+  if (/\.(xlsx|xls)$/i.test(source)) return readExcel(source, opts);
 
   // assume a local CSV/text file
-  return rowsFromMatrix(parseCSV(await readFile(source, 'utf8')));
+  return rowsFromMatrix(parseCSV(await readFile(source, 'utf8')), opts.headerRow ?? 0);
 }
 
 // Backwards-compatible alias.

@@ -22,7 +22,7 @@ async function loadSource(src) {
     return;
   }
 
-  const rows = await readRows(src.source);
+  const rows = await readRows(src.source, { sheet: src.sheet, headerRow: src.headerRow });
   console.log(`  read ${rows.length} rows`);
 
   for (const row of rows) {
