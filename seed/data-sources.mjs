@@ -73,6 +73,9 @@ export const sources = [
         default_material_request_type: cat.make ? 'Manufacture' : 'Purchase',
         include_item_in_manufacturing: cat.make ? 1 : 0,
         is_purchase_item: 1,
+        // Every received item passes Incoming Quality Inspection before Stores
+        // (the receiver picks an "Incoming - …" template on the Purchase Receipt).
+        inspection_required_before_purchase: 1,
         ...(lead !== undefined ? { lead_time_days: lead } : {}),
         // Manufacturer part no / type / subassembly kept searchable until the
         // custom-app phase adds dedicated fields.

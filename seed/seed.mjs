@@ -12,7 +12,7 @@
  * FRAPPE_COMPANY, PO_APPROVAL_THRESHOLD). See .env.example.
  */
 
-import { upsert, companyAbbr, createDoc, findName, DRY_RUN } from './frappe.mjs';
+import { upsert, companyAbbr, createDoc, findName, updateDoc, DRY_RUN } from './frappe.mjs';
 import {
   COMPANY,
   uoms,
@@ -24,6 +24,9 @@ import {
   workflows,
   workflowStateNames,
   workflowActionNames,
+  qualityInspectionParameters,
+  qualityInspectionTemplates,
+  procurementPolicy,
 } from './structure.mjs';
 
 const tally = { created: 0, exists: 0, updated: 0 };
@@ -159,6 +162,43 @@ async function main() {
       };
       await createDoc('Workflow', doc);
       log('Workflow', wf.workflow_name, 'created');
+    }
+  });
+
+  await step('Quality Inspection (incoming)', async () => {
+    for (const name of qualityInspectionParameters) {
+      const r = await upsert(
+        'Quality Inspection Parameter',
+        { parameter: name },
+        [['parameter', '=', name]]
+      );
+      log('QI Parameter', name, r.action);
+    }
+    for (const tmpl of qualityInspectionTemplates) {
+      const existing = await findName(
+        'Quality Inspection Template',
+        [['quality_inspection_template_name', '=', tmpl.name]]
+      );
+      if (existing) {
+        log('QI Template', `${tmpl.name} (exists)`, 'exists');
+        continue;
+      }
+      await createDoc('Quality Inspection Template', {
+        doctype: 'Quality Inspection Template',
+        quality_inspection_template_name: tmpl.name,
+        item_quality_inspection_parameter: tmpl.parameters.map((p) => ({
+          specification: p,
+        })),
+      });
+      log('QI Template', tmpl.name, 'created');
+    }
+  });
+
+  await step('Procurement policy (3-way match)', async () => {
+    // ERPNext "Single" doctypes: the document name equals the doctype name.
+    for (const [doctype, patch] of Object.entries(procurementPolicy)) {
+      await updateDoc(doctype, doctype, patch);
+      log('Setting', `${doctype} (${Object.keys(patch).join(', ')})`, 'updated');
     }
   });
 

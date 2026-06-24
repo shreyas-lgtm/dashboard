@@ -17,7 +17,9 @@ and point it at a fresh site to replicate the same structure (this is the
 | Supplier Groups | Local, Import, Services, Subcontractor |
 | Warehouses | `Main Office` + `Contract Manufacturer`, each with Stores / In-Process / Rejected |
 | Supplier | Contract Manufacturer (group: Subcontractor) for the subcontracting flow |
-| Workflows | Material Request approval; Purchase Order approval (auto-flow ≤ ₹25,000) |
+| Workflows | Material Request approval; Purchase Order approval (auto-flow ≤ ₹25,000); Purchase Invoice approval (finance sign-off) |
+| Quality Inspection | Incoming-inspection parameters + templates (General / Mechanical / Electronics); every received item requires inspection before Stores |
+| Procurement policy | Strict 3-way match — PO + GRN required before billing, no over-receipt / over-billing. RFQ → Supplier Quotation stays optional (native tools) |
 
 Edit [`structure.mjs`](./structure.mjs) to change any of the above — it's plain data.
 
