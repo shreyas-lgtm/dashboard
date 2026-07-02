@@ -10,7 +10,7 @@ This is how to build the register as a Google Sheet so it stays **simple, self-c
 
 ## 2. Columns — essential vs optional
 
-16 columns total, but only **9 are essential** — those are the minimum to hand over the job *and* track offboarding. The other 7 are "proper data" extras (value, model, location): cheap to keep, safe to drop if you want maximum simplicity.
+16 columns total, **13 essential** and 3 optional. "Essential" = needed for the lifecycle, offboarding, **cost tracking, or team tracking** (you've confirmed cost and team are must-haves). The remaining 3 are minor extras you can drop for a leaner sheet.
 
 | # | Column | Type | Essential? | Notes |
 |---|--------|------|:---:|-------|
@@ -21,18 +21,18 @@ This is how to build the register as a Google Sheet so it stays **simple, self-c
 | E | **Model No.** | text | ⬜ optional | Handy for reordering/warranty; not needed for lifecycle. |
 | F | **Status** | dropdown | ✅ | The lifecycle state. **Core.** |
 | G | **Assigned To (Holder)** | text | ✅ | Person's full name. Blank unless Status = In Use. **Core.** |
-| H | **Team / Location** | dropdown | ⬜ optional | Nice for finding a device; lifecycle works without it. |
+| H | **Team / Location** | dropdown | ✅ | Whose team / where the device lives. **Needed for team tracking.** |
 | I | **Date Received** | date | ⬜ optional | Intake date. Useful for age/audit, not for offboarding. |
 | J | **Date Assigned** | date | ✅ | When given to current holder. Needed for the lifecycle. |
 | K | **Date Returned** | date | ✅ | When returned. **Without this you can't track collection on exit.** |
 | L | **Condition** | dropdown | ⬜ optional | New/Good/Fair/Damaged. Damage can also just go in Notes. |
-| M | **Unit Value (INR)** | number | ⬜ optional | From invoice. For financial reporting only. |
-| N | **Tax (INR)** | number | ⬜ optional | GST. Financial only. |
-| O | **Total (INR)** | number | ⬜ optional | Auto = M + N (see §4). Financial only. |
+| M | **Unit Value (INR)** | number | ✅ | From invoice. **Needed for cost tracking.** |
+| N | **Tax (INR)** | number | ✅ | GST. Part of cost. |
+| O | **Total (INR)** | number | ✅ | Auto = M + N (see §4). The per-asset cost. |
 | P | **Notes** | text | ✅ | Repairs, damage, flags. |
 
-**The 9 essential columns** (A, B, C, D, F, G, J, K, P) are all you need for a working handover-ready lifecycle: *what it is, who has it, what state it's in, when it was assigned/returned.*
-**The 7 optional columns** (E, H, I, L, M, N, O) add financial + logistics detail. Keep them if you want "proper data" in one place; delete the columns if you want the leanest possible sheet — nothing in the process breaks.
+**The 13 essential columns** (A, B, C, D, F, G, H, J, K, M, N, O, P) cover the full lifecycle **plus cost and team tracking**: *what it is, who has it, which team, what state, when assigned/returned, and what it cost.*
+**The 3 optional columns** (E Model, I Date Received, L Condition) are minor extras — keep them for completeness or delete them for the leanest sheet; nothing in the process breaks.
 
 > **Why this beats the old sheet:** it separates **who holds it** (G) from **what state it's in** (F) — the old sheet crammed both into one column — and adds the **dates** (J/K) that make offboarding auditable.
 
@@ -77,6 +77,8 @@ Missing serial          =COUNTIFS(Register!C2:C,"Personal Computer",Register!D2:
 ```
 
 **Per-person holdings** (the offboarding view): `=QUERY(Register!A2:P, "select G, count(A) where F='In Use' group by G order by count(A) desc label count(A) 'Items Held'")`
+
+**Value & count by team** (cost + team tracking): `=QUERY(Register!A2:P, "select H, count(A), sum(O) where H is not null group by H order by sum(O) desc label count(A) 'Assets', sum(O) 'Total Value'")`
 
 ## 7. Access & handover
 

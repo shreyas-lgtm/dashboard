@@ -18,7 +18,7 @@ Built to replace the old *"Procurement …& Inventory"* sheet, which had grown h
 
 ## Get started in 3 steps
 
-1. **Set up the sheet** — follow [register-template.md](./register-template.md): import `clean-register.csv`, add the dropdowns and dashboard. (~15 min, once.) It marks which 9 columns are essential vs the 7 optional "proper data" extras.
+1. **Set up the sheet** — follow [register-template.md](./register-template.md): import `clean-register.csv`, add the dropdowns and dashboard. (~15 min, once.) It marks which 13 columns are essential (incl. cost + team) vs the 3 minor optional ones.
 2. **Learn the flow** — read [QUICK-START.md](./QUICK-START.md) (one page). The whole thing rests on one habit: *update the sheet the moment an asset changes hands.*
 3. **Backfill the gaps** — during the first monthly audit, fill blank serial numbers and unit values flagged in [data-cleanup-findings.md](./data-cleanup-findings.md).
 
