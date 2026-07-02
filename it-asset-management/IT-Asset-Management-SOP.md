@@ -1,6 +1,6 @@
 # IT Asset Management — Standard Operating Procedure
 
-**Owner:** Shreyas (IT Assets) · **Applies to:** all laptops, monitors, keyboards, mice, cameras, dev boards and IT tools tracked in the register.
+**Owner:** Shreyas (IT Assets) · **Applies to:** end-user computing equipment only — laptops/CPUs, monitors, keyboards, mice, GPUs. (Cameras, compute modules, R&D dev hardware and tools are tracked in their own inventories, not here.)
 
 The goal of this SOP is that **anyone** can run IT asset tracking by following it — no tribal knowledge required. There is exactly **one source of truth: the IT Asset Register** (`clean-register.csv`, maintained as a Google Sheet). If it isn't in the register, it doesn't exist.
 
@@ -63,7 +63,7 @@ When a new device arrives (purchase, replacement, return-to-stock):
 
 1. **Add one row** to the register. One physical item = one row.
 2. Fill in:
-   - **Asset Tag** — next number in its series (`IT-####` for IT gear, `TL-####` tools, `DV-####` dev/R&D). Never reuse a tag.
+   - **Asset Tag** — next number in the `IT-####` series (e.g. `IT-0097`). Never reuse a tag.
    - **Item**, **Category** (pick from the dropdown), **Serial No.**, **Model No.**
    - **Unit Value / Tax / Total** — from the invoice. Don't leave cost blank; put `0` only if genuinely free.
    - **Date Received** — today.

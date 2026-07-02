@@ -3,9 +3,6 @@ IT-0003,Lenovo LOQ,Personal Computer,,15ARP9,In Use,Sandeep,Deployment Table,,,,
 IT-0004,Dell Mouse,Computer Accessories,,MS116P,In Use,Prateek,Deployment Table,,,,,,0.00,309.00,
 IT-0005,Lenovo LOQ,Personal Computer,MP2Q30JS,15ARP9,In Use,Dhruv,Perception Table,,,,,138965.00,25013.70,163978.70,
 IT-0006,Lenovo LOQ,Personal Computer,MP2HM3TV,15ARP10,In Use,Akhil,Perception Table,,,,,82189.00,14794.02,96983.02,
-IT-0007,Insta 360 ONE X2,Camera,,,Unassigned,,Perception Table,,,,,25415.00,4574.70,29989.70,
-IT-0008,Intel RealSense Depth Camera D435i,Camera,243222072442,D435i,Unassigned,,Perception Table,,,,,33500.00,6030.00,39530.00,
-IT-0009,Nvidia Jetson Agx Orin,Compute,,,In Use,Raj,Perception Table,,,,,173600.00,31248.00,204848.00,
 IT-0010,Dell Monitor,Monitor,CN-01X0R7-TV20-49E-0D5T-A00,,In Use,Rishi Agarwal,AI Table,,,,,,0.00,13999.00,
 IT-0011,LG Monitor,Monitor,409TFYA1P634,32MR50C,In Use,Ravikiran,Perception Table,,,,,13499.00,2429.82,15928.82,
 IT-0012,Dell Monitor,Computer Accessories,CN-05NT8R-PRC00-4CN-0728,MS116P,In Use,Naveen,Perception Table,,,,,,0.00,0.00,Item looks like a Monitor but category is Computer Accessories - verify
@@ -26,10 +23,6 @@ IT-0026,Logitech Mouse,Computer Accessories,,M331,In Use,Devansh,Full Stack Tabl
 IT-0027,LG Monitor,Monitor,406NTUWBK510,24GN65R,In Use,Tanay,Full Stack Table,,,,,11987.29,2157.71,14145.00,
 IT-0028,Lenovo LOQ,Personal Computer,MP2Q2NLV,15ARP9,In Use,Tanay,Full Stack Table,,,,,69262.71,12467.29,81730.00,
 IT-0029,Dell Mouse,Computer Accessories,CN-05NT8R-PRC00-53H-0199,MS116P,In Use,Viral,Deployment Table,,,,,,0.00,0.00,
-TL-0001,Stanley 5m Measuring Tape,Tool,,,In Use,Anand,Mechanical Table,,,,,,0.00,0.00,
-TL-0002,Stanley 5m Measuring Tape,Tool,,,In Use,Anand,Mechanical Table,,,,,,0.00,0.00,
-TL-0003,Stanley 5m Measuring Tape,Tool,,,In Use,Anand,Deployment Table,,,,,,0.00,0.00,
-TL-0004,Stanley 5m Measuring Tape,Tool,,,In Use,Anand,Deployment Table,,,,,,0.00,0.00,
 IT-0030,Lenovo LOQ,Personal Computer,MP2RTF7K,15ARP9D2,In Use,Arfath,Full Stack Table,,,,,69262.71,12467.29,81730.00,
 IT-0031,Dell Monitor,Monitor,CN-01X0R7-TV200-4BQ-0KBT-A00,SE2725H,In Use,Harsh Kothari,Full Stack Table,,,,,9099.00,1637.82,10736.82,
 IT-0032,Logitech Mouse,Computer Accessories,,M331,In Use,Tirth Vyas,Robotics Table,,,,,,0.00,0.00,
@@ -91,35 +84,7 @@ IT-0087,Benq Monitor,Monitor,ETH4S0481601Q,GW2790-L,In Use,Yogesh,Operations Tab
 IT-0088,Benq Monitor,Monitor,ETGAR03971SL0,GW2790-B,Deployed,Simulation,Operations Table,,,,,,0.00,0.00,"Allocated to a system/setup, not a person"
 IT-0089,Benq Monitor,Monitor,ETP8P05546021Q,GW2790-L,In Use,Bhuvnesh,Operations Table,,,,,,0.00,0.00,
 IT-0090,Lenovo LOQ,Personal Computer,MP2RHCB4,15ARP9D2,In Storage,,Operations Table,,,,,,0.00,0.00,
-DV-0001,Teensy Board 4.1,Development,,,In Storage,,Teensy Board Compartment,,,,,2281.00,410.58,2691.58,
-DV-0002,Teensy Board 4.1,Development,,,In Storage,,Teensy Board Compartment,,,,,2281.00,410.58,2691.58,
-DV-0003,Teensy Board 4.1,Development,,,In Storage,,Teensy Board Compartment,,,,,2281.00,410.58,2691.58,
-DV-0004,Teensy Board 4.1,Development,,,In Storage,,Teensy Board Compartment,,,,,2281.00,410.58,2691.58,
-DV-0005,Teensy Board 4.1,Development,,,In Storage,,Teensy Board Compartment,,,,,2281.00,410.58,2691.58,
-DV-0006,Teensy Board 4.1,Development,,,In Storage,,Teensy Board Compartment,,,,,2281.00,410.58,2691.58,
-DV-0007,Teensy Board 4.1,Development,,,In Storage,,Teensy Board Compartment,,,,,2281.00,410.58,2691.58,
-DV-0008,Teensy Board 4.1,Development,,,In Storage,,Teensy Board Compartment,,,,,2281.00,410.58,2691.58,
-DV-0009,Teensy Board 4.1,Development,,,In Storage,,Teensy Board Compartment,,,,,2281.00,410.58,2691.58,
-DV-0010,Teensy Board 4.1,Development,,,In Storage,,Teensy Board Compartment,,,,,2281.00,410.58,2691.58,
-DV-0011,Waveshare USB to CAN Adapter Dual-Channel CAN Analyzer,Development,22773,,Unassigned,,US Box,,,,,,0.00,0.00,
-DV-0012,Waveshare Isolated USB To 4-Ch RS232 Converter,Development,27022,,Unassigned,,US Box,,,,,2939.00,529.02,3468.02,
-DV-0013,Waveshare Isolated USB To 4-Ch RS232 Converter,Development,27022,,Unassigned,,US Box,,,,,2939.00,529.02,3468.02,
-TL-0006,Freemans WS05 Wire Stripper and Cutter,Tool,,,Available,,Embedded Table,,,,,,0.00,0.00,
-TL-0007,Freemans WS05 Wire Stripper and Cutter,Tool,,,Available,,Embedded Table,,,,,,0.00,0.00,
-TL-0008,Freemans WS05 Wire Stripper and Cutter,Tool,,,Available,,Embedded Table,,,,,,0.00,0.00,
-IT-0091,Mini DisplayPort to UHD HDMI Active Cable Adapter,Adapter,CP879A,P137-06N-HDMI,Unassigned,,,,,,,,0.00,0.00,
-TL-0009,AGARO Regal 800W Handheld Vacuum Cleaner,Tool,RE250626719,Regal,Deployed,Embedded,Mechanical,,,,,1699.00,305.82,2004.82,"Allocated to a system/setup, not a person"
-DV-0014,Robosense Airy 96 beam,Development,3009BEA00221,Airy,In Use,Kathan,Embedded,,,,,110000.00,19800.00,129800.00,
-DV-0015,Robosense Airy 96 beam,Development,3009BEAE1413,Airy,In Use,Kathan,Embedded,,,,,110000.00,19800.00,129800.00,
 IT-0092,Lenovo Thinkpad,Personal Computer,PW0AK9E1,IdeaPad Flex 5 14ALC7,In Storage,,Operations,,,,,,0.00,0.00,
-DV-0016,Mounting Bracket,Development,526064,MS4-WR,Deployed,Robot,Tool System V2,,,,,135.00,24.30,159.30,"Allocated to a system/setup, not a person"
-DV-0017,Pressure Regulator,Development,529419,MS4-LR-1/4-D7-AS,Deployed,Robot,Tool System V2,,,,,1713.00,308.34,2021.34,"Allocated to a system/setup, not a person"
-DV-0018,Standard Based Cylinder,Development,35193,DSNU-25-400-PPV-A,Deployed,Robot,Tool System V2,,,,,2600.00,468.00,3068.00,"Allocated to a system/setup, not a person"
-DV-0019,Standard Based Cylinder,Development,,,Deployed,Robot,Tool System V2,,,,,2600.00,468.00,3068.00,"Allocated to a system/setup, not a person"
-DV-0020,Standard Based Cylinder,Development,,,Deployed,Robot,Tool System V2,,,,,2600.00,468.00,3068.00,"Allocated to a system/setup, not a person"
-DV-0021,Standard Based Cylinder,Development,,,Deployed,Robot,Tool System V2,,,,,2600.00,468.00,3068.00,"Allocated to a system/setup, not a person"
-TL-0010,Insize Digital Vernier Caliper,Tool,1401255976,1112-150,In Use,Anand,Mechanical Lab,,,,,2195.00,395.10,2590.10,
-TL-0011,BTALI Air Compressor BT 9 OFAC,Tool,BT0010122024,,In Use,Sankalp,V2,,,,,6650.00,1197.00,7847.00,
 IT-0093,Logitech Mouse,Computer Accessories,2516LVQ2XGS8,M331,In Use,Tanay,Full Stack Table,,,,,,0.00,0.00,
 IT-0094,Lenovo LOQ,Personal Computer,MP2RHA2S,15ARP8D2,In Use,Prabhav,AI Table,,,,,,0.00,0.00,
 IT-0095,Lenovo LOQ,Personal Computer,MP2NRLH7,15ARP9D2,Damaged,Harini,Mechanical Table,,,,Damaged,,0.00,0.00,Damaged by employee

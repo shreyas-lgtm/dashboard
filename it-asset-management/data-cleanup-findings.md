@@ -1,12 +1,26 @@
 # Data Cleanup Findings — legacy sheet → clean register
 
-What was wrong in the old *"Procurement …& Inventory"* sheet, and how the migration ([`scripts/migrate.py`](./scripts/migrate.py)) resolved each item. 125 assets migrated; total value **₹25,32,022.17**.
+What was wrong in the old *"Procurement …& Inventory"* sheet, and how the migration ([`scripts/migrate.py`](./scripts/migrate.py)) resolved each item.
+
+## Scope: IT assets only
+
+The IT register tracks **end-user computing equipment only** — laptops/CPUs, monitors, keyboards, mice, GPUs. The old sheet had mixed in gear owned by other inventories; those **35 rows** were moved out to [`non-it-assets.csv`](./non-it-assets.csv) (kept, not deleted, so they can be handed to their owners):
+
+| Moved out | Count | Belongs to |
+|---|---|---|
+| Development / R&D (Teensy, Waveshare, Robosense LiDAR, Festo pneumatics) | 21 | R&D inventory |
+| Tools (tapes, wire strippers, vacuum, caliper, compressor) | 10 | Tools inventory |
+| Cameras (Insta360, RealSense) | 2 | Vision Systems |
+| Compute (Jetson AGX Orin) | 1 | Compute & Controllers |
+| Adapter / loose cable (DisplayPort→HDMI) | 1 | Signal & Interface Cables |
+
+**Result: 90 IT assets, total value ₹19,37,308.07.** (Want the DP→HDMI adapter kept in the IT register? Add `"Adapter"` to `IT_CATEGORIES` in `migrate.py` and re-run.)
 
 ## Structural problems (fixed by the new schema)
 
 | # | Problem | Fix |
 |---|---------|-----|
-| 1 | **"Assigned To" overloaded** — held people *and* states (`Storage`, `Spare`, `Robot`, `Simulation`, `Navigation`, `Embedded`, `store`/`Store`). Impossible to tell who actually holds what. | Split into two columns: **Status** (state) + **Assigned To (Holder)** (person only). 79 In Use, 18 In Storage, 15 Deployed-to-system, 6 Available, 6 Unassigned, 1 Damaged. |
+| 1 | **"Assigned To" overloaded** — held people *and* states (`Storage`, `Spare`, `Robot`, `Simulation`, `Navigation`, `Embedded`, `store`/`Store`). Impossible to tell who actually holds what. | Split into two columns: **Status** (state) + **Assigned To (Holder)** (person only). Across the 90 IT assets: 70 In Use, 8 In Storage, 8 Deployed-to-system, 3 Available, 1 Damaged. |
 | 2 | **No dates** — no way to know when something was assigned or returned, so offboarding collection was untrackable. | Added **Date Received / Date Assigned / Date Returned** (blank in migration — backfill going forward). |
 | 3 | **No status field** — "in use vs spare vs retired" was guesswork. | Added **Status** dropdown with 8 defined states. |
 | 4 | **Phantom columns** — several empty trailing columns (`FHY`, blanks) and unused `Laptop ID / Charger ID / Device ID` (filled on exactly one row). | Dropped. Schema is now 16 meaningful columns. |

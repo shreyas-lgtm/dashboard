@@ -35,7 +35,7 @@ This is how to build the register as a Google Sheet so it stays **simple, self-c
 
 Apply each to its whole column (row 2 down). Use "Reject input" so typos can't creep back in.
 
-- **Category (C):** `Personal Computer`, `Monitor`, `Computer Accessories`, `Camera`, `Compute`, `Development`, `Tool`, `Adapter`
+- **Category (C):** `Personal Computer`, `Monitor`, `Computer Accessories`, `GPU` — IT assets only. (Cameras, compute modules, R&D dev hardware, tools and loose cables are tracked in other inventories, not here.)
 - **Status (F):** `In Use`, `Available`, `In Storage`, `Deployed`, `In Repair`, `Damaged`, `Retired`, `Lost`
 - **Condition (L):** `New`, `Good`, `Fair`, `Damaged`
 - **Team / Location (H):** seed from existing values — `Perception Table`, `AI Table`, `Embedded Table`, `Full Stack Table`, `Robotics Table`, `Mechanical Table`, `Operations Table`, `HR Table`, `Procurement Table`, `Deployment Table`, `CVAT Table`, `Mechanical Lab`, `US Box`, `Teensy Board Compartment`, `Tool System V2`, `V2`, `V2.1` (add as needed).

@@ -168,7 +168,14 @@ CATEGORY_MAP = {
     "monitor": "Monitor",
     "camera": "Camera",
     "adapter": "Adapter",
+    "gpu": "GPU",
 }
+
+# IT assets = end-user computing equipment only (laptops/CPUs, monitors,
+# keyboards, mice, GPUs). Everything else (cameras, compute modules, R&D dev
+# hardware, tools, loose cables/adapters) is owned by other inventories and is
+# routed out to non-it-assets.csv instead of the IT register.
+IT_CATEGORIES = {"Personal Computer", "Monitor", "Computer Accessories", "GPU"}
 
 # Canonical location map (fixes spacing typos only; unknowns pass through title-cased).
 LOCATION_MAP = {
@@ -230,6 +237,7 @@ HEADER = [
 
 def main():
     out_rows = []
+    excluded_rows = []
     findings = []
     total_value = 0.0
 
@@ -287,33 +295,47 @@ def main():
                 notes.append("Recovered from #VALUE!: recomputed tax/total at 18% GST")
                 findings.append(f"{asset_tag}: recovered #VALUE! -> unit 220330.50, tax {t}, total {tot}")
 
-        if tot is not None:
-            total_value += tot
-
         fmt = lambda x: "" if x is None else f"{x:.2f}"
 
-        out_rows.append([
+        row = [
             asset_tag, item.strip(), cat_clean, serial.strip(), model.strip(),
             status, holder, loc_clean,
             "", "", "",            # Date Received / Assigned / Returned - new, to backfill
             cond, fmt(u), fmt(t), fmt(tot), "; ".join(notes),
-        ])
+        ]
 
-    out_path = os.path.join(os.path.dirname(__file__), "..", "clean-register.csv")
-    out_path = os.path.abspath(out_path)
+        if cat_clean in IT_CATEGORIES:
+            out_rows.append(row)
+            if tot is not None:
+                total_value += tot
+        else:
+            excluded_rows.append(row)
+
+    here = os.path.dirname(__file__)
+    out_path = os.path.abspath(os.path.join(here, "..", "clean-register.csv"))
+    excl_path = os.path.abspath(os.path.join(here, "..", "non-it-assets.csv"))
     with open(out_path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(HEADER)
         w.writerows(out_rows)
+    with open(excl_path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(HEADER)
+        w.writerows(excluded_rows)
 
     # --- summary
     from collections import Counter
     status_counts = Counter(r[5] for r in out_rows)
-    print(f"Wrote {len(out_rows)} assets -> {out_path}")
-    print(f"Total inventory value (INR): {total_value:,.2f}")
-    print("Status breakdown:")
+    print(f"IT assets       -> {out_path}  ({len(out_rows)} rows)")
+    print(f"Non-IT (moved out) -> {excl_path}  ({len(excluded_rows)} rows)")
+    print(f"IT inventory value (INR): {total_value:,.2f}")
+    print("IT status breakdown:")
     for s, n in status_counts.most_common():
         print(f"  {s:12s} {n}")
+    excl_cats = Counter(r[2] for r in excluded_rows)
+    print("Moved out of IT register by category:")
+    for c, n in excl_cats.most_common():
+        print(f"  {c:22s} {n}")
     print(f"\nData issues fixed/flagged ({len(findings)}):")
     for fnd in findings:
         print(f"  - {fnd}")

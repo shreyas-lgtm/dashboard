@@ -1,6 +1,6 @@
 # IT Asset Management
 
-A simple, handover-ready system for tracking IT assets end to end — from the moment a device arrives, through who it's assigned to, to collecting it back when someone leaves.
+A simple, handover-ready system for tracking IT assets end to end — from the moment a device arrives, through who it's assigned to, to collecting it back when someone leaves. **Scope: end-user computing equipment only — laptops/CPUs, monitors, keyboards, mice, GPUs.**
 
 Built to replace the old *"Procurement …& Inventory"* sheet, which had grown hard to maintain (people and states mixed in one column, no dates, corrupted cells, phantom columns).
 
@@ -10,7 +10,8 @@ Built to replace the old *"Procurement …& Inventory"* sheet, which had grown h
 |------|-----------|----------|
 | **[IT-Asset-Management-SOP.md](./IT-Asset-Management-SOP.md)** | The end-to-end process: intake → assignment → return/offboarding → retire. Roles, steps, checklists, offboarding form. | **Read this first.** The person running IT assets. |
 | **[register-template.md](./register-template.md)** | How to build the register as a Google Sheet: columns, dropdowns, formulas, dashboard, conditional formatting. | Whoever sets up the sheet. |
-| **[clean-register.csv](./clean-register.csv)** | The migrated data — all 125 assets in the new 16-column schema. Import this into Sheets. | Import once. |
+| **[clean-register.csv](./clean-register.csv)** | The migrated data — 90 IT assets in the new 16-column schema. Import this into Sheets. | Import once. |
+| **[non-it-assets.csv](./non-it-assets.csv)** | 35 non-IT items (cameras, R&D dev hardware, tools, cables) moved out of the IT register — kept so they can be handed to their owners. | Reference. |
 | **[data-cleanup-findings.md](./data-cleanup-findings.md)** | Exactly what was wrong in the old sheet and how it was fixed/flagged. | Reference / audit trail. |
 | **[scripts/migrate.py](./scripts/migrate.py)** | Reproducible migration script (source data + transform rules). | If the source ever changes. |
 
