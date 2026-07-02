@@ -8,28 +8,33 @@ This is how to build the register as a Google Sheet so it stays **simple, self-c
 2. Rename the tab **`Register`**.
 3. Select row 1 → **View ▸ Freeze ▸ 1 row**. Bold it.
 
-## 2. Columns (this is the whole schema — 16 columns, no more)
+## 2. Columns — essential vs optional
 
-| # | Column | Type | Notes |
-|---|--------|------|-------|
-| A | **Asset Tag** | text | Unique. `IT-####` / `TL-####` / `DV-####`. Never reused. |
-| B | **Item** | text | e.g. "Lenovo LOQ". |
-| C | **Category** | dropdown | See list below. |
-| D | **Serial No.** | text | Manufacturer serial. |
-| E | **Model No.** | text | |
-| F | **Status** | dropdown | The lifecycle state. See list below. |
-| G | **Assigned To (Holder)** | text | Person's full name. Blank unless Status = In Use. |
-| H | **Team / Location** | dropdown | Where it lives / whose team. |
-| I | **Date Received** | date | Intake date. |
-| J | **Date Assigned** | date | When given to current holder. |
-| K | **Date Returned** | date | When last returned to stock. |
-| L | **Condition** | dropdown | New / Good / Fair / Damaged. |
-| M | **Unit Value (INR)** | number | From invoice. |
-| N | **Tax (INR)** | number | GST. |
-| O | **Total (INR)** | number | Auto = M + N (see §4). |
-| P | **Notes** | text | Free text: repairs, damage, flags. |
+16 columns total, but only **9 are essential** — those are the minimum to hand over the job *and* track offboarding. The other 7 are "proper data" extras (value, model, location): cheap to keep, safe to drop if you want maximum simplicity.
 
-> **Why these and not the old ones:** the old sheet mixed people and states in one column, had no dates (so you couldn't track returns), and had phantom empty columns. This set separates **who holds it** (G) from **what state it's in** (F) and adds the **dates** (I/J/K) that make offboarding auditable.
+| # | Column | Type | Essential? | Notes |
+|---|--------|------|:---:|-------|
+| A | **Asset Tag** | text | ✅ | Unique `IT-####`. Never reused. Identifies the item. |
+| B | **Item** | text | ✅ | e.g. "Lenovo LOQ". |
+| C | **Category** | dropdown | ✅ | Keeps scope clean + lets you filter. See list below. |
+| D | **Serial No.** | text | ✅ | Manufacturer serial — the real-world identity. |
+| E | **Model No.** | text | ⬜ optional | Handy for reordering/warranty; not needed for lifecycle. |
+| F | **Status** | dropdown | ✅ | The lifecycle state. **Core.** |
+| G | **Assigned To (Holder)** | text | ✅ | Person's full name. Blank unless Status = In Use. **Core.** |
+| H | **Team / Location** | dropdown | ⬜ optional | Nice for finding a device; lifecycle works without it. |
+| I | **Date Received** | date | ⬜ optional | Intake date. Useful for age/audit, not for offboarding. |
+| J | **Date Assigned** | date | ✅ | When given to current holder. Needed for the lifecycle. |
+| K | **Date Returned** | date | ✅ | When returned. **Without this you can't track collection on exit.** |
+| L | **Condition** | dropdown | ⬜ optional | New/Good/Fair/Damaged. Damage can also just go in Notes. |
+| M | **Unit Value (INR)** | number | ⬜ optional | From invoice. For financial reporting only. |
+| N | **Tax (INR)** | number | ⬜ optional | GST. Financial only. |
+| O | **Total (INR)** | number | ⬜ optional | Auto = M + N (see §4). Financial only. |
+| P | **Notes** | text | ✅ | Repairs, damage, flags. |
+
+**The 9 essential columns** (A, B, C, D, F, G, J, K, P) are all you need for a working handover-ready lifecycle: *what it is, who has it, what state it's in, when it was assigned/returned.*
+**The 7 optional columns** (E, H, I, L, M, N, O) add financial + logistics detail. Keep them if you want "proper data" in one place; delete the columns if you want the leanest possible sheet — nothing in the process breaks.
+
+> **Why this beats the old sheet:** it separates **who holds it** (G) from **what state it's in** (F) — the old sheet crammed both into one column — and adds the **dates** (J/K) that make offboarding auditable.
 
 ## 3. Dropdowns (Data ▸ Data validation)
 

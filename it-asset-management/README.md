@@ -8,7 +8,8 @@ Built to replace the old *"Procurement …& Inventory"* sheet, which had grown h
 
 | File | What it is | For whom |
 |------|-----------|----------|
-| **[IT-Asset-Management-SOP.md](./IT-Asset-Management-SOP.md)** | The end-to-end process: intake → assignment → return/offboarding → retire. Roles, steps, checklists, offboarding form. | **Read this first.** The person running IT assets. |
+| **[QUICK-START.md](./QUICK-START.md)** | One page: the 3 daily moves + offboarding checklist. All you need day to day. | **Read this first.** Whoever runs IT assets. |
+| **[IT-Asset-Management-SOP.md](./IT-Asset-Management-SOP.md)** | The full end-to-end process: intake → assignment → return/offboarding → retire. Roles, steps, forms. | Reference when the cheat sheet isn't enough. |
 | **[register-template.md](./register-template.md)** | How to build the register as a Google Sheet: columns, dropdowns, formulas, dashboard, conditional formatting. | Whoever sets up the sheet. |
 | **[clean-register.csv](./clean-register.csv)** | The migrated data — 90 IT assets in the new 16-column schema. Import this into Sheets. | Import once. |
 | **[non-it-assets.csv](./non-it-assets.csv)** | 35 non-IT items (cameras, R&D dev hardware, tools, cables) moved out of the IT register — kept so they can be handed to their owners. | Reference. |
@@ -17,8 +18,8 @@ Built to replace the old *"Procurement …& Inventory"* sheet, which had grown h
 
 ## Get started in 3 steps
 
-1. **Set up the sheet** — follow [register-template.md](./register-template.md): import `clean-register.csv`, add the dropdowns and dashboard. (~15 min, once.)
-2. **Learn the flow** — read [IT-Asset-Management-SOP.md](./IT-Asset-Management-SOP.md). The whole thing rests on one habit: *update the sheet the moment an asset changes hands.*
+1. **Set up the sheet** — follow [register-template.md](./register-template.md): import `clean-register.csv`, add the dropdowns and dashboard. (~15 min, once.) It marks which 9 columns are essential vs the 7 optional "proper data" extras.
+2. **Learn the flow** — read [QUICK-START.md](./QUICK-START.md) (one page). The whole thing rests on one habit: *update the sheet the moment an asset changes hands.*
 3. **Backfill the gaps** — during the first monthly audit, fill blank serial numbers and unit values flagged in [data-cleanup-findings.md](./data-cleanup-findings.md).
 
 ## The idea in one line
