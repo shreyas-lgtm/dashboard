@@ -2,7 +2,7 @@
  * IT ASSET TRACKER — one-time bootstrap script  (corrected + Origin-configured)
  * -----------------------------------------------------------------------------
  * Builds a Google Form + linked Spreadsheet (Hardware, Software Subscriptions,
- * History, Asset Lookup, Dashboard, Employees) with auto Asset Tags, warranty/
+ * History, Asset Lookup, Dashboard) with auto Asset Tags, warranty/
  * age formulas, an edit-logger, and a daily "due soon" email.
  *
  * FIXES vs. the original draft:
@@ -11,7 +11,7 @@
  *   3. Total assets counts Asset Tag (always present), not Serial (often blank).
  *   4. Added a "Total Inventory Value" tile (sum of Cost).
  *   5. Asset Tag is now FROZEN at intake (stable key) instead of a ROW() formula that renumbers.
- *   6. Added syncEmployees() so the Employees tab actually updates the form dropdown.
+ *   6. "Assigned To" is free text (not a 100-name dropdown); "Location" replaced by a "Team" dropdown.
  *
  * HOW TO RUN (once):
  *   1. https://script.google.com  ->  New project
@@ -26,23 +26,16 @@
 const CONFIG = {
   ALERT_EMAIL: 'shreyas@origin.tech',
 
-  // Form dropdown for new intakes. Full historical names are kept in the imported data;
-  // this is just the going-forward picker. Edit anytime in the Employees tab, then run syncEmployees().
-  EMPLOYEES: ['Unassigned', 'Robot', 'Simulation', 'Navigation', 'Storage', 'Spare',
-    'Abhishek', 'Aditya', 'Adnan', 'Akhil', 'Anand', 'Anant', 'Aniket', 'Anshika', 'Arfath',
-    'Arun', 'Arvind', 'Aryaman', 'Ashish', 'Avaneesh', 'Azad Roy', 'Badri', 'Bhuvnesh',
-    'Deeptha', 'Devansh', 'Dharan', 'Dhruv', 'Gopal', 'Harini', 'Harsh Kothari', 'Harshad',
-    'Hitul', 'Hruday', 'Jayesh', 'Jeffrin', 'Kathan', 'Lakshya', 'Lubna', 'Madhumitha',
-    'Mithul', 'Mohit Patil', 'Naveen', 'Nikhil', 'Nilesh', 'Nisarg', 'Parv', 'Piyush',
-    'Pooja', 'Prabhav', 'Prapti', 'Prateek', 'Prathisha', 'Raj Mohammad', 'Rajtilak Pal',
-    'Rakshit', 'Rakshith N', 'Ravikiran', 'Rishi', 'Rishi Agarwal', 'Rohan', 'Rohith',
-    'Rubia', 'Sabarish', 'Saiprasad', 'Saket', 'Sakshi', 'Sandeep', 'Sankalp', 'Saransh',
-    'Sathya', 'Shashwat', 'Shivang', 'Shivani', 'Shreyas', 'Shubhodeep', 'Shyamala',
-    'Soumyajeet', 'Srinivas B', 'Srinivasan', 'Sujay', 'Sunena', 'Tanay', 'Tirth Vyas',
-    'Tushar', 'Ujjwal', 'Vehan', 'Vineeth Vooradi', 'Viral', 'Vishal', 'Yogesh'],
+  // "Assigned To" is a free-text name on the form (NOT a dropdown) — typing a name is
+  // faster than hunting through a 100-person list, and new joiners work with no config.
+
+  // Team dropdown for new intakes (small, curated — prevents the "Robotics Tean" typos in old data).
+  TEAMS: ['Robotics', 'Mechanical', 'AI', 'Perception', 'Full Stack', 'Embedded',
+    'Deployment', 'Operations', 'HR', 'Procurement', 'CVAT', 'Simulation', 'Navigation',
+    'Storage', 'Other'],
 
   // Clean category list for new intakes (the messy/junk categories in old data stay in Notes-flagged rows).
-  CATEGORIES: ['Personal Computer', 'Monitor', 'Computer Accessories', 'GPU', 'Compute',
+  CATEGORIES: ['Personal Computer', 'Monitor', 'Computer Accessories',
     'Storage', 'Networking', 'UPS', 'Tablet', 'Accessory - Charger', 'Other'],
 
   // Asset Tag continues your existing physical tags: IT-0001.. (next intake auto-continues from the max).
@@ -76,7 +69,6 @@ function setup() {
   buildHistoryTab_(ss);
   buildLookupTab_(ss);
   buildDashboardTab_(ss);
-  buildEmployeesTab_(ss);
 
   const def = ss.getSheetByName('Sheet1');
   if (def) ss.deleteSheet(def);
@@ -109,9 +101,9 @@ function buildHardwareForm_(ss) {
   form.addTextItem().setTitle('Manufacturer');
   form.addTextItem().setTitle('Model');
   form.addTextItem().setTitle('Serial Number').setRequired(true);
-  form.addListItem().setTitle('Assigned To').setChoiceValues(CONFIG.EMPLOYEES).setRequired(true);
+  form.addTextItem().setTitle('Assigned To').setRequired(true);  // free-text name, not a dropdown
   form.addListItem().setTitle('Status').setChoiceValues(STATUS_OPTIONS).setRequired(true);
-  form.addListItem().setTitle('Location').setChoiceValues(['Office', 'Remote', 'Storage']);
+  form.addListItem().setTitle('Team').setChoiceValues(CONFIG.TEAMS);  // replaces the old Office/Remote/Storage "Location"
   form.addDateItem().setTitle('Purchase Date');
   form.addTextItem().setTitle('Cost');
   form.addDateItem().setTitle('Warranty Expiry');
@@ -247,15 +239,6 @@ function buildDashboardTab_(ss) {
 }
 
 
-function buildEmployeesTab_(ss) {
-  const sh = ss.insertSheet('Employees');
-  sh.getRange('A1').setValue('Employee Name').setFontWeight('bold');
-  const vals = CONFIG.EMPLOYEES.map(function (e) { return [e]; });
-  sh.getRange(2, 1, vals.length, 1).setValues(vals);
-  sh.setFrozenRows(1);
-}
-
-
 /**
  * ONE-TIME: bulk-import the 305 existing assets from the standalone
  * "IT Asset Register — FULL" sheet into the Hardware tab.
@@ -299,25 +282,6 @@ function importFromRegister() {
   if (rows.length) hw.getRange(2, 1, rows.length, 14).setValues(rows);
   SpreadsheetApp.flush();
   Logger.log('Imported %s assets into Hardware. Check the Dashboard.', rows.length);
-}
-
-
-/** Push the Employees tab into the form's "Assigned To" dropdown. Run after editing Employees. */
-function syncEmployees() {
-  const formId = PropertiesService.getScriptProperties().getProperty('FORM_ID');
-  const ssId = PropertiesService.getScriptProperties().getProperty('SS_ID');
-  const sh = SpreadsheetApp.openById(ssId).getSheetByName('Employees');
-  const names = sh.getRange(2, 1, Math.max(sh.getLastRow() - 1, 1), 1).getValues()
-    .map(function (r) { return String(r[0]).trim(); }).filter(String);
-  const form = FormApp.openById(formId);
-  const items = form.getItems(FormApp.ItemType.LIST);
-  for (let i = 0; i < items.length; i++) {
-    if (items[i].getTitle() === 'Assigned To') {
-      items[i].asListItem().setChoiceValues(names.length ? names : ['Unassigned']);
-      break;
-    }
-  }
-  Logger.log('Synced %s employees into the form.', names.length);
 }
 
 

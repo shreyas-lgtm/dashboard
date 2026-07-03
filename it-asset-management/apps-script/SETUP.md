@@ -51,7 +51,7 @@ open it, copy rows 2→306, and paste into Hardware cell **A2** (columns line up
 ## Part 3 — Finish up (~2 min)
 
 - **[You]** New intakes will auto-continue the tag series from your max (**next tag = IT-0392**) — nothing to configure; `onFormSubmitTag` handles it.
-- **[You]** Edit the **Employees** tab whenever the team changes, then run the **`syncEmployees`** function once to push names into the form dropdown.
+- **[You]** "Assigned To" on the form is a **free-text name** (no dropdown to maintain). "Team" is a small dropdown (edit `CONFIG.TEAMS` in the script if teams change).
 - **[You]** **Share the Form** (the second link from the log) with whoever logs new assets. Share the **Spreadsheet** with your IT admins as Editors.
 - **[You]** Optional: in Google Sheets, **File → Version history** is your whole-file safety net (the History tab is casual-audit, not tamper-proof — per the design doc).
 
