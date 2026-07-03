@@ -111,9 +111,22 @@ function buildHardwareForm_(ss) {
 
   form.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
   SpreadsheetApp.flush();
-  const sheets = ss.getSheets();
-  const respSheet = sheets[sheets.length - 1];
-  respSheet.setName('Hardware');
+
+  // Reliably locate the form's response sheet before renaming it (avoids a timing
+  // race where the sheet isn't registered yet and the wrong/empty sheet gets renamed).
+  let resp = null;
+  for (let attempt = 0; attempt < 10 && !resp; attempt++) {
+    Utilities.sleep(1000);
+    const sheets = ss.getSheets();
+    for (let i = 0; i < sheets.length; i++) {
+      const nm = sheets[i].getName();
+      const a1 = String(sheets[i].getRange(1, 1).getValue());
+      if (nm.indexOf('Form Responses') === 0 || a1 === 'Timestamp') { resp = sheets[i]; break; }
+    }
+  }
+  if (!resp) throw new Error('Could not find the form response sheet — re-run setup().');
+  resp.setName('Hardware');
+  SpreadsheetApp.flush();
   return form;
 }
 
