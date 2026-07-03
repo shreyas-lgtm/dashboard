@@ -58,6 +58,10 @@ const STATUS_OPTIONS = [
   'Given to Repair', 'Damaged - Not Sent to Repair',
   'Retired / Disposed', 'Lost / Stolen', 'Unassigned',
 ];
+
+// One-time bulk import source: the "IT Asset Register — FULL (305 assets)" sheet
+// already in your Drive. Used by importFromRegister(). Leave as-is.
+const EXISTING_REGISTER_ID = '19rFisqcmeHmtumjDcNsQaGae79qbp6UePmMVEcsQgWg';
 // ====================================================
 
 
@@ -249,6 +253,52 @@ function buildEmployeesTab_(ss) {
   const vals = CONFIG.EMPLOYEES.map(function (e) { return [e]; });
   sh.getRange(2, 1, vals.length, 1).setValues(vals);
   sh.setFrozenRows(1);
+}
+
+
+/**
+ * ONE-TIME: bulk-import the 305 existing assets from the standalone
+ * "IT Asset Register — FULL" sheet into the Hardware tab.
+ * Run this ONCE, after setup(). Idempotent (clears prior import first).
+ * Existing IT-#### tags are preserved (this does NOT go through the form).
+ */
+function importFromRegister() {
+  const src = SpreadsheetApp.openById(EXISTING_REGISTER_ID).getSheets()[0];
+  const data = src.getDataRange().getValues();
+  if (data.length < 2) { Logger.log('Source register is empty.'); return; }
+  const head = data[0].map(String);
+  const at = function (name) { return head.indexOf(name); };
+  const cAsset = at('Asset Tag'), cItem = at('Item'), cCat = at('Category'),
+        cSer = at('Serial No.'), cMod = at('Model No.'), cStat = at('Status'),
+        cHold = at('Assigned To (Holder)'), cLoc = at('Team / Location'),
+        cTot = at('Total (INR)'), cNotes = at('Notes');
+
+  const brands = ['Lenovo', 'Dell', 'LG', 'Benq', 'HP', 'Samsung', 'Acer', 'MSI', 'ASUS',
+    'Logitech', 'Zebronics', 'Ant', 'Rapoo', 'Portronics', 'Apple', 'Nvidia', 'Mivii',
+    'Teltonika', 'TP-Link', 'APC', 'Ambrane'];
+
+  const rows = [];
+  for (let i = 1; i < data.length; i++) {
+    const r = data[i];
+    if (!r[cAsset] && !r[cItem]) continue;
+    const item = String(r[cItem] || '');
+    let mfr = '';
+    for (let b = 0; b < brands.length; b++) {
+      if (item.toLowerCase().indexOf(brands[b].toLowerCase()) === 0) { mfr = brands[b]; break; }
+    }
+    const total = r[cTot];
+    const cost = (total === '' || total === 0 || total === '0.00' || total === '0') ? '' : (Number(total) || '');
+    // Hardware column order A..N:
+    rows.push(['', r[cCat] || '', item, mfr, r[cMod] || '', r[cSer] || '', r[cHold] || '',
+      r[cStat] || '', r[cLoc] || '', '', cost, '', r[cNotes] || '', r[cAsset] || '']);
+  }
+
+  const hw = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SS_ID'))
+    .getSheetByName('Hardware');
+  hw.getRange(2, 1, 999, 14).clearContent();          // clear any prior import (cols A..N only)
+  if (rows.length) hw.getRange(2, 1, rows.length, 14).setValues(rows);
+  SpreadsheetApp.flush();
+  Logger.log('Imported %s assets into Hardware. Check the Dashboard.', rows.length);
 }
 
 

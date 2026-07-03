@@ -22,16 +22,29 @@ You now have a working tracker: tabs for Hardware, Software Subscriptions, Histo
 
 ---
 
-## Part 2 — Load your 305 existing assets (~3 min)
+## Part 2 — Load your 305 existing assets (AUTOMATED, ~1 min)
 
-The form only *creates* new assets. Your existing 305 go in by a one-time paste:
+The form only *creates* new assets one at a time. Your existing 305 are bulk-loaded by a
+built-in function — **no CSV, no copy-paste.**
 
-1. **[You]** In the new spreadsheet, open the **`Hardware`** tab.
-2. **[You]** Upload `hardware-import.csv` to Drive, open it, and **copy rows 2→306** (everything except its header) — OR use **File → Import → Upload `hardware-import.csv` → Import location: "Append to current sheet"** while on the Hardware tab.
-   - If you copy-paste manually: click **Hardware cell `A2`** and paste. The columns line up A→N (Timestamp … Asset Tag).
-3. **[You]** Confirm: the **Dashboard** tab should now show ~**305 total assets** and a **Total inventory value ≈ ₹44,42,386**. The `Days/Alert/Age` columns (O/P/Q) fill in automatically.
+1. **[You]** Back in the Apps Script editor, pick the function **`importFromRegister`** from the
+   dropdown → click **▶ Run**.
+   - It reads the "IT Asset Register — FULL" sheet already in your Drive and writes all 305
+     rows straight into the Hardware tab. Existing `IT-####` tags are preserved (it does NOT
+     go through the form, so nothing gets renumbered). Re-running it is safe (it clears and
+     re-imports).
+2. **[You]** Open the **Dashboard** tab → should show ~**305 total assets** and
+   **Total inventory value ≈ ₹44,42,386**. Done.
 
-> The import leaves **Timestamp / Purchase Date / Warranty Expiry blank** (the source never had them) and sets **Cost = the all-in Total (incl. GST)** so the dashboard total matches the figure you already have. Warranty alerts only start working once you add warranty dates going forward.
+> Do NOT delete the "IT Asset Register — FULL" sheet until after this import runs — the
+> function reads from it. (Delete it in Part 3, after.)
+>
+> The import leaves **Timestamp / Purchase Date / Warranty Expiry blank** (the source never had
+> them) and sets **Cost = the all-in Total incl. GST** so the dashboard total matches your figure.
+> Warranty alerts start working once you add warranty dates going forward.
+
+**Manual fallback** (only if `importFromRegister` errors): upload `hardware-import.csv` to Drive,
+open it, copy rows 2→306, and paste into Hardware cell **A2** (columns line up A→N).
 
 ---
 
