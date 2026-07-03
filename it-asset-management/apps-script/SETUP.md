@@ -35,6 +35,9 @@ built-in function — **no CSV, no copy-paste.**
      re-imports).
 2. **[You]** Open the **Dashboard** tab → should show ~**305 total assets** and
    **Total inventory value ≈ ₹44,42,386**. Done.
+3. **[You] (recommended)** Run the function **`verifySetup`** → **View → Execution log**. It
+   checks the tabs, headers, data, triggers, and that there's no stray "Form Responses" tab,
+   and prints `ALL CHECKS PASSED ✅` or the exact failures. One click instead of eyeballing.
 
 > Do NOT delete the "IT Asset Register — FULL" sheet until after this import runs — the
 > function reads from it. (Delete it in Part 3, after.)

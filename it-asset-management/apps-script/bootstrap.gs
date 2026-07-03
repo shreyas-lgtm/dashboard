@@ -305,6 +305,77 @@ function installTriggers_(ssId) {
 }
 
 
+/**
+ * Run this after setup() + importFromRegister() to confirm everything wired up.
+ * Logs a PASS/FAIL line per check. Open View -> Execution log to read it.
+ */
+function verifySetup() {
+  const ssId = PropertiesService.getScriptProperties().getProperty('SS_ID');
+  const results = [];
+  const ok = function (label, pass, detail) {
+    results.push((pass ? 'PASS  ' : 'FAIL  ') + label + (detail ? '  — ' + detail : ''));
+  };
+
+  if (!ssId) { Logger.log('FAIL  SS_ID not set — run setup() first.'); return; }
+  const ss = SpreadsheetApp.openById(ssId);
+  const names = ss.getSheets().map(function (s) { return s.getName(); });
+
+  // 1. Expected tabs exist
+  ['Hardware', 'Software Subscriptions', 'History', 'Asset Lookup', 'Dashboard'].forEach(function (t) {
+    ok('Tab "' + t + '" exists', names.indexOf(t) !== -1);
+  });
+
+  // 2. No stray Form Responses tab (the bug we fixed)
+  const stray = names.filter(function (n) { return n.indexOf('Form Responses') === 0; });
+  ok('No stray "Form Responses" tab', stray.length === 0, stray.join(', '));
+
+  // 3. Hardware headers correct
+  const hw = ss.getSheetByName('Hardware');
+  if (hw) {
+    const expected = ['Timestamp', 'Category', 'Name / Description', 'Manufacturer', 'Model',
+      'Serial Number', 'Assigned To', 'Status', 'Team', 'Purchase Date', 'Cost',
+      'Warranty Expiry', 'Notes', 'Asset Tag', 'Days to Warranty End', 'Alert', 'Age (yrs)'];
+    const got = hw.getRange(1, 1, 1, expected.length).getValues()[0].map(String);
+    let bad = [];
+    for (let i = 0; i < expected.length; i++) if (got[i] !== expected[i]) bad.push((i + 1) + ':"' + got[i] + '"');
+    ok('Hardware headers correct (A..Q)', bad.length === 0, bad.length ? 'mismatch at ' + bad.join(', ') : '');
+
+    // 4. Data present + every data row has an Asset Tag
+    const last = hw.getLastRow();
+    const dataRows = last - 1;
+    ok('Hardware has data rows', dataRows > 0, dataRows + ' rows');
+    if (dataRows > 0) {
+      const tagCol = getColByHeader_(hw, 'Asset Tag');
+      const tags = hw.getRange(2, tagCol, dataRows, 1).getValues();
+      let blank = 0;
+      for (let i = 0; i < tags.length; i++) if (!String(tags[i][0]).trim()) blank++;
+      ok('Every data row has an Asset Tag', blank === 0, blank ? blank + ' blank tags' : '');
+    }
+  } else {
+    ok('Hardware tab present', false);
+  }
+
+  // 5. Triggers installed
+  const handlers = ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); });
+  ['onEditLogger', 'onFormSubmitTag', 'dailyAlert'].forEach(function (h) {
+    ok('Trigger "' + h + '" installed', handlers.indexOf(h) !== -1);
+  });
+
+  // 6. Dashboard total-assets computed
+  const dash = ss.getSheetByName('Dashboard');
+  if (dash) {
+    const total = dash.getRange('B2').getValue();
+    ok('Dashboard total-assets computed', Number(total) > 0, 'total = ' + total);
+  }
+
+  const fails = results.filter(function (r) { return r.indexOf('FAIL') === 0; }).length;
+  Logger.log('===== verifySetup =====');
+  results.forEach(function (r) { Logger.log(r); });
+  Logger.log('=======================');
+  Logger.log(fails === 0 ? 'ALL CHECKS PASSED ✅' : (fails + ' CHECK(S) FAILED ❌ — see above'));
+}
+
+
 /** TRIGGER: freeze a stable Asset Tag on each new form submission. */
 function onFormSubmitTag(e) {
   const ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SS_ID'));
