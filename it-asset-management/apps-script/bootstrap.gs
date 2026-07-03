@@ -144,31 +144,30 @@ function buildHardwareHelpers_(ss) {
     .requireValueInList(STATUS_OPTIONS, true).setAllowInvalid(true).build();
   sh.getRange(2, STATUS_COL, 999, 1).setDataValidation(rule);
 
-  // Helper headers: N Asset Tag (VALUE, frozen), O Days, P Alert, Q Age
-  const helpers = ['Asset Tag', 'Days to Warranty End', 'Alert', 'Age (yrs)'];
-  sh.getRange(1, lastCol + 1, 1, helpers.length).setValues([helpers]).setFontWeight('bold');
-
+  const tagCol = lastCol + 1;    // N — Asset Tag (VALUE, frozen at intake / imported)
   const daysCol = lastCol + 2;   // O
   const alertCol = lastCol + 3;  // P
   const ageCol = lastCol + 4;    // Q
-  const daysL = columnToLetter_(daysCol);
+  const win = CONFIG.ALERT_WINDOW_DAYS;
 
-  // Asset Tag (col N) is intentionally left WITHOUT a formula — it is frozen at intake
-  // by onFormSubmit(), and holds imported IT-#### tags for migrated rows.
-  const daysF = [], alertF = [], ageF = [];
-  for (let r = 2; r <= 1000; r++) {
-    daysF.push(['=IF(L' + r + '="","",L' + r + '-TODAY())']);
-    alertF.push(['=IF(' + daysL + r + '="","",IF(' + daysL + r + '<=' + CONFIG.ALERT_WINDOW_DAYS + ',"DUE",""))']);
-    ageF.push(['=IF($J' + r + '="","",ROUND((TODAY()-$J' + r + ')/365,1))']);
-  }
-  sh.getRange(2, daysCol, 999, 1).setFormulas(daysF);
-  sh.getRange(2, alertCol, 999, 1).setFormulas(alertF);
-  sh.getRange(2, ageCol, 999, 1).setFormulas(ageF);
+  // Asset Tag header only (values written by onFormSubmitTag() and importFromRegister()).
+  sh.getRange(1, tagCol).setValue('Asset Tag').setFontWeight('bold');
 
-  // Alert cell red when DUE
+  // O/P/Q: ONE self-expanding ARRAYFORMULA each, living in the header cell. This is the
+  // robust pattern for form-linked sheets — every row (including future form submissions)
+  // auto-computes, with no fill-down that could clash with how Forms appends rows.
+  sh.getRange(1, daysCol).setFormula(
+    '={"Days to Warranty End"; ARRAYFORMULA(IFERROR(IF(L2:L="","",L2:L-TODAY()),""))}');
+  sh.getRange(1, alertCol).setFormula(
+    '={"Alert"; ARRAYFORMULA(IFERROR(IF(L2:L="","",IF((L2:L-TODAY())<=' + win + ',"DUE","")),""))}');
+  sh.getRange(1, ageCol).setFormula(
+    '={"Age (yrs)"; ARRAYFORMULA(IFERROR(IF(J2:J="","",ROUND((TODAY()-J2:J)/365,1)),""))}');
+  sh.getRange(1, daysCol, 1, 3).setFontWeight('bold');
+
+  // Alert cell red when DUE (whole column below header)
   const cf = SpreadsheetApp.newConditionalFormatRule()
     .whenTextContains('DUE').setBackground('#f4c7c3')
-    .setRanges([sh.getRange(2, alertCol, 999, 1)]).build();
+    .setRanges([sh.getRange(2, alertCol, sh.getMaxRows() - 1, 1)]).build();
   const rules = sh.getConditionalFormatRules(); rules.push(cf); sh.setConditionalFormatRules(rules);
 
   sh.setFrozenRows(1);
