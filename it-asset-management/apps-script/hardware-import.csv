@@ -1,0 +1,306 @@
+Timestamp,Category,Name / Description,Manufacturer,Model,Serial Number,Assigned To,Status,Location,Purchase Date,Cost,Warranty Expiry,Notes,Asset Tag
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,,Sandeep,In Use,Deployment Table,,193495.22,,,IT-0003
+,Computer Accessories,Dell Mouse,Dell,MS116P,,Prateek,In Use,Deployment Table,,309.00,,,IT-0004
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2Q30JS,Dhruv,In Use,Perception Table,,163978.70,,,IT-0005
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP10,MP2HM3TV,Akhil,In Use,Perception Table,,96983.02,,,IT-0006
+,Monitor,Dell Monitor,Dell,,CN-01X0R7-TV20-49E-0D5T-A00,Rishi Agarwal,In Use,AI Table,,13999.00,,,IT-0010
+,Monitor,LG Monitor,LG,32MR50C,409TFYA1P634,Ravikiran,In Use,Perception Table,,15928.82,,,IT-0011
+,Computer Accessories,Dell Monitor,Dell,MS116P,CN-05NT8R-PRC00-4CN-0728,Naveen,In Use,Perception Table,,,,,IT-0012
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2RT6MA,Rishi Agarwal,In Use,Embedded Table,,96983.02,,,IT-0013
+,Monitor,Benq Monitor,Benq,GW2790-B,ET8BR02065SL0,Anant,In Use,AI Table,,12977.64,,,IT-0014
+,Monitor,LG Monitor,LG,27MS550,411NTVS8J295,Aniket,In Use,AI Table,,10454.00,,,IT-0015
+,Computer Accessories,Dell Keyboard,Dell,KM3322W,CN-04WJ8P-LO300-4AH-K013-A07,Ravikiran,In Use,AI Table,,1349.00,,,IT-0016
+,Personal Computer,ASUS,ASUS,FX516PM,M8NRKD03399031A,,In Storage,Deployment Table,,76700.00,,,IT-0017
+,Computer Accessories,Dell Mouse,Dell,MS116P,CN-05NT8R-PRC00-53K-030H,,In Storage,Deployment Table,,279.00,,,IT-0018
+,Personal Computer,Lenovo Thinkpad,Lenovo,20HES1LR00,PF0T116Q,Shreyas,In Use,Procurement Table,,,,,IT-0019
+,Monitor,LG Monitor,LG,27MS550,411NTXR3S050,Shreyas,In Use,Procurement Table,,10454.00,,,IT-0020
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D2,MP2RTXLT,Mithul,In Use,HR Table,,96158.20,,,IT-0021
+,Monitor,Dell Monitor,Dell,S2725H,CN-09T9CX-WSL00-48A-ES1L-A02,Arfath,In Use,Full Stack Table,,10972.82,,,IT-0022
+,Computer Accessories,ASUS Mouse,ASUS,MW203,S3BMLA100038DPZ,Arfath,In Use,Full Stack Table,,,,,IT-0023
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2QMPR7,Devansh,In Use,Full Stack Table,,94624.07,,,IT-0024
+,Monitor,Dell Monitor,Dell,S2725H,CN-09T9CX-WSL00-48A-DUNL-A02,Devansh,In Use,Full Stack Table,,10972.82,,,IT-0025
+,Computer Accessories,Logitech Mouse,Logitech,M331,,Devansh,In Use,Full Stack Table,,,,,IT-0026
+,Monitor,LG Monitor,LG,24GN65R,406NTUWBK510,Tanay,In Use,Full Stack Table,,14145.00,,,IT-0027
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2Q2NLV,Tanay,In Use,Full Stack Table,,81730.00,,,IT-0028
+,Computer Accessories,Dell Mouse,Dell,MS116P,CN-05NT8R-PRC00-53H-0199,Viral,In Use,Deployment Table,,,,,IT-0029
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D2,MP2RTF7K,Arfath,In Use,Full Stack Table,,81730.00,,,IT-0030
+,Monitor,Dell Monitor,Dell,SE2725H,CN-01X0R7-TV200-4BQ-0KBT-A00,Harsh Kothari,In Use,Full Stack Table,,10736.82,,,IT-0031
+,Computer Accessories,Logitech Mouse,Logitech,M331,,Tirth Vyas,In Use,Robotics Table,,,,,IT-0032
+,Monitor,Samsung Monitor,Samsung,LS24A310NHWXXL,4J6NH4CR200958L,Lakshya,In Use,Robotics Table,,,,,IT-0033
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D2,MP2RT5FA,Ujjwal,In Use,Robotics Table,,81490.00,,,IT-0034
+,Computer Accessories,Lenovo Mouse,Lenovo,SM-8823,Z13PJ9QC,Ujjwal,In Use,Robotics Table,,,,,IT-0035
+,Monitor,Lenovo Monitor,Lenovo,A24270FL0,UP1032H9,Mohit Patil,In Use,Robotics Table,,,,,IT-0036
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D2,MP2RT6NN,Akshaya Katiganere Anandappa,In Use,Robotics Table,,82690.00,,,IT-0037
+,Computer Accessories,Logitech Mouse,Logitech,M331,,Akshaya Katiganere Anandappa,In Use,Robotics Table,,,,,IT-0038
+,Monitor,Acer Monitor,Acer,EK220Q,MMTJDSI0014510E1F83W01,,Available,HR Table,,,,,IT-0039
+,Monitor,Zebronics Monitor,Zebronics,EA124,ZBW11UV01357,Vehan,In Use,Robotics Table,,7241.01,,,IT-0040
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D3,MP2YYHXQ,,In Storage,Robotics Table,,82989.99,,,IT-0041
+,Computer Accessories,Logitech Mouse,Logitech,M331,,,In Storage,Robotics Table,,,,,IT-0042
+,Monitor,Dell Monitor,Dell,SE2725H,CN-01X0R7-TV200-512-0ZQT-A00,Abhishek,In Use,Robotics Table,,8999.01,,,IT-0043
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D2,MP2HM2CV,Rajtilak Pal,In Use,Robotics Table,,,,No cost recorded - backfill from invoice,IT-0044
+,Monitor,Benq Monitor,Benq,GW2790-L,ETH4S0571101Q,Sankalp,In Use,Robotics Table,,12977.64,,,IT-0045
+,Monitor,Benq Monitor,Benq,GW2790-L,ETGAR039865L0,Robot,Deployed,V2.1,,10399.01,,"Allocated to a system/setup, not a person",IT-0046
+,Computer Accessories,Dell mouse,Dell,MS116,CN-0GXCWV-LO300-47U-01E6,Raj Mohammed,In Use,Robotics Table,,,,,IT-0047
+,Computer Accessories,Ant Esports Keyboard,Ant,MK1450,AEMK1450PBGKK0125,Simulation,Deployed,Robotics Table,,,,"Allocated to a system/setup, not a person",IT-0048
+,Monitor,Dell Monitor,Dell,SE2725H,CN-01X0R7-TV200-4AG-04GT-A00,Rakshit,In Use,Robotics Table,,8999.01,,,IT-0049
+,Personal Computer,MSI Vector,MSI,17HXA14VHG,K2407N0118075,Nilesh,In Use,Robotics Table,,259989.99,,Tax/Total recomputed at 18% GST,IT-0050
+,Monitor,LG Monitor,LG,27GS65F,504NTFAC6467,Simulation,Deployed,Robotics Table,,14145.00,,"Allocated to a system/setup, not a person",IT-0051
+,Monitor,Benq Monitor,Benq,GW2790-L,ETH4S0129001Q,Navigation,Deployed,Robotics Table,,9509.55,,"Allocated to a system/setup, not a person",IT-0052
+,Computer Accessories,Dell Keyboard,Dell,,CN-0W41TY-M6D00-477-08K3-A04,Simulation,Deployed,Robotics Table,,,,"Allocated to a system/setup, not a person",IT-0053
+,Computer Accessories,Dell Mouse,Dell,MS116,CN-05NT8R-PRC00-4A7-0A15,Simulation,Deployed,Robotics Table,,,,"Allocated to a system/setup, not a person",IT-0054
+,Computer Accessories,Ant Keyboard,Ant,FKBRI02,AVFKBRI02WDCK0125,Lakshya,In Use,Robotics Table,,,,,IT-0055
+,Monitor,Dell Monitor,Dell,S2721HN,CN0TW1TJWSL00492ADSLA05,Tushar,In Use,Mechanical Table,,8999.01,,,IT-0056
+,Computer Accessories,Logitech Mouse,Logitech,M331,2452ZEW3WK78,Sankalp,In Use,Mechanical Table,,,,,IT-0057
+,Monitor,Dell Monitor,Dell,SE2725H,CN-01X0R7-TV200-49E-1DWT-A00,Rajtilak Pal,In Use,Mechanical Table,,8999.01,,,IT-0058
+,Monitor,Dell Monitor,Dell,S2721HN,CN-0TW1TJ-WSL00-492-AUDL-A05,Ashish,In Use,Mechanical Table,,8999.01,,,IT-0059
+,Computer Accessories,Logitech Mouse,Logitech,M170,2423LZXNV858,,Available,Mechanical Table,,,,No USB dongle,IT-0060
+,Computer Accessories,Logitech Mouse,Logitech,M331,2515LV24NP88,,Available,Mechanical Table,,,,No USB dongle,IT-0061
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D2,MP2QS7C0,Nisarg Mahale,In Use,Mechanical Table,,82989.40,,,IT-0062
+,Computer Accessories,Dell Mouse,Dell,S2725H,,Prathisha,In Use,CVAT,,,,,IT-0063
+,Monitor,Dell Monitor,Dell,S2721HN,CN-09T0CX-WSL00-47Q-EMXL-A02,Nisarg Mahale,In Use,Mechanical Table,,8999.00,,,IT-0064
+,Personal Computer,Lenovo LOQ,Lenovo,ARP9D2,MP2QMSS7,Rakshith N,In Use,Mechanical Table,,82989.40,,,IT-0065
+,Monitor,Dell Monitor,Dell,SE2725H,CN-01X0R7-TV200-4CG-0C7T-A00,Simulation,Deployed,Mechanical Table,,10647.35,,"Allocated to a system/setup, not a person",IT-0066
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D2,MP2HL85L,,In Storage,Mechanical Table,,,,,IT-0067
+,Computer Accessories,Logitech Mouse,Logitech,M331,,,In Storage,Mechanical Table,,,,,IT-0068
+,Monitor,Dell Monitor,Dell,SE2715H,CN-01X0R7-TV200-4CG-0MET-A00,Sujay,In Use,Mechanical Table,,,,,IT-0069
+,Monitor,Dell Monitor,Dell,SE2715H,CN-01X0R7-TV200-48C-0BET-A00,Vishal,In Use,Mechanical Table,,,,,IT-0070
+,Monitor,Dell Monitor,Dell,S2721HN,CN-0TW1TJ-WSL00-492-ATZL-A05,Rohith,In Use,Mechanical Table,,,,,IT-0071
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D2,MP2RHA2G,Rohith,In Use,Mechanical Table,,,,,IT-0072
+,Monitor,Dell Monitor,Dell,S2721HN,CN-0TW1TJ-WSL00-486-FPXL-A05,Badri,In Use,Embedded Table,,,,,IT-0073
+,Computer Accessories,Logitech Mouse,Logitech,M220,2437ZEZBXM78,Adnan,In Use,Embedded Table,,,,,IT-0074
+,Monitor,MSI Monitor,MSI,3BC0,BC0M264700837,Deptha,In Use,Embedded Table,,,,,IT-0075
+,Monitor,LG Monitor,LG,LG27GS65F,504NTXRC6466,Anand,In Use,Mechanical Table,,9998.99,,,IT-0076
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D2,MP2RJ54Y,Anand,In Use,Mechanical Table,,,,,IT-0077
+,Computer Accessories,Logitech Mouse,Logitech,M331,2515LV34NNW8,Anand,In Use,Mechanical Table,,1295.00,,,IT-0078
+,Monitor,LG Monitor,LG,32MR50C,409TFDZ1Q130,Kathan,In Use,Embedded Table,,13398.99,,,IT-0079
+,Monitor,Dell Monitor,Dell,SE2725H,CN-01XR7-RV200-49E-1DTT-A00,Arun,In Use,Embedded Table,,8999.00,,,IT-0080
+,Computer Accessories,HP mouse,HP,STA-AM02,7CH1529XJ3,Rohith,In Use,Mechanical Table,,,,,IT-0081
+,Monitor,LG Monitor,LG,22MR410,503TOJK2R220,Lubna,In Use,HR Table,,5799.00,,,IT-0082
+,Computer Accessories,Logitech Mouse,Logitech,M331,2516LV02WBU8,Lubna,In Use,HR Table,,1295.00,,,IT-0083
+,Personal Computer,Dell,Dell,,,Lubna,In Use,HR Table,,,,,IT-0084
+,Personal Computer,Lenovo LOQ,Lenovo,V15G4AMN1,PF53X8VL,Shyamala,In Use,CVAT Table,,,,,IT-0085
+,Computer Accessories,Dell Mouse,Dell,MS116P,CN-05NT8R-PRC00-53H-01HN,Dhruv,In Use,HR Table,,,,,IT-0086
+,Monitor,Benq Monitor,Benq,GW2790-L,ETH4S0481601Q,Yogesh,In Use,Operations Table,,9509.55,,,IT-0087
+,Monitor,Benq Monitor,Benq,GW2790-B,ETGAR03971SL0,Simulation,Deployed,Operations Table,,,,"Allocated to a system/setup, not a person",IT-0088
+,Monitor,Benq Monitor,Benq,GW2790-L,ETP8P05546021Q,Bhuvnesh,In Use,Operations Table,,,,,IT-0089
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D2,MP2RHCB4,,In Storage,Operations Table,,,,,IT-0090
+,Accessory - Charger,Mini DisplayPort to UHD HDMI Active Cable Adapter,,P137-06N-HDMI,CP879A,,Unassigned,,,,,Non-core IT category (Accessory - Charger) - verify scope,IT-0091
+,Personal Computer,Lenovo Thinkpad,Lenovo,IdeaPad Flex 5 14ALC7,PW0AK9E1,,In Storage,Operations,,,,,IT-0092
+,Computer Accessories,Logitech Mouse,Logitech,M331,2516LVQ2XGS8,Tanay,In Use,Full Stack Table,,,,,IT-0093
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP8D2,MP2RHA2S,Prabhav,In Use,A I Table,,,,,IT-0094
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D2,MP2NRLH7,Harini,In Use,Mechanical Table,,,,,IT-0095
+,Computer Accessories,Logitech Mouse,Logitech,M331,2516LV52XEJ8,Harini,In Use,Mechanical Table,,,,,IT-0096
+,Monitor,LG Monitor,LG,22MR410,409TOGE3U09,Badri,In Use,Embedded Table,,11980.00,,,IT-0097
+,Personal Computer,Dell Laptop,Dell,Latitude 7400,5VP0J13,Hardware,In Use,,,,,,IT-0098
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,M2R7CAE,Vishal,In Use,Mechanical Table,,,,,IT-0099
+,Computer Accessories,Dell Mouse,Dell,MS116P,CN-05NT8R-PRC00-53I-06DK,Vishal,In Use,Mechanical Table,,,,,IT-0100
+,Compute,Nvidia Jetson Agx Orin,Nvidia,P3730,1421325600472.0,,Available,USA,,204848.00,,Non-core IT category (Compute) - verify scope,IT-0102
+,Compute,Mivii Orin,Mivii,MVST09XX01H,0405P200077,Shivang,In Use,,,427160.00,,Non-core IT category (Compute) - verify scope,IT-0103
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9D2,MP2Q2NM1,Gopal,In Use,,,,,,IT-0104
+,Computer Accessories,Dell Keyboard,Dell,K8212-B,CN-0DJ494-71581-4A8-00LC-A01,Raj Mohammad,In Use,,,,,,IT-0105
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2R79R1,Viral,In Use,,,,,,IT-0106
+,Computer Accessories,Rapoo Keyboard,Rapoo,0212R-01,4522893505A0035,,Available,,,,,,IT-0107
+,Storage,WD_BLACK SN7100 SSD,,WDS500G4X0E-00CJA1,25066N800727,Robot,Deployed,V2,,5910.62,,"Allocated to a system/setup, not a person; Non-core IT category (Storage) - verify scope",IT-0108
+,Storage,WD_BLACK SN7100 SSD,,WDS500G4X0E-00CJA0,250822804546.0,,Unassigned,,,5910.62,,Non-core IT category (Storage) - verify scope,IT-0109
+,Distance Ranging Sensor,DF Robot VL6180X,,,,Badri,In Use,Embedded,,729.24,,Non-core IT category (Distance Ranging Sensor) - verify scope,IT-0110
+,Accessory - Charger,NR-WaveS-Industrial-Isolated-USB-To-4-Ch-RS232,,,,Sujay,In Use,Embedded table,,3594.28,,Non-core IT category (Accessory - Charger) - verify scope,IT-0111
+,Accessory - Charger,WaveS-Industrial-grade-USB-HUB,,,,Sujay,In Use,Testing Setup,,2242.00,,Non-core IT category (Accessory - Charger) - verify scope,IT-0112
+,Accessory - Charger,WaveS-Industrial-grade-USB-HUB,,,,Sujay,In Use,,,2242.00,,Non-core IT category (Accessory - Charger) - verify scope,IT-0113
+,Accessory - Charger,NR-WaveS-Industrial-Isolated-USB-To-4-Ch-RS233,,,,Sujay,In Use,,,3594.28,,Non-core IT category (Accessory - Charger) - verify scope,IT-0114
+,Networking,FS Network Switch,,IES3100-8TF-P,CG2410222218N00069,Kathan,In Use,"Rack 2, row 4",,32451.18,,Non-core IT category (Networking) - verify scope,IT-0115
+,Networking,FS Network Switch,,IES3100-8TF-P,CG2410222218N00068,Kathan,In Use,,,32451.18,,Non-core IT category (Networking) - verify scope,IT-0116
+,Networking,Teltonika RUTM50,Teltonika,RUTM50,6006474540.0,Tanay,In Use,,,,,Non-core IT category (Networking) - verify scope,IT-0117
+,Personal Computer,Lenovo LOQ,Lenovo,15IRX9,MP2RQ2G3,Saket,In Use,,,118814.20,,,IT-0118
+,Computer Accessories,Logitech Mouse,Logitech,,,Piyush,In Use,,,1410.10,,,IT-0119
+,UPS,APC 2200VA Line Interactive UPS,APC,,,Simulation,Deployed,Robotics Simulation Setup,,16228.54,,"Allocated to a system/setup, not a person; Non-core IT category (UPS) - verify scope",IT-0220
+,Storage,Samsung 990 PRO SSD 1TB,Samsung,,,Tanay,In Use,Tanay's Laptop,,10498.46,,Non-core IT category (Storage) - verify scope,IT-0221
+,Monitor,Dell Monitor,Dell,,,Harshad,In Use,,,,,,IT-0222
+,Monitor,Acer Monitor,Acer,EK220Q,MMTJDSI0015100336C3W01,,In Storage,,,5695.00,,,IT-0223
+,Storage,Samsung 990 PRO SSD 1TB,Samsung,,,Rishi,In Use,Rishi's Laptop,,10342.70,,Non-core IT category (Storage) - verify scope,IT-0224
+,UPS,APC 2200VA Line Interactive UPS,APC,,,Nilesh,In Use,Simulation Setup,,19150.22,,Non-core IT category (UPS) - verify scope,IT-0225
+,Tablet,Samsubng Galaxy tab S9 FE,,,RZ2XCOO6BNB,Tanay,In Use,Tanay's Setup,,35375.22,,Non-core IT category (Tablet) - verify scope,IT-0226
+,Monitor,Benq,Benq,GW2490-L,ETA8S0147601Q,Anshika,In Use,HR team,,9188.66,,,IT-0227
+,Monitor,Benq,Benq,,,Harini,In Use,Mechanical Team,,9188.66,,,IT-0228
+,Monitor,Benq,Benq,,,Saket,In Use,,,9188.66,,,IT-0229
+,Monitor,Benq,Benq,,,Rishi,In Use,,,9188.66,,,IT-0230
+,Monitor,Benq,Benq,GW2490-L,ETA8S0008601Q,Avaneesh,In Use,Perception Team,,9188.66,,,IT-0231
+,Monitor,Benq,Benq,,,,Unassigned,,,9188.66,,,IT-0232
+,Monitor,Benq,Benq,,,,Unassigned,,,9188.66,,,IT-0233
+,Monitor,Benq,Benq,,,,Unassigned,,,9188.66,,,IT-0234
+,Storage,Lenovo T490,Lenovo,,,,In Storage,,,27730.00,,Non-core IT category (Storage) - verify scope,IT-0235
+,Personal Computer,Lenovo T490,Lenovo,,,Harshad,In Use,CVAT,,27730.00,,,IT-0236
+,Personal Computer,Lenovo T490,Lenovo,,,Madhumitha,In Use,CVAT,,27730.00,,,IT-0237
+,Personal Computer,Lenovo T490,Lenovo,,,Ellanti Harshitha,In Use,CVAT,,27730.00,,,IT-0238
+,Personal Computer,Lenovo T490,Lenovo,,,Srinivasan,In Use,Admin,,27730.00,,,IT-0239
+,Computer Accessories,Dell Mouse,Dell,,,Madhumitha,In Use,CVAT,,,,,IT-0240
+,Computer Accessories,Dell Mouse,Dell,,,Ellanti Harshitha,In Use,CVAT,,,,,IT-0241
+,Computer Accessories,Dell Mouse,Dell,,,Jeffrin,In Use,CVAT,,,,,IT-0242
+,Computer Accessories,Dell Mouse,Dell,,,Dharan,In Use,CVAT,,,,,IT-0243
+,Computer Accessories,Dell Mouse,Dell,,,Rishi Agarwal,In Use,AI,,,,,IT-0244
+,Computer Accessories,Dell Mouse,Dell,,,Tushar,In Use,,,,,,IT-0245
+,Personal Computer,Lenovo LOQ,Lenovo,,,Rishi Agarwal,In Use,AI,,,,,IT-0246
+,Personal Computer,Lenovo LOQ,Lenovo,15IRX9,MP2SYTJR,Shashwat,In Use,Perception team,,,,,IT-0247
+,Personal Computer,Lenovo LOQ,Lenovo,15IRX9,MP2SYYQL,Prapti,In Use,AI team,,,,,IT-0248
+,Personal Computer,Lenovo T490,Lenovo,,,Vibhavi Patil,In Use,CVAT,,,,,IT-0249
+,Personal Computer,Lenovo T490,Lenovo,,,Sakshi,In Use,CVAT,,,,,IT-0250
+,Personal Computer,Dell Latitude,Dell,,,Rakshit S,In Use,Mechanical,,,,,IT-0251
+,Personal Computer,Dell Latitude,Dell,,,Arvind,In Use,Mechanical,,,,,IT-0252
+,Personal Computer,Dell Latitude,Dell,,,Common area TV,In Use,,,,,,IT-0254
+,Personal Computer,Dell Latitude,Dell,,,,In Storage,,,,,,IT-0253
+,Personal Computer,Lenovo LOQ,Lenovo,ARP9,MP2SRT5N,Hitul,In Use,AI,,,,,IT-0255
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2SRKF0,Azad Roy,In Use,Deployment,,,,,IT-0256
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2PM8G9,Mohit Patil,In Use,Mechanical,,,,,IT-0257
+,Personal Computer,Dell Latitude,Dell,,,Deeptha,In Use,HR team,,,,,IT-0258
+,Personal Computer,Dell Latitude,Dell,,,Anshika,In Use,HR team,,,,No cost recorded - backfill from invoice,IT-0259
+,Computer Accessories,Dell Keyboard,Dell,,,shivani,In Use,,,,,,IT-0260
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2SRMXW,Nikhil,In Use,,,,,,IT-0261
+,Personal Computer,Lenovo LOQ,Lenovo,,,Aryaman,In Use,Embedded Table,,,,,IT-0262
+,Simulation,RTX 4080 Setup,,,,Nisarg,In Use,,,305207.00,,Non-core IT category (Simulation) - verify scope,IT-0263
+,Electronics,Dell Mouse,Dell,,,,Unassigned,,,,,Non-core IT category (Electronics) - verify scope,IT-0264
+,Electronics,Dell Mouse,Dell,,CN-05NT8R-PRC00-587-03CD,Lakshya,In Use,,,,,Non-core IT category (Electronics) - verify scope,IT-0265
+,Electronics,Dell Mouse,Dell,,,Hitul,In Use,,,,,Non-core IT category (Electronics) - verify scope,IT-0266
+,Electronics,Dell Mouse,Dell,,,Saransh,In Use,,,,,Non-core IT category (Electronics) - verify scope,IT-0267
+,Electronics,Dell Mouse,Dell,,,,In Storage,,,,,Non-core IT category (Electronics) - verify scope,IT-0268
+,Personal Computer,Lenovo LOQ,Lenovo,15IRX9,MP2SYTES,Jeffrin,In Use,CVAT,,,,,IT-0269
+,Monitor,Benq,Benq,,,Dhruv,In Use,,,,,,IT-0231
+,Monitor,Benq,Benq,,,Saransh,In Use,,,,,,IT-0227
+,(uncategorized),Benq,Benq,,,Harini,In Use,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0228
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2RHLLP,Hruday,In Use,Mechanical,,,,,IT-0229
+,Personal Computer,Lenovo LOQ,Lenovo,15IRX9,MP2RQ0JD,Vehan,In Use,Robotics Tean,,,,,IT-0230
+,Computer Accessories,Dell Keyboard,Dell,,CN-04WJ8P-LO300-58P-K1IG-A07,Abhishek,In Use,Robotics Tean,,,,,IT-0232
+,Personal Computer,Lenovo LOQ,Lenovo,,,Raj Mohammed,In Use,Robotics Tean,,,,,IT-0233
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MO2RHA4A,Aniket,In Use,,,,,,IT-0234
+,Monitor,Benq,Benq,,,Ujjwal,In Use,,,,,,IT-0270
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2RHA3A,Sujay,In Use,Embedded Team,,,,,IT-0271
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2RHJ9C,Piyush,In Use,Full stack teama,,,,,IT-0272
+,Monitor,LG Monitor,LG,,,Piyush,In Use,Full stack teama,,,,,IT-0273
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2P1JCS,Kathan,In Use,Embedded Team,,,,,IT-0274
+,Monitor,Benq,Benq,,,Simulation,Deployed,Simulation Team,,,,"Allocated to a system/setup, not a person",IT-0275
+,Computer Accessories,Logitech Mouse,Logitech,,,Simulation,Deployed,Simulation Team,,,,"Allocated to a system/setup, not a person",IT-0276
+,Computer Accessories,Logitech Keyboard,Logitech,R-0036,,Simulation,Deployed,Simulaion Team,,,,"Allocated to a system/setup, not a person",IT-0277
+,Monitor,LG Monitor,LG,,,Sabarish,In Use,Simulation Team,,,,,IT-0278
+,Personal Computer,Lenovo LOQ,Lenovo,15ARRP9,MP2PRNTG,Ashish Daga,In Use,Operations Table,,,,,IT-0279
+,Computer Accessories,Dell Mouse,Dell,,,Avaneesh,In Use,Perception team,,,,,IT-0280
+,Personal Computer,Lenovo LOQ,Lenovo,15ARP9,MP2SSCWZ,Soumyajeet,In Use,,,,,,IT-0281
+,Computer Accessories,RAPOO Keyboard,Rapoo,0212R-01,452289350SA0035,Deeptha,In Use,Operation Team,,,,,IT-0282
+,Computer Accessories,Ant Esports Keyboard,Ant,WK100,AEWK100WLKWBTG0425,Lakshya,In Use,Manipulation Team,,,,,IT-0283
+,Personal Computer,Lenovo LOQ,Lenovo,,,Sabariis,In Use,Simulation Team,,,,,IT-0284
+,Compute,Simulation Setup,,,,Anant,In Use,,,,,Non-core IT category (Compute) - verify scope,IT-0285
+,Compute,SSD 1 TB,,,,SAKET,In Use,,,,,Non-core IT category (Compute) - verify scope,IT-0286
+,Tablet,Samsung Tab s9 fe,Samsung,,,Arfath,In Use,,,,,Non-core IT category (Tablet) - verify scope,IT-0287
+,(uncategorized),Hard Drive,,,,Saransh,In Use,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0288
+,Personal Computer,Lenovo LOQ,Lenovo,15IRX9,MP2YYL6J,Raj Mohammad,In Use,,,,,,IT-0289
+,Monitor,Benq,Benq,,,Raj Mohammad,In Use,,,,,,IT-0290
+,Computer Accessories,Portronics  Keyboard,Portronics,,,Navigation,Deployed,,,,,"Allocated to a system/setup, not a person",IT-0291
+,Computer Accessories,Logitech Mouse,Logitech,,,,In Storage,,,,,,IT-0292
+,(uncategorized),Navigation Setup,,,,Navigation,Deployed,Navigation,,,,"Allocated to a system/setup, not a person; Non-core IT category ((uncategorized)) - verify scope",IT-0293
+,(uncategorized),UPS,,,,Navigation,Deployed,Navigation,,,,"Allocated to a system/setup, not a person; Non-core IT category ((uncategorized)) - verify scope",IT-0294
+,(uncategorized),Logitech Keyboard,Logitech,,,,In Storage,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0295
+,(uncategorized),Simulation Setup,,,,Simulation,Deployed,,,,,"Allocated to a system/setup, not a person; Non-core IT category ((uncategorized)) - verify scope",IT-0296
+,(uncategorized),RAPOO Keyboard,Rapoo,,,,Unassigned,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0297
+,(uncategorized),Simulation Setup,,,,Simulation,Deployed,,,,,"Allocated to a system/setup, not a person; Non-core IT category ((uncategorized)) - verify scope",IT-0298
+,(uncategorized),Logitech webcam,Logitech,VU0072,2444APNFXR58,Meeting room,In Use,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0299
+,(uncategorized),Benq,Benq,,,Anshika,In Use,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0300
+,(uncategorized),Logitech Keyboard,Logitech,Y-R0036,,Shivang,In Use,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0301
+,(uncategorized),Logitech Keyboard,Logitech,,,,In Storage,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0302
+,(uncategorized),Logitech Keyboard,Logitech,,,,In Storage,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0303
+,(uncategorized),Apple USB-C Power Adapter,Apple,MW2K3HN/A,C4H5474027D1VHJAL,Yogesh,In Use,Yogesh's Table,,5800.01,,Non-core IT category ((uncategorized)) - verify scope,IT-0304
+,(uncategorized),Nvme SSD 512GB,,AGAMMIXS60-512G-CS,4P0721315409,Robot,Deployed,V2.2,,,,"Allocated to a system/setup, not a person; Non-core IT category ((uncategorized)) - verify scope",IT-0305
+,(uncategorized),Keyboard Mouse combo,,MK240,,Nisarg,In Use,Nisarg table,,1864.75,,Non-core IT category ((uncategorized)) - verify scope,IT-0306
+,(uncategorized),Lenovo LOQ,Lenovo,15IRX10D3,MP2S54JK,Ashish,In Use,,,164699.68,,Non-core IT category ((uncategorized)) - verify scope,IT-0307
+,(uncategorized),LOGITECH MOUSE &KEY BORD,Logitech,MK240,106812/SDPPI/20252151,SHREYAS,In Use,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0308
+,(uncategorized),LOGITECH MOUSE &KEY BORD,Logitech,MK240,106812/SDPPI/20252151,SHREYAS,In Use,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0309
+,(uncategorized),Logitech H111 Wired On Ear Headphones With Mic Black,Logitech,H111,Pid al 542 p/n 881-00031,ravikiran,In Use,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0310
+,(uncategorized),Logitech H111 Wired On Ear Headphones With Mic Black,Logitech,H111,Pid al 542 p/n 881-000311,ravikiran,In Use,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0311
+,(uncategorized),Lenovo LOQ AMD RYZEN 5 7235HS,Lenovo,LOQ 16ARP9D2,R-41001163,Gopal,In Use,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0312
+,(uncategorized),D9 WIRELESS GAMING CONTROLLER,,G-energy,022050136nN-0226,,In Storage,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0313
+,Computer Accessories,DELL MOUSE,Dell,MS116,CN-05NT8R-PRC00 58Q-OCM5,SHREYASH,In Use,STORAGE,,,,,IT-0314
+,Computer Accessories,DELL MOUSE,Dell,MS116,CN-05NT8R-PRC00 54S-085G,SHREYASH,In Use,STORAGE,,,,,IT-0315
+,Computer Accessories,DELL MOUSE,Dell,MS116,CN-05NT8R-PRC00 54U-03I8,Pooja,In Use,CVAT,,,,,IT-0316
+,Computer Accessories,DELL MOUSE,Dell,MS116,CN-05NT8R-PRC00 54U-03HI,SHREYASH,In Use,STORAGE,,,,,IT-0317
+,Computer Accessories,DELL MOUSE,Dell,MS116,CN-05NT8R-PRC00 54U-046T,Shivani,In Use,STORAGE,,,,,IT-0318
+,NECKBAND,"Original Neckband for OnePlus Z2 ANC Earphones – Deep Audio Performance Output, Magnetic Design & Type-C Rapid Charging GH54J | B0GN9XBH7L ( ZX3-PL4-O280 )",,E306A,,Arfath,In Use,,,,,Non-core IT category (NECKBAND) - verify scope,IT-0319
+,UPS,Battery backup Eassy UPS,,BVX2200LI-IN,9B2545A29018,shreyas,In Use,,,15340.00,,Non-core IT category (UPS) - verify scope,IT-0320
+,UPS,Battery backup Eassy UPS,,BVX2200LI-IN,9B2545A28845,shreyas,In Use,,,15340.00,,Non-core IT category (UPS) - verify scope,IT-0321
+,Monitor,PRO MP251 EL4L,,3PD2,PD2M586101495,Soumyajeet,In Use,,,6785.00,,,IT-0322
+,Monitor,PRO MP251 EL4L,,3PD3,PD2M586101461,,Unassigned,,,6785.00,,,IT-0323
+,Monitor,PRO MP251 EL4L,,3PD4,PD2M586100498,,Unassigned,,,6785.00,,,IT-0324
+,Monitor,PRO MP251 EL4L,,3PD4,PD2M586101175,,Unassigned,,,6785.00,,,IT-0325
+,Monitor,PRO MP251 EL4L,,3PD4,PD2M586100515,,Unassigned,,,6785.00,,,IT-0326
+,Monitor,PRO MP251 EL4L,,3PD4,PD2M586101491,,Unassigned,,,6785.00,,,IT-0327
+,Computer Accessories,logitech keybord and mouse,Logitech,MK240 NANO,,,Unassigned,,,,,,IT-0328
+,UPS,"Stuffcool Major Ultra 65W PD Super Fast USB Charging 20000Mah Laptop Powerbank Supports Super Fast Charging 2.0, Charges Macbooks, Laptops, Dslrs and Gaming Console, Silver",,MAJOR ALTRA,,parv,In Use,,,2499.00,,Non-core IT category (UPS) - verify scope,IT-0329
+,UPS,LiFePO4 Rechargeable Battery,,ELB-125_8000mAh,,Anand,In Use,,,3781.59,,Non-core IT category (UPS) - verify scope,IT-0330
+,UPS,LiFePO4 Rechargeable Battery,,ELB-125_8000mAh,,Anand,In Use,,,3781.59,,Non-core IT category (UPS) - verify scope,IT-0331
+,Accessory - Charger,16.8 ~ 30W Power Adaptor with Charging Function,,,,parv,In Use,,,,,Non-core IT category (Accessory - Charger) - verify scope,IT-0332
+,Accessory - Charger,16.8 ~ 30W Power Adaptor with Charging Function,,,,parv,In Use,,,,,Non-core IT category (Accessory - Charger) - verify scope,IT-0333
+,Accessory - Charger,16.8 ~ 30W Power Adaptor with Charging Function,,,,parv,In Use,,,,,Non-core IT category (Accessory - Charger) - verify scope,IT-0334
+,Computer Accessories,LOGITECH KEY BOARD AND MOUSE,Logitech,,,PARV,In Use,,,,,,IT-0335
+,Personal Computer,Dell Latitude,Dell,,,SUNENA,In Use,HR TEAM,,24780.00,,,IT-0336
+,Networking,TP-Link 8 Port Gigabit Switch,TP-Link,TL-SG108E,224C6T5003498,,Unassigned,,,2499.00,,Non-core IT category (Networking) - verify scope,IT-0337
+,Networking,WIRELESS N300 EASY SETUP ROUTER,,N301,E0682011438149602,,Unassigned,,,,,Non-core IT category (Networking) - verify scope,IT-0338
+,UPS,Amazon Basics 20000 mAh Power Bank | 22.5W Fast Charging,,ABPBS20K22,,jayesh,In Use,,,899.00,,Non-core IT category (UPS) - verify scope,IT-0339
+,Monitor,PROMP251 E14L,,P3D2,PD2M586201037,,Unassigned,,,,,,IT-0340
+,Personal Computer,CRYSTAL WOOD,,CRYSTAL WOOD,AECRWODPCK0624000215,nisarg,In Use,,,,,,IT-0341
+,Personal Computer,LENOVO IQ,Lenovo,15IRX10,MP2S54NW,Saiprasad,In Use,,,,,,IT-0343
+,Monitor,PROMP251 E14L,,P3D2,PD2M586201415,shreyas,In Use,,,,,,IT-0344
+,UPS,Battery backup Eassy UPS,,BVX2200LI-IN,9B2537A18173,nisarg,In Use,,,,,Non-core IT category (UPS) - verify scope,IT-0345
+,UPS,Battery backup Eassy UPS,,BVX2200LI-IN,9B2537A18224,nisarg,In Use,,,,,Non-core IT category (UPS) - verify scope,IT-0346
+,Computer Accessories,DELL KEY BOARD&MOUSE,Dell,KB216,KB216,nisarg,In Use,,,,,,IT-0347
+,Computer Accessories,DELL KEY BOARD,Dell,KB216,,NISARG,In Use,,,,,,IT-0348
+,led,led multifunction lithium lamp,,TO3,,sandeep,In Use,,,,,Non-core IT category (led) - verify scope,IT-0350
+,CLEANER,VACUME  CLEANER,,SZ-B07,,KATHAN,In Use,,,3198.00,,Non-core IT category (CLEANER) - verify scope,IT-0349
+,Storage,PORTABLE SSD,,CT4000X10SSD9,2519EA87293B,KATHAN,In Use,,,,,Non-core IT category (Storage) - verify scope,IT-0351
+,Storage,PORTABLE SSD,,CT4000X10SSD9,2519EA872933,KATHAN,In Use,,,,,Non-core IT category (Storage) - verify scope,IT-0352
+,Personal Computer,Lenovo Thinkpad,Lenovo,Lenovo T450,E02AF094F37C,Jayesh,In Use,Deployment,,,,,IT-0353
+,UPS,"APC Back-UPS BX600C-IN 600VA / 360W, 230V, UPS System,",APC,BX600-IN,ZB2613003745,Tanay,In Use,,,3459.00,,Non-core IT category (UPS) - verify scope,IT-0354
+,Computer Accessories,Portronics Connector,Portronics,,Batch no. 2510,Pooja,In Use,CVAT Team,,,,No cost recorded - backfill from invoice,IT-0355
+,(uncategorized),Seagate One Touch 2Tb External HDD with Password Protection Black,Seagate,SRDOVN2,NC1DBYHK,harshvardhan,In Use,,,11499.00,,Non-core IT category ((uncategorized)) - verify scope,IT-0356
+,Personal Computer,Thinkpad t490,,,,Pooja,In Use,CVAT,,,,No cost recorded - backfill from invoice,IT-0357
+,Personal Computer,Thinkpad t490,,,,Rubia,In Use,CVAT,,,,No cost recorded - backfill from invoice,IT-0358
+,Computer Accessories,Dell Mouse,Dell,MS116,CN-05NT8R-PRC00-5AM-0BCH,Pooja,In Use,CVAT,,,,No cost recorded - backfill from invoice,IT-0348
+,Personal Computer,Thinkpad,,,,SHREYAS,In Use,,,,,No cost recorded - backfill from invoice,IT-0349
+,Personal Computer,Thinkpad,,,,SHREYAS,In Use,,,,,No cost recorded - backfill from invoice,IT-0350
+,Personal Computer,Thinkpad,,,,SHREYAS,In Use,,,,,No cost recorded - backfill from invoice,IT-0351
+,Personal Computer,Thinkpad,,,,SHREYAS,In Use,,,,,No cost recorded - backfill from invoice,IT-0352
+,Personal Computer,LENOVO LOQ(15-13450/,Lenovo,,,Vineeth Vooradi,In Use,AI,,92288.14,,,IT-0353
+,Personal Computer,LENOVO LOQ(15-13450/,Lenovo,,,Shubhodeep,In Use,Robotics,,92288.14,,,IT-0354
+,Computer Accessories,HP KEYBOARD AND MOUSE COMBO,HP,KM180,KM180251101874,SANDEEP,In Use,,,799.00,,,IT-0356
+,Computer Accessories,HP KEYBOARD AND MOUSE COMBO,HP,KM180,KM180251101863,SHREYS,In Use,,,799.00,,,IT-0357
+,Computer Accessories,HP KEYBOARD AND MOUSE COMBO,HP,,KM180251101873,SHREYS,In Use,,,799.00,,,IT-0358
+,Computer Accessories,HP KEYBOARD AND MOUSE COMBO,HP,KM180,KM180251101862,SHREYS,In Use,,,799.00,,,IT-0359
+,Computer Accessories,HP M10 WIRED MOUSE,HP,M10,7CH5526Z04,SHREYS,In Use,,,269.00,,,IT-0360
+,Computer Accessories,HP M10 WIRED MOUSE,HP,m10,7ch5526yyc,SATHYA,In Use,,,269.00,,,IT-0361
+,Computer Accessories,HP M10 WIRED MOUSE,HP,M10,7CH55526Z00,SHREYS,In Use,,,269.00,,,IT-0362
+,Computer Accessories,HP M10 WIRED MOUSE,HP,M10,7CH5526Z02,SHREYS,In Use,,,269.00,,,IT-0363
+,Computer Accessories,HP M10 WIRED MOUSE,HP,M10,7CH5526YX8,SHREYS,In Use,,,269.00,,,IT-0364
+,Personal Computer,LENOVO LOQ 15IRX9,Lenovo,LOQ 15IRX9D2,DX006LO9,LAKSHYA,In Use,,,131290.00,,,IT-0365
+,Personal Computer,LENOVO LOQ,Lenovo,LOQ 15IRX9,DX006LJ2,Aditya,In Use,,,131290.00,,,IT-0366
+,UPS,EASY UPS BUTTERY BACKUP,,BVX2200LI-IN,9B2611A13250,NISARG,In Use,,,,,No cost recorded - backfill from invoice; Non-core IT category (UPS) - verify scope,IT-0367
+,Personal Computer,MONITOR,,PROMP253 SERIES,PC7H706200755,NISARG,In Use,,,,,No cost recorded - backfill from invoice,IT-0368
+,Personal Computer,MONITOR,,PROMP253 SERIES,PC7H706200750,NISARG,In Use,,,,,No cost recorded - backfill from invoice,IT-0369
+,Computer Accessories,DELL KEY BOARD,Dell,KB216,,NISARG,In Use,,,,,No cost recorded - backfill from invoice,IT-0370
+,Computer Accessories,DELL WIRED MOUSE,Dell,MS116,CN-05NT8R-PR00-61A-0980,NISARG,In Use,,,,,No cost recorded - backfill from invoice,IT-0371
+,Computer Accessories,DELL WIRED MOUSE,Dell,MS116,CN-05NT8R-PR00-61A-096M,NISARG,In Use,,,,,No cost recorded - backfill from invoice,IT-0372
+,Computer Accessories,DELL KEY BOARD,Dell,KB216,,NISARG,In Use,,,,,No cost recorded - backfill from invoice,IT-0373
+,Personal Computer,CUSTOMAISED PC,,NA,,NISARG,In Use,,,,,No cost recorded - backfill from invoice,IT-0374
+,Personal Computer,MONITOR,,PROMP253 SERIES,PC7H706200755,NISARG,In Use,,,,,No cost recorded - backfill from invoice,IT-0375
+,UPS,UPS BUTTARY BACKUP,,BVX2200LI-IN,9B2611A13239,NISARG,In Use,,,,,No cost recorded - backfill from invoice; Non-core IT category (UPS) - verify scope,IT-0376
+,UPS,UPS BUTTARY BACKUP,,BVX2200LI-IN,9B2611A13240,NISARG,In Use,,,,,No cost recorded - backfill from invoice; Non-core IT category (UPS) - verify scope,IT-0377
+,Personal Computer,CUSTOMAISED PC,,NA,,NISARG,In Use,,,,,No cost recorded - backfill from invoice,IT-0378
+,Personal Computer,MONITOR,,PROMP253 SERIES,PC7H706200052,NISARG,In Use,,,,,No cost recorded - backfill from invoice,IT-0379
+,UPS,UPS BUTTARY BACKUP,,BVX2200LI-IN,9B2611A13232,NISARG,In Use,,,,,Non-core IT category (UPS) - verify scope,IT-0380
+,Personal Computer,lenovo thinkpad laptop,Lenovo,,PF-14DN7K,ABHISH,In Use,,,,,,IT-0381
+,Storage,QNAP TS-464 SERIES NAS,QNAP,TS-464,QNRMZ17617K,THANAY,In Use,,,,,Non-core IT category (Storage) - verify scope,IT-0381
+,(uncategorized),AC ADAPTER,,,9022526000943.0,THANAY,In Use,,,,,Non-core IT category ((uncategorized)) - verify scope,IT-0381
+,Storage,NAS WARE (4TB),,WD40EFPX-68C6CNO,WX12DA5AY9ST,THANAY,In Use,,,18999.00,,Non-core IT category (Storage) - verify scope,IT-0382
+,CRANE SCALE,MINI CRANE SCALE,,SF-918,,ANANDH,In Use,,,4484.00,,Non-core IT category (CRANE SCALE) - verify scope,IT-0064
+,Personal Computer,TUF GAMING  LAPTOP,,FA506NCQ,W2NRCX00152006G,,Unassigned,,,79296.00,,,IT-0383
+,Personal Computer,TUF GAMING  LAPTOP,,FA506NCQ,W2NRCX001540065,,Unassigned,,,79296.00,,,IT-0384
+,Personal Computer,TUF GAMING  LAPTOP,,FA506NCQ,W2NRCX00159406D,,Unassigned,,,79296.00,,,IT-0385
+,UPS,UPS BUTTARY BACKUP,,BVX2200LI-IN,9B2611A13256,SRINIVAS B,In Use,SIM ROOM,,16874.00,,Non-core IT category (UPS) - verify scope,IT-0386
+,Computer Accessories,ZEBRONICS MAX FURY Transparent RGB LED Illuminated Wired Gamepad for Windows,Zebronics,ZEB-MAX-FURY,ZAX03HX12157,ROHAN,In Use,STORAGE,,1148.00,,,IT-0387
+,Computer Accessories,ZEBRONICS MAX FURY Transparent RGB LED Illuminated Wired Gamepad for Windows,Zebronics,ZEB-MAX-FURY,ZAX03HX12151,ROHAN,In Use,STORAGE,,1148.00,,,IT-0388
+,Computer Accessories,ZEBRONICS MAX FURY Transparent RGB LED Illuminated Wired Gamepad for Windows,Zebronics,ZEB-MAX-FURY,ZAX03HX12158,ROHAN,In Use,STORAGE,,1148.00,,,IT-0389
+,Computer Accessories,ZEBRONICS MAX FURY Transparent RGB LED Illuminated Wired Gamepad for Windows,Zebronics,ZEB-MAX-FURY,ZAX03HX12160,ROHAN,In Use,STORAGE,,1148.00,,,IT-0390
+,Accessory - Charger,"Ambrane 65W Charger Adapter, 3 Ports - 2 Type C & 1 USB for Samsung, Type C Laptops: MacBook, Dell",Ambrane,AGC-65,8904258112633.0,ANAND,In Use,ANAND,,2399.00,,Non-core IT category (Accessory - Charger) - verify scope,IT-0391
