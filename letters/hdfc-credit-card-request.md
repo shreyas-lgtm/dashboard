@@ -1,6 +1,7 @@
-Origin Technologies
-[Company Address]
-Bengaluru
+Artila Robotics Private Limited (Origin)
+J1402, Mantri Espana, Bellandur
+Bangalore, Karnataka, Pin: 560103
+CIN: U62099KA2024PTC195239 | GSTIN: 29ABBCA7079G1ZE
 
 Date: 16 July 2026
 
@@ -43,5 +44,5 @@ Yours sincerely,
 _____________________________
 [Name]
 [Designation]
-Origin Technologies
-Email: yogesh@origin.tech
+Artila Robotics Private Limited (Origin)
+Email: hr@origin.tech | Phone: +91-9980942947

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HDFC Credit Card Request Letter</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #555;
+    --accent: #ff3b1d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background: #f2f2f2;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 16px auto;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 18mm 20mm;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent);
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+  .logo .mark {
+    display: inline-block;
+    width: 22px; height: 22px;
+    position: relative;
+  }
+  .logo .mark::before,
+  .logo .mark::after {
+    content: "";
+    position: absolute;
+    background: var(--ink);
+  }
+  .logo .mark::before { top: 0; left: 9px; width: 4px; height: 22px; }
+  .logo .mark::after { top: 9px; left: 0; width: 22px; height: 4px; }
+  .company-addr {
+    text-align: right;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .company-addr strong { color: var(--ink); font-size: 12px; }
+
+  /* Body */
+  main {
+    flex: 1;
+    padding-top: 26px;
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+  .date { margin-bottom: 22px; }
+  .recipient { margin-bottom: 22px; line-height: 1.55; }
+  .recipient .name { font-weight: 700; }
+  .subject {
+    font-weight: 700;
+    margin: 22px 0;
+    text-decoration: underline;
+  }
+  p { margin: 0 0 14px; }
+  ol { margin: 0 0 14px; padding-left: 20px; }
+  ol li { margin-bottom: 14px; }
+  ol li .heading { font-weight: 700; }
+  .amt { white-space: nowrap; }
+  .signoff { margin-top: 34px; }
+  .sign-space { height: 46px; }
+  .sign-name { font-weight: 700; }
+
+  /* Footer */
+  footer {
+    border-top: 2px solid var(--accent);
+    padding-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10.5px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  footer .col-mid { text-align: center; }
+  footer .col-right { text-align: right; }
+
+  @media print {
+    body { background: #fff; }
+    .page { margin: 0; box-shadow: none; width: auto; min-height: auto; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="logo"><span class="mark"></span>ORIGIN</div>
+      <div class="company-addr">
+        <strong>Artila Robotics Private Limited</strong><br />
+        J1402, Mantri Espana, Bellandur<br />
+        Bangalore, Karnataka, Pin : 560103
+      </div>
+    </header>
+
+    <main>
+      <div class="date">Date: 16 July 2026</div>
+
+      <div class="recipient">
+        To,<br />
+        <span class="name">Mr. Madhav Uppu</span><br />
+        Key Account Manager – Branch &amp; SME<br />
+        Corporate Credit Cards &amp; Prepaid Solution: Commercial Payment Solution<br />
+        HDFC Bank Ltd<br />
+        HDFC Bank House, Municipal No. 03/01, Ward No. 77,<br />
+        Ground Floor, Nrupathunga Road, Opposite RBI,<br />
+        Bengaluru – 560001<br />
+        Mob: 9923006750
+      </div>
+
+      <div class="subject">
+        Subject: Update of registered email ID and enhancement of credit limit for Company Code 2884
+      </div>
+
+      <p>Dear Mr. Uppu,</p>
+
+      <p>
+        We are writing to request the following two changes to our corporate credit card
+        account maintained with HDFC Bank under Company Code 2884.
+      </p>
+
+      <ol>
+        <li>
+          <span class="heading">Update of Registered Email ID</span><br />
+          We request you to kindly update the registered email ID associated with our account
+          from <strong>yogesh@10xconstruction.ai</strong> to <strong>yogesh@origin.tech</strong>.
+          All future communication, statements, and notifications may please be directed to the
+          updated email address.
+        </li>
+        <li>
+          <span class="heading">Enhancement of Credit Limit</span><br />
+          We further request an enhancement of the credit limit for Company Code 2884 from the
+          existing <span class="amt">INR 5,00,000 (Rupees Five Lakh only)</span> to
+          <span class="amt">INR 10,00,000 (Rupees Ten Lakh only)</span>. This increase is
+          required to support our growing operational and payment requirements.
+        </li>
+      </ol>
+
+      <p>
+        We would be grateful if you could process the above requests at the earliest and confirm
+        once the changes have been effected. Please let us know if any additional documentation
+        is required from our end to complete the process.
+      </p>
+
+      <p>Thank you for your continued support.</p>
+
+      <div class="signoff">
+        Yours sincerely,
+        <div class="sign-space"></div>
+        <div class="sign-name">[Name]</div>
+        <div>[Designation]</div>
+        <div>Artila Robotics Private Limited (Origin)</div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="col-left">
+        CIN : U62099KA2024PTC195239<br />
+        GSTIN : 29ABBCA7079G1ZE
+      </div>
+      <div class="col-mid">origin.tech</div>
+      <div class="col-right">
+        Phone : +91-9980942947<br />
+        Mail : hr@origin.tech
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
