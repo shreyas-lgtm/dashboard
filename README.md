@@ -1,82 +1,74 @@
-# Zoho Procurement — Live Pipeline Dashboard
+# My Verizon — Account Overview
 
-A React dashboard that pulls live data from Zoho Procurement's API and shows where things are stuck in the procurement workflow. Designed to be embedded as a native Web Tab inside Zoho Procurement.
+A single-screen dashboard that takes the confusing parts of the My Verizon
+website — your bill, your plan, each phone line, the device-payment plans, and
+your SIMs — and lays them out in one clear view, with plain-language
+explanations of every Verizon term.
 
-## Architecture
+Built because the real Verizon site scatters this across a dozen screens and
+buries it under jargon.
 
-```
-Zoho Procurement (data)
-    ↓ API calls (auto-refresh every 5 min)
-Vercel serverless proxy  ← handles OAuth token refresh, hides credentials
-    ↓
-React frontend (Vite + TypeScript + Tailwind)
-    ↓ embedded via Web Tab
-Zoho Procurement sidebar
-```
+## What it shows
 
-## Pipeline KPIs
+| Section | Answers the question |
+|---------|----------------------|
+| **Summary cards** | What's my total, when's it due, how much is plan vs devices, how much data did we use? |
+| **Where your bill goes** | What are all these charges? (plan, device payments, perks, *surcharges*, taxes) — tap any row for a plain explanation |
+| **What am I actually paying for?** | A glossary decoding Verizon vocabulary: line access, device payment agreements, promo credits, surcharges, eSIM, ICCID, billing cycle |
+| **Your lines** | One card per phone: its plan charge, the device on it, how far along the device payoff is (and the *net* cost after promo credits), and its SIM |
+| **SIMs & eSIMs** | Every SIM, its type, which line and device it's on, and whether it's active |
 
-| KPI | Source | Filter |
-|-----|--------|--------|
-| PRs Awaiting Approval | Purchase Requests | status = `pending_approval` |
-| Approved PRs Pending PO | Purchase Requests | status = `approved`, no linked PO |
-| POs Pending Approval | Purchase Orders | status = `pending_approval` |
-| Open POs (Pending Delivery) | Purchase Orders | status = `issued` |
-| Items Received Pending Bill | Purchase Receives | billing_status ≠ `billed` |
-| Overdue POs | Purchase Orders | status = `issued`, delivery_date < today |
+## Important: where the data comes from
 
-Additional widgets: total spend this month, top 5 vendors by PO value, overdue POs detail table, stuck approved PRs table.
+**Verizon has no public consumer API**, and there's no safe, supported way to
+log into a My Verizon account programmatically. So this dashboard does **not**
+connect to Verizon. Instead it renders account data *you* provide. There are
+two ways to do that:
 
-## Setup
+### Option A — edit the sample file (recommended, no server)
 
-### 1. Zoho credentials
+The dashboard ships in mock mode showing a realistic sample account. To see
+your own numbers, open [`src/mockData.ts`](src/mockData.ts) and replace the
+values with the ones from your latest bill:
 
-Copy `.env.example` to `.env` and fill in your values:
+> My Verizon → **Bill** → **View bill** / **Bill details**, plus **Devices**
+> for the device-payment balances and **Plan** for line charges.
 
-```bash
-cp .env.example .env
-```
+Everything on the dashboard is computed from that one object.
 
-| Variable | Where to find it |
-|----------|-----------------|
-| `ZOHO_CLIENT_ID` | [Zoho API Console](https://api-console.zoho.com) → Self Client |
-| `ZOHO_CLIENT_SECRET` | Same self-client |
-| `ZOHO_REFRESH_TOKEN` | Exchange auth code via Apps Script (see Phase 1 checklist) |
-| `ZOHO_ORGANIZATION_ID` | Already set to `60068679686` |
+### Option B — serve your own JSON
 
-### 2. Local development
+Set `VITE_USE_MOCK=false` and deploy the [`api/verizon.js`](api/verizon.js)
+serverless endpoint. Paste your account (matching the `VerizonAccount` shape in
+[`src/types.ts`](src/types.ts)) into the `ACCOUNT_JSON` environment variable, or
+edit the endpoint to read from a Google Sheet / private gist / database.
+
+## Run it locally
 
 ```bash
 npm install
-
-# Option A: mock data (no Zoho credentials needed)
-VITE_USE_MOCK=true npm run dev
-
-# Option B: live Zoho data via vercel dev
-npm install -g vercel
-vercel dev          # runs both frontend + serverless proxy on port 3000
+npm run dev          # opens with the sample account (mock mode is the default)
 ```
 
-### 3. Deploy to Vercel
+Build for production:
 
 ```bash
+npm run build        # type-checks with tsc, then builds with Vite → dist/
+```
+
+## Deploy to Vercel
+
+```bash
+npm install -g vercel
 vercel --prod
 ```
 
-Set the four `ZOHO_*` environment variables in the Vercel dashboard (Settings → Environment Variables) — **never commit `.env` to git**.
+If you want live data (Option B), set `VITE_USE_MOCK=false` and add the
+`ACCOUNT_JSON` environment variable in the Vercel dashboard
+(Settings → Environment Variables). Never commit real account data to git.
 
-### 4. Embed in Zoho Procurement
+## Tech
 
-1. Go to **Settings → Customization → Web Tabs**
-2. Click **New Web Tab**
-3. Paste your Vercel deployment URL
-4. Name it **"Pipeline Dashboard"**
-5. Save — it now appears in Zoho's left sidebar
-
-## Adjusting status strings
-
-If your Zoho instance returns different status values than expected, update `src/config.ts`. The Phase 1 checklist asks you to document the exact statuses returned by each module — once you have live API responses, compare them against the constants in that file.
-
-## API budget
-
-~1,200 calls/day against a 10,000/day limit (12% usage). Dashboard fetches all modules on page load and auto-refreshes every 5 minutes.
+React + TypeScript + Vite + Tailwind. No runtime dependency on any Verizon
+service. Data shape lives in `src/types.ts`; the glossary and colors in
+`src/config.ts`.

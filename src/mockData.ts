@@ -1,56 +1,153 @@
 /**
- * Synthetic data for local development (VITE_USE_MOCK=true).
- * Values are plausible but entirely fictional.
+ * Sample Verizon account for local development (VITE_USE_MOCK=true, the default).
+ *
+ * These numbers are fictional but structured exactly like a real Verizon bill:
+ * a 3-line "Unlimited Plus" account with two phones still being paid off, one
+ * paid-off phone, a mix of eSIM and physical SIMs, and the usual pile of
+ * surcharges and taxes.
+ *
+ * To see YOUR account here, replace the values below with the numbers from your
+ * latest bill (My Verizon → Bill → View bill / "Bill details"). Everything on
+ * the dashboard is computed from this one object.
  */
 
-import type { PurchaseRequest, PurchaseOrder, PurchaseReceive, Bill, Vendor } from './types';
+import type { VerizonAccount } from './types';
 
-const today = new Date();
-const d = (offsetDays: number) => {
-  const dt = new Date(today);
-  dt.setDate(dt.getDate() + offsetDays);
-  return dt.toISOString().split('T')[0];
-};
+export const MOCK_ACCOUNT: VerizonAccount = {
+  bill: {
+    accountName: 'Sample Household',
+    accountNumber: '•••• 4021',
+    planName: 'Unlimited Plus',
+    autopayEnabled: true,
+    totalDue: 214.37,
+    dueDate: '2026-08-10',
+    billingPeriodStart: '2026-07-11',
+    billingPeriodEnd: '2026-08-10',
+    previousBalance: 0,
+    lastMonthTotal: 208.11,
+    currency: 'USD',
+    charges: [
+      {
+        key: 'plan',
+        label: 'Plan (line access)',
+        amount: 115.0,
+        description:
+          'The recurring monthly fee for your plan, charged per line. This is the "service" part — talk, text, and data. On multi-line accounts each line has its own charge and they add up.',
+      },
+      {
+        key: 'devices',
+        label: 'Device payments',
+        amount: 68.32,
+        description:
+          'Installments toward phones you financed instead of buying outright. Interest-free, but you owe the full balance if you leave before the term ends. Trade-in promo credits are applied here too.',
+      },
+      {
+        key: 'perks',
+        label: 'Perks & add-ons',
+        amount: 10.0,
+        description:
+          'Optional extras added to the plan — things like a streaming perk, a cloud storage upgrade, or device protection.',
+      },
+      {
+        key: 'surcharges',
+        label: 'Surcharges',
+        amount: 12.44,
+        description:
+          'Verizon-set fees that are NOT taxes: the Federal Universal Service Charge, a Regulatory Charge, and the Administrative & Telco Recovery Charge. They change month to month.',
+      },
+      {
+        key: 'taxes',
+        label: 'Taxes & gov fees',
+        amount: 8.61,
+        description:
+          'Actual government taxes and 911 fees set by your state and city, not by Verizon.',
+      },
+    ],
+  },
 
-export const MOCK_DATA = {
-  purchaseRequests: [
-    { purchase_request_id: 'pr1', purchase_request_number: 'PR-001', status: 'pending_approval', date: d(-5), total: 4200, currency_code: 'USD', vendor_name: 'Acme Supplies', purchase_orders: [] },
-    { purchase_request_id: 'pr2', purchase_request_number: 'PR-002', status: 'pending_approval', date: d(-3), total: 1800, currency_code: 'USD', vendor_name: 'TechParts Ltd', purchase_orders: [] },
-    { purchase_request_id: 'pr3', purchase_request_number: 'PR-003', status: 'pending_approval', date: d(-1), total: 650, currency_code: 'USD', vendor_name: 'OfficeHub', purchase_orders: [] },
-    { purchase_request_id: 'pr4', purchase_request_number: 'PR-004', status: 'approved', date: d(-10), total: 9500, currency_code: 'USD', vendor_name: 'Acme Supplies', purchase_orders: [] },
-    { purchase_request_id: 'pr5', purchase_request_number: 'PR-005', status: 'approved', date: d(-8), total: 3100, currency_code: 'USD', vendor_name: 'SafetyFirst', purchase_orders: [] },
-    { purchase_request_id: 'pr6', purchase_request_number: 'PR-006', status: 'approved', date: d(-7), total: 720, currency_code: 'USD', vendor_name: 'OfficeHub', purchase_orders: [] },
-    { purchase_request_id: 'pr7', purchase_request_number: 'PR-007', status: 'approved', date: d(-6), total: 2400, currency_code: 'USD', vendor_name: 'TechParts Ltd', purchase_orders: [{ purchaseorder_id: 'po1' }] },
-    { purchase_request_id: 'pr8', purchase_request_number: 'PR-008', status: 'rejected', date: d(-15), total: 500, currency_code: 'USD', vendor_name: 'Cheap Goods Inc', purchase_orders: [] },
-  ] as PurchaseRequest[],
+  lines: [
+    {
+      lineId: 'line1',
+      phoneNumber: '(415) 555-0142',
+      nickname: 'Alex — main phone',
+      device: 'iPhone 15 Pro 256GB',
+      planName: 'Unlimited Plus',
+      monthlyLineAccess: 45.0,
+      dataUsedGb: 24.3,
+      dataAllowanceGb: 'unlimited',
+      devicePaymentId: 'dp1',
+      simId: 'sim1',
+    },
+    {
+      lineId: 'line2',
+      phoneNumber: '(415) 555-0178',
+      nickname: 'Sam — phone',
+      device: 'Samsung Galaxy S24',
+      planName: 'Unlimited Plus',
+      monthlyLineAccess: 40.0,
+      dataUsedGb: 11.8,
+      dataAllowanceGb: 'unlimited',
+      devicePaymentId: 'dp2',
+      simId: 'sim2',
+    },
+    {
+      lineId: 'line3',
+      phoneNumber: '(415) 555-0199',
+      nickname: 'Jordan — phone (paid off)',
+      device: 'iPhone 13',
+      planName: 'Unlimited Plus',
+      monthlyLineAccess: 30.0,
+      dataUsedGb: 6.1,
+      dataAllowanceGb: 'unlimited',
+      // no devicePaymentId — this phone is fully paid off
+      simId: 'sim3',
+    },
+  ],
 
-  purchaseOrders: [
-    { purchaseorder_id: 'po1', purchaseorder_number: 'PO-001', status: 'issued', date: d(-5), delivery_date: d(-1), total: 2400, currency_code: 'USD', vendor_id: 'v1', vendor_name: 'TechParts Ltd' },
-    { purchaseorder_id: 'po2', purchaseorder_number: 'PO-002', status: 'issued', date: d(-8), delivery_date: d(3), total: 5800, currency_code: 'USD', vendor_id: 'v2', vendor_name: 'Acme Supplies' },
-    { purchaseorder_id: 'po3', purchaseorder_number: 'PO-003', status: 'issued', date: d(-12), delivery_date: d(-3), total: 1200, currency_code: 'USD', vendor_id: 'v3', vendor_name: 'OfficeHub' },
-    { purchaseorder_id: 'po4', purchaseorder_number: 'PO-004', status: 'pending_approval', date: d(-2), total: 7300, currency_code: 'USD', vendor_id: 'v4', vendor_name: 'SafetyFirst' },
-    { purchaseorder_id: 'po5', purchaseorder_number: 'PO-005', status: 'pending_approval', date: d(-1), total: 3600, currency_code: 'USD', vendor_id: 'v1', vendor_name: 'TechParts Ltd' },
-    { purchaseorder_id: 'po6', purchaseorder_number: 'PO-006', status: 'issued', date: d(-20), delivery_date: d(-10), total: 4100, currency_code: 'USD', vendor_id: 'v5', vendor_name: 'Global Logistics' },
-    { purchaseorder_id: 'po7', purchaseorder_number: 'PO-007', status: 'received', date: d(-14), total: 890, currency_code: 'USD', vendor_id: 'v3', vendor_name: 'OfficeHub' },
-    { purchaseorder_id: 'po8', purchaseorder_number: 'PO-008', status: 'billed', date: d(-18), total: 6200, currency_code: 'USD', vendor_id: 'v2', vendor_name: 'Acme Supplies' },
-  ] as PurchaseOrder[],
+  devicePayments: [
+    {
+      agreementId: 'dp1',
+      device: 'iPhone 15 Pro 256GB',
+      monthlyAmount: 41.66,
+      monthsPaid: 12,
+      termMonths: 36,
+      originalPrice: 1499.99,
+      remainingBalance: 999.84,
+      promoCredit: 27.77, // trade-in credit — net cost ≈ $13.89/mo
+    },
+    {
+      agreementId: 'dp2',
+      device: 'Samsung Galaxy S24',
+      monthlyAmount: 22.22,
+      monthsPaid: 30,
+      termMonths: 36,
+      originalPrice: 799.99,
+      remainingBalance: 133.32,
+      promoCredit: 0,
+    },
+  ],
 
-  purchaseReceives: [
-    { receive_id: 'rcv1', receive_number: 'RCV-001', date: d(-3), purchaseorder_id: 'po7', purchaseorder_number: 'PO-007', vendor_id: 'v3', vendor_name: 'OfficeHub', billing_status: 'not_billed' },
-    { receive_id: 'rcv2', receive_number: 'RCV-002', date: d(-5), purchaseorder_id: 'po8', purchaseorder_number: 'PO-008', vendor_id: 'v2', vendor_name: 'Acme Supplies', billing_status: 'billed' },
-    { receive_id: 'rcv3', receive_number: 'RCV-003', date: d(-1), purchaseorder_id: 'po7', purchaseorder_number: 'PO-007', vendor_id: 'v3', vendor_name: 'OfficeHub', billing_status: 'not_billed' },
-  ] as PurchaseReceive[],
-
-  bills: [
-    { bill_id: 'b1', bill_number: 'BILL-001', status: 'paid', date: d(-4), total: 6200, currency_code: 'USD', vendor_id: 'v2', vendor_name: 'Acme Supplies', purchaseorder_id: 'po8' },
-    { bill_id: 'b2', bill_number: 'BILL-002', status: 'approved', date: d(-2), total: 1500, currency_code: 'USD', vendor_id: 'v1', vendor_name: 'TechParts Ltd' },
-  ] as Bill[],
-
-  vendors: [
-    { contact_id: 'v1', contact_name: 'TechParts Ltd', contact_type: 'vendor' },
-    { contact_id: 'v2', contact_name: 'Acme Supplies', contact_type: 'vendor' },
-    { contact_id: 'v3', contact_name: 'OfficeHub', contact_type: 'vendor' },
-    { contact_id: 'v4', contact_name: 'SafetyFirst', contact_type: 'vendor' },
-    { contact_id: 'v5', contact_name: 'Global Logistics', contact_type: 'vendor' },
-  ] as Vendor[],
+  sims: [
+    {
+      simId: 'sim1',
+      type: 'eSIM',
+      iccidLast4: '8842',
+      status: 'active',
+      lineId: 'line1',
+    },
+    {
+      simId: 'sim2',
+      type: 'physical',
+      iccidLast4: '3107',
+      status: 'active',
+      lineId: 'line2',
+    },
+    {
+      simId: 'sim3',
+      type: 'physical',
+      iccidLast4: '9560',
+      status: 'active',
+      lineId: 'line3',
+    },
+  ],
 };

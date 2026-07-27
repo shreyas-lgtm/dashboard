@@ -1,43 +1,44 @@
-import { Header } from './components/Header';
-import { PipelineFunnel } from './components/PipelineFunnel';
-import { VendorChart } from './components/VendorChart';
-import { SpendWidget } from './components/SpendWidget';
-import { OverduePOsTable } from './components/OverduePOsTable';
-import { StuckPRsTable } from './components/StuckPRsTable';
-import { useProcurementData } from './useProcurementData';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import { Header } from './components/Header';
+import { SummaryCards } from './components/SummaryCards';
+import { BillBreakdown } from './components/BillBreakdown';
+import { LinesSection } from './components/LinesSection';
+import { SimsTable } from './components/SimsTable';
+import { Glossary } from './components/Glossary';
+import { useVerizonData } from './useVerizonData';
 
 export default function App() {
-  const { data, loading, error, lastUpdated, refresh } = useProcurementData();
+  const { account, summary, loading, error, lastUpdated, refresh } =
+    useVerizonData();
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
+        accountName={account?.bill.accountName}
+        accountNumber={account?.bill.accountNumber}
+        planName={account?.bill.planName}
         lastUpdated={lastUpdated}
-        isRefreshing={loading && !!data}
+        isRefreshing={loading && !!account}
         onRefresh={refresh}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-
-        {/* Initial loading state */}
-        {loading && !data && (
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Initial loading */}
+        {loading && !account && (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <Loader2 size={32} className="animate-spin text-blue-500" />
-            <p className="text-sm text-gray-500">
-              Fetching live data from Zoho Procurement…
-            </p>
+            <p className="text-sm text-gray-500">Loading your account…</p>
           </div>
         )}
 
-        {/* Error state */}
-        {error && !data && (
+        {/* Hard error */}
+        {error && !account && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-6">
             <div className="flex items-start gap-3">
               <AlertCircle size={20} className="text-red-500 mt-0.5 shrink-0" />
               <div>
                 <p className="font-semibold text-red-800 text-sm">
-                  Failed to load procurement data
+                  Couldn’t load account data
                 </p>
                 <p className="mt-1 text-sm text-red-700 font-mono break-all">
                   {error}
@@ -53,35 +54,29 @@ export default function App() {
           </div>
         )}
 
-        {/* Stale-data error banner (data loaded but subsequent refresh failed) */}
-        {error && data && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-center gap-2 text-sm text-amber-800">
-            <AlertCircle size={14} className="shrink-0" />
-            Last refresh failed — showing stale data. ({error})
-          </div>
-        )}
-
-        {data && (
+        {account && summary && (
           <>
-            {/* Pipeline funnel — 6 KPI cards */}
-            <PipelineFunnel kpis={data.kpis} />
+            <SummaryCards summary={summary} />
 
-            {/* Spend + Vendor chart */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <SpendWidget spend={data.spend} />
-              <div className="lg:col-span-2">
-                <VendorChart
-                  data={data.topVendors}
-                  currency={data.spend.currency}
-                />
-              </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <BillBreakdown bill={account.bill} />
+              <Glossary />
             </div>
 
-            {/* Detail tables */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <OverduePOsTable pos={data.overduePOList} />
-              <StuckPRsTable prs={data.stuckPRList} />
-            </div>
+            <LinesSection
+              lines={account.lines}
+              devicePayments={account.devicePayments}
+              sims={account.sims}
+              currency={account.bill.currency}
+            />
+
+            <SimsTable sims={account.sims} lines={account.lines} />
+
+            <p className="text-center text-xs text-gray-400 pt-2">
+              Showing sample data. Replace the values in{' '}
+              <code className="text-gray-500">src/mockData.ts</code> with the
+              numbers from your latest Verizon bill to see your own account.
+            </p>
           </>
         )}
       </main>
