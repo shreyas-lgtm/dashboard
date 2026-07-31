@@ -13,6 +13,7 @@ function validate_(extracted, secondRead, lane, dedupeIndex) {
 
   var total = toNum_(extracted.grand_total);
   var subtotal = toNum_(extracted.subtotal);
+  var discount = toNum_(extracted.discount) || 0;
   var tax = toNum_(extracted.tax_total);
 
   // --- Hard failures first ---
@@ -27,13 +28,13 @@ function validate_(extracted, secondRead, lane, dedupeIndex) {
       null, null);
   }
 
-  // --- Check 1: arithmetic (subtotal + tax = total) ---
+  // --- Check 1: arithmetic (subtotal − discount + tax = total) ---
   if (subtotal !== null && tax !== null) {
-    if (Math.abs(subtotal + tax - total) <= Math.max(1, total * 0.001)) {
+    if (Math.abs(subtotal - discount + tax - total) <= Math.max(1, total * 0.001)) {
       checks.push('arithmetic OK');
       passes++;
     } else {
-      checks.push('ARITHMETIC MISMATCH: ' + subtotal + ' + ' + tax + ' ≠ ' + total);
+      checks.push('ARITHMETIC MISMATCH: ' + subtotal + ' − ' + discount + ' + ' + tax + ' ≠ ' + total);
       return result_(CONFIG.STATUS.REVIEW, checks, null, null);
     }
   } else {

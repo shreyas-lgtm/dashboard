@@ -12,20 +12,20 @@ function setup() {
   var register = ss.getSheetByName(CONFIG.SHEETS.REGISTER) || ss.insertSheet(CONFIG.SHEETS.REGISTER);
   if (register.getLastRow() === 0) {
     register.appendRow(CONFIG.REGISTER_HEADERS);
-    register.getRange(1, 1, 1, CONFIG.REGISTER_HEADERS.length)
-      .setFontWeight('bold').setBackground('#1a3c6e').setFontColor('#ffffff');
-    register.setFrozenRows(1);
-    var verifiedCol = CONFIG.REGISTER_HEADERS.indexOf('Verified') + 1;
-    register.getRange(2, verifiedCol, register.getMaxRows() - 1, 1).insertCheckboxes();
   }
+  register.getRange(1, 1, 1, CONFIG.REGISTER_HEADERS.length)
+    .setFontWeight('bold').setBackground('#1a3c6e').setFontColor('#ffffff');
+  register.setFrozenRows(1);
+  var verifiedCol = CONFIG.REGISTER_HEADERS.indexOf('Verified') + 1;
+  register.getRange(2, verifiedCol, register.getMaxRows() - 1, 1).insertCheckboxes();
 
   // --- Review tab: live filter of unresolved rows ---
   var review = ss.getSheetByName(CONFIG.SHEETS.REVIEW) || ss.insertSheet(CONFIG.SHEETS.REVIEW);
   if (review.getRange('A1').getValue() === '') {
     review.getRange('A1').setValue(
-      '=IFERROR(FILTER(' + CONFIG.SHEETS.REGISTER + '!A:S, ' +
-      CONFIG.SHEETS.REGISTER + '!R:R="' + CONFIG.STATUS.REVIEW + '", ' +
-      CONFIG.SHEETS.REGISTER + '!T:T=FALSE), "Nothing to review 🎉")'
+      '=IFERROR(FILTER(' + CONFIG.SHEETS.REGISTER + '!A:T, ' +
+      CONFIG.SHEETS.REGISTER + '!S:S="' + CONFIG.STATUS.REVIEW + '", ' +
+      CONFIG.SHEETS.REGISTER + '!U:U=FALSE), "Nothing to review 🎉")'
     );
     review.getRange('A2').setNote(
       'This tab is a live view. To clear an item: fix values on the Register tab ' +

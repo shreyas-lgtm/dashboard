@@ -57,8 +57,8 @@ var CONFIG = {
 
   REGISTER_HEADERS: [
     'Ingested At', 'Lane', 'File Name', 'File Link', 'Doc Type', 'Vendor',
-    'Doc Number', 'Doc Date', 'PO Ref', 'Currency', 'Subtotal', 'Tax',
-    'Total', 'Extractor Confidence', '2nd Read Total', 'Zoho PO Total',
+    'Doc Number', 'Doc Date', 'PO Ref', 'Currency', 'Subtotal', 'Discount',
+    'Tax', 'Total', 'Extractor Confidence', '2nd Read Total', 'Zoho PO Total',
     'Checks', 'Status', 'Notes', 'Verified',
   ],
 

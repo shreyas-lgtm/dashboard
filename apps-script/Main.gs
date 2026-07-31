@@ -34,6 +34,18 @@ function processInbox() {
         var file = files.next();
         if (file.getMimeType() === 'application/vnd.google-apps.folder') continue;
 
+        // ZIP archives are expanded in place; contents get picked up next pass.
+        if (/zip/.test(file.getMimeType()) || /\.zip$/i.test(file.getName())) {
+          try {
+            expandZip_(file, lane);
+          } catch (e) {
+            file.moveTo(DriveApp.getFolderById(lane.failedId));
+            log_('FAIL unzipping ' + file.getName() + ': ' + e.message);
+          }
+          processed++;
+          continue;
+        }
+
         try {
           var rowInfo = processFile_(file, lane, register, dedupeIndex);
           file.moveTo(DriveApp.getFolderById(lane.processedId));
@@ -97,8 +109,8 @@ function appendRegisterRow_(register, file, lane, x, v) {
     new Date(), lane.name, file.getName(), file.getUrl(),
     x.doc_type || '', x.vendor_name || '', x.document_number || '',
     x.document_date || '', x.po_reference || '', x.currency || '',
-    toNum_(x.subtotal), toNum_(x.tax_total), toNum_(x.grand_total),
-    x.confidence || '', v.secondTotal, v.zohoTotal,
+    toNum_(x.subtotal), toNum_(x.discount) || 0, toNum_(x.tax_total),
+    toNum_(x.grand_total), x.confidence || '', v.secondTotal, v.zohoTotal,
     v.checks.join('; '), v.status, x.notes || '', false,
   ]);
 }
@@ -106,9 +118,37 @@ function appendRegisterRow_(register, file, lane, x, v) {
 function appendFailedRow_(register, file, lane, errorMessage) {
   register.appendRow([
     new Date(), lane.name, file.getName(), file.getUrl(),
-    '', '', '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '',
     '', CONFIG.STATUS.FAILED, errorMessage, false,
   ]);
+}
+
+/**
+ * Unpacks a ZIP dropped into an inbox: PDFs/images land back in the inbox
+ * as individual files, the archive itself moves to Processed/.
+ *
+ * NOTE: zips of PAGE-SPLIT exports (e.g. ilovepdf "extract pages") are a bad
+ * input — continuation pages of multi-page documents arrive as separate,
+ * incomplete files and will pile up in Review. Upload whole per-document
+ * files instead.
+ */
+function expandZip_(zipFile, lane) {
+  var inbox = DriveApp.getFolderById(lane.inboxId);
+  var entries = Utilities.unzip(zipFile.getBlob().setContentType('application/zip'));
+  var kept = 0;
+  entries.forEach(function (blob) {
+    var name = blob.getName() || '';
+    if (/(^|\/)\./.test(name) || /__MACOSX/.test(name)) return; // junk entries
+    if (/\.pdf$/i.test(name)) blob.setContentType('application/pdf');
+    else if (/\.(jpe?g)$/i.test(name)) blob.setContentType('image/jpeg');
+    else if (/\.png$/i.test(name)) blob.setContentType('image/png');
+    else return; // skip anything that is not a pdf/image
+    blob.setName(name.split('/').pop());
+    inbox.createFile(blob);
+    kept++;
+  });
+  zipFile.moveTo(DriveApp.getFolderById(lane.processedId));
+  log_('Expanded ' + zipFile.getName() + ' into ' + kept + ' file(s) in ' + lane.name);
 }
 
 // ---------------------------------------------------------------------------

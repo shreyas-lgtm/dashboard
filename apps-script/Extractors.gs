@@ -16,6 +16,7 @@ var EXTRACT_FIELDS_INSTRUCTION =
   '  "po_reference": string | null,       // PO number referenced BY an invoice; for a PO, same as document_number\n' +
   '  "currency": string | null,           // ISO code, e.g. "INR"\n' +
   '  "subtotal": number | null,           // before tax, plain number (no separators)\n' +
+  '  "discount": number | null,           // discount amount as a POSITIVE number; null if none\n' +
   '  "tax_total": number | null,          // total of CGST+SGST+IGST or other tax\n' +
   '  "grand_total": number | null,        // final payable amount\n' +
   '  "confidence": "high" | "medium" | "low",\n' +

@@ -40,8 +40,11 @@ default) need **one** passing cross-check; totals at or above it need
 
 ## Deploy (one time, ~15 minutes)
 
-1. **Create the tracker spreadsheet** (any new Google Sheet). Copy its ID
-   from the URL.
+1. **Tracker spreadsheet** — already created: "V3 Invoice-PO Tracker" in the
+   V3 Drive folder (ID `101XI1E4HZ4hHdArtAtfR1laIeHp2OvHmiM6AWAHqTcs`),
+   pre-filled with 50 backfilled POs. **Rename its first tab to `Register`**
+   before running setup, so the script appends to it instead of creating a
+   second empty tab.
 2. Go to [script.google.com](https://script.google.com) → **New project**.
    Name it e.g. `Invoice Pipeline`.
 3. In the editor, enable **Project Settings → Show "appsscript.json"**, then
@@ -94,6 +97,11 @@ deliveries are normal) — only totals *exceeding* the PO get flagged.
 - Drop files into the right inbox folder (use the Drive app's **Scan** mode
   for paper documents — it auto-crops and deskews, and materially improves
   accuracy over raw camera photos).
+- ZIP files dropped into an inbox are auto-expanded: PDFs/images inside land
+  in the inbox as individual files, the archive moves to `Processed/`.
+  **Do not upload zips of page-split exports** (e.g. ilovepdf "extract
+  pages") — continuation pages of multi-page documents arrive as separate
+  incomplete files. Upload whole per-document PDFs.
 - Processed files move to `Processed/`, broken ones to `Failed/`.
 - Open the **Review** tab when the daily email says there's a backlog:
   compare the row against the linked file, fix any wrong cell on the
