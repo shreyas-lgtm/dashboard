@@ -94,12 +94,26 @@ function pdfToText_(file) {
 }
 
 /**
+ * Normalizes text before regex parsing. Drive's PDF→Doc conversion (and
+ * OCR) can emit non-breaking spaces, \r\n endings, and doubled spaces —
+ * any of which silently breaks exact-space regexes ("Sub Total" with an
+ * NBSP never matches "Sub Total" with a plain space).
+ */
+function normalizeText_(t) {
+  return String(t)
+    .replace(/\r\n?/g, '\n')                       // \r\n, \r → \n
+    .replace(/[\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000\uFEFF]/g, ' ') // unicode spaces → plain
+    .replace(/[^\S\n]+/g, ' ');                    // collapse space runs (keep newlines)
+}
+
+/**
  * Deterministic parser for Zoho-format POs (ported from the backfill parser
  * that handled 50/50 real POs with zero errors). Returns an extraction object
  * shaped like the Gemini output, or null if the text doesn't look like a
  * Zoho PO (caller then falls back to Gemini).
  */
 function parseZohoPo_(text) {
+  text = normalizeText_(text);
   var po = text.match(/#\s*(PO-\d+)/);
   var totalM = text.match(/(?<!Sub )Total\s+(₹|\$|CNY|USD|EUR)?\s*([\d,]+\.?\d*)/);
   if (!po || !totalM) return null;
@@ -107,7 +121,10 @@ function parseZohoPo_(text) {
   var num = function (s) { return parseFloat(s.replace(/,/g, '')); };
   var date = text.match(/Date\s*:\s*(\d{2})\/(\d{2})\/(\d{4})/);
   var ref = text.match(/Ref#\s*:\s*(\S+)/);
-  var vendor = text.match(/Vendor Address\s*\n(.+)/);
+  // Vendor name = first non-empty line after "Vendor Address" (tolerates
+  // blank lines or the name landing on the same line after conversion).
+  var vendor = text.match(/Vendor Address[^\S\n]*:?[^\S\n]*\n+\s*(.+)/) ||
+               text.match(/Vendor Address[^\S\n]*:?[^\S\n]+(\S.+)/);
   var sub = text.match(/Sub Total\s+([\d,]+\.?\d*)/);
   var disc = text.match(/Discount\s*\(-\)\s*([\d,]+\.?\d*)/);
   var adj = text.match(/Adjustment\s+(-?[\d,]+\.?\d*)/);
@@ -170,9 +187,22 @@ function geminiExtract_(file, laneDocType) {
   };
 
   var data = geminiCall_(body);
-  var parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+
+  // Distinguish the failure modes precisely — a generic "no text" hides
+  // exactly the kind of silent-nothing-parses problem we're guarding against.
+  if (data.promptFeedback && data.promptFeedback.blockReason) {
+    throw new Error('Gemini blocked the document (' + data.promptFeedback.blockReason + ')');
+  }
+  var cand = (data.candidates || [])[0];
+  if (!cand) throw new Error('Gemini returned no candidates: ' + JSON.stringify(data).slice(0, 300));
+  var parts = (cand.content || {}).parts || [];
   var text = parts.map(function (p) { return p.text || ''; }).join('');
-  if (!text) throw new Error('Gemini returned no text: ' + JSON.stringify(data).slice(0, 300));
+  if (cand.finishReason === 'MAX_TOKENS') {
+    throw new Error('Gemini output truncated (MAX_TOKENS) — raise CONFIG.GEMINI.MAX_OUTPUT_TOKENS');
+  }
+  if (!text) {
+    throw new Error('Gemini returned no text (finishReason: ' + (cand.finishReason || '?') + ')');
+  }
   return parseJsonLoose_(text);
 }
 

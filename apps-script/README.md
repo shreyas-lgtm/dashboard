@@ -94,16 +94,20 @@ same code to paid terms (no training) with no code change.
    | `ZOHO_PROXY_URL` | `https://<your-dashboard>.vercel.app/api/zoho` | optional |
    | `ALERT_EMAIL` | defaults to your own address | optional |
 
-6. Run **`testGeminiSetup`** from the editor toolbar (approve the consent
-   screen when asked). Check the execution log: it confirms the key works
-   and the configured model is available — **without spending any quota**.
-   If the model isn't listed, pick one from the logged Flash list and update
-   `CONFIG.GEMINI.MODEL`.
+6. Run **`dryRunChecks`** from the editor toolbar (approve the consent
+   screen when asked). It costs **zero Gemini quota** and PASS/FAIL-checks
+   everything that has ever silently broken a pipeline like this:
+   properties set, spreadsheet reachable, the `Register` tab named exactly
+   right (flags misspellings like "Resgister"), all six folders reachable,
+   the Gemini key valid and the model available (via ListModels, which is
+   free), and a full deterministic parse of a real PO from your Drive —
+   including the Drive text conversion. **Do not proceed past a FAIL.**
 7. Run **`setup`**. This creates the Review/Log tabs, adds the Verified
    checkboxes, and installs the triggers (processing every 15 min, summary
    email at 8am).
 8. Drop a test file in and either wait ≤15 min or run `processInbox`
-   manually.
+   manually. Optional: `pingGemini()` first — spends exactly 1 request to
+   prove end-to-end generation.
 
 ## Daily operation
 

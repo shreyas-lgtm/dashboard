@@ -11,6 +11,12 @@ function processInbox() {
   var started = Date.now();
   var ss = getSpreadsheet_();
   var register = ss.getSheetByName(CONFIG.SHEETS.REGISTER);
+  if (!register) {
+    // Without this guard a missing/misspelled tab crashes with an opaque
+    // null error on every trigger run — the classic silent failure.
+    log_("No tab named 'Register' found — run dryRunChecks() and fix the tab name. Skipping run.");
+    return;
+  }
   var dedupeIndex = buildDedupeIndex_(register);
   var processed = 0;
   var failures = [];
