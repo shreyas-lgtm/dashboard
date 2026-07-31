@@ -1,6 +1,15 @@
 /**
- * Extraction layer: Claude (primary, all lanes) and Google Document AI
- * (secondary cross-check for the Scans lane, optional).
+ * Extraction layer — free-tier build.
+ *
+ *   1. parseZohoPo_()   — deterministic parse of Zoho PO text. Zero API calls.
+ *                         Used first for the POs lane.
+ *   2. geminiExtract_() — Gemini API (free tier) for invoices, scans, and any
+ *                         PO the deterministic parser can't handle.
+ *
+ * Quota protection: every generateContent call goes through geminiCall_(),
+ * which enforces a self-imposed daily budget, paces requests, and converts
+ * 429/quota errors into a clean QUOTA_STOP (file stays in inbox, retried on
+ * a later run — quota is never wasted on retries).
  */
 
 var EXTRACT_FIELDS_INSTRUCTION =
@@ -29,118 +38,261 @@ var EXTRACT_FIELDS_INSTRUCTION =
   '- If the file contains MORE THAN ONE document, extract the first and state the count in notes with confidence "low".\n' +
   '- Never guess: use null and lower confidence rather than invent a value.';
 
+// ---------------------------------------------------------------------------
+// Deterministic Zoho PO parser (no API calls)
+// ---------------------------------------------------------------------------
+
 /**
- * Runs Claude extraction on a Drive file (PDF or image).
- * Returns the parsed JSON object.
+ * Extracts a PDF's text by converting it to a temporary Google Doc via the
+ * Drive REST API (free; also OCRs scanned pages), then deleting the temp doc.
  */
-function claudeExtract_(file, laneDocType) {
+function pdfToText_(file) {
+  var token = ScriptApp.getOAuthToken();
+  var boundary = 'xxPipelineBoundaryxx';
+  var metadata = JSON.stringify({
+    name: 'tmp-extract-' + file.getId(),
+    mimeType: 'application/vnd.google-apps.document',
+  });
+  var blob = file.getBlob();
+  var payload = Utilities.newBlob(
+    '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' +
+    metadata + '\r\n--' + boundary + '\r\nContent-Type: application/pdf\r\n\r\n'
+  ).getBytes()
+    .concat(blob.getBytes())
+    .concat(Utilities.newBlob('\r\n--' + boundary + '--').getBytes());
+
+  var res = UrlFetchApp.fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+    {
+      method: 'post',
+      contentType: 'multipart/related; boundary=' + boundary,
+      headers: { Authorization: 'Bearer ' + token },
+      payload: payload,
+      muteHttpExceptions: true,
+    }
+  );
+  if (res.getResponseCode() !== 200) {
+    throw new Error('Drive conversion failed (' + res.getResponseCode() + '): ' + res.getContentText().slice(0, 300));
+  }
+  var docId = JSON.parse(res.getContentText()).id;
+  try {
+    var exp = UrlFetchApp.fetch(
+      'https://www.googleapis.com/drive/v3/files/' + docId + '/export?mimeType=text/plain',
+      { headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true }
+    );
+    if (exp.getResponseCode() !== 200) {
+      throw new Error('Drive export failed (' + exp.getResponseCode() + ')');
+    }
+    return exp.getContentText();
+  } finally {
+    UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + docId, {
+      method: 'delete',
+      headers: { Authorization: 'Bearer ' + token },
+      muteHttpExceptions: true,
+    });
+  }
+}
+
+/**
+ * Deterministic parser for Zoho-format POs (ported from the backfill parser
+ * that handled 50/50 real POs with zero errors). Returns an extraction object
+ * shaped like the Gemini output, or null if the text doesn't look like a
+ * Zoho PO (caller then falls back to Gemini).
+ */
+function parseZohoPo_(text) {
+  var po = text.match(/#\s*(PO-\d+)/);
+  var totalM = text.match(/(?<!Sub )Total\s+(₹|\$|CNY|USD|EUR)?\s*([\d,]+\.?\d*)/);
+  if (!po || !totalM) return null;
+
+  var num = function (s) { return parseFloat(s.replace(/,/g, '')); };
+  var date = text.match(/Date\s*:\s*(\d{2})\/(\d{2})\/(\d{4})/);
+  var ref = text.match(/Ref#\s*:\s*(\S+)/);
+  var vendor = text.match(/Vendor Address\s*\n(.+)/);
+  var sub = text.match(/Sub Total\s+([\d,]+\.?\d*)/);
+  var disc = text.match(/Discount\s*\(-\)\s*([\d,]+\.?\d*)/);
+  var adj = text.match(/Adjustment\s+(-?[\d,]+\.?\d*)/);
+  var taxes = text.match(/(?:IGST|CGST|SGST|UTGST)\S*\s*\([\d.]+%\)\s+[\d,]+\.?\d*/g) || [];
+  var taxSum = 0;
+  taxes.forEach(function (t) {
+    taxSum += num(t.match(/([\d,]+\.?\d*)\s*$/)[1]);
+  });
+
+  var curMap = { '₹': 'INR', '$': 'USD', 'CNY': 'CNY', 'USD': 'USD', 'EUR': 'EUR' };
+  var notes = [];
+  if (disc) notes.push('discount ' + disc[1]);
+  if (adj) notes.push('adjustment ' + adj[1]);
+  if (ref) notes.push('ref ' + ref[1]);
+
+  return {
+    doc_type: 'purchase_order',
+    vendor_name: vendor ? vendor[1].trim() : null,
+    document_number: po[1],
+    document_date: date ? date[3] + '-' + date[2] + '-' + date[1] : null,
+    po_reference: po[1],
+    currency: curMap[totalM[1] || '₹'],
+    subtotal: sub ? num(sub[1]) : null,
+    discount: disc ? num(disc[1]) : 0,
+    tax_total: Math.round(taxSum * 100) / 100,
+    grand_total: num(totalM[2]),
+    confidence: 'high',
+    notes: notes.length ? 'deterministic parse; ' + notes.join('; ') : 'deterministic parse',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Gemini (free tier) extraction
+// ---------------------------------------------------------------------------
+
+function geminiExtract_(file, laneDocType) {
   var blob = file.getBlob();
   var mime = blob.getContentType();
-  var contentBlock;
-
-  if (mime === 'application/pdf') {
-    contentBlock = {
-      type: 'document',
-      source: { type: 'base64', media_type: 'application/pdf', data: Utilities.base64Encode(blob.getBytes()) },
-    };
-  } else if (/^image\/(png|jpeg|jpg|gif|webp)$/.test(mime)) {
-    contentBlock = {
-      type: 'image',
-      source: { type: 'base64', media_type: mime === 'image/jpg' ? 'image/jpeg' : mime, data: Utilities.base64Encode(blob.getBytes()) },
-    };
-  } else {
-    throw new Error('Unsupported file type: ' + mime);
-  }
+  if (mime === 'image/jpg') mime = 'image/jpeg';
+  var ok = mime === 'application/pdf' || /^image\/(png|jpeg|gif|webp)$/.test(mime);
+  if (!ok) throw new Error('Unsupported file type: ' + mime);
 
   var hint = laneDocType === 'auto'
     ? 'The document may be a purchase order or an invoice.'
     : 'This folder should contain only documents of type "' + laneDocType +
       '". If this document is clearly a different type, still extract it but flag the mismatch in notes.';
 
-  var payload = {
-    model: CONFIG.CLAUDE_MODEL,
-    max_tokens: CONFIG.CLAUDE_MAX_TOKENS,
-    messages: [{
-      role: 'user',
-      content: [contentBlock, { type: 'text', text: hint + '\n\n' + EXTRACT_FIELDS_INSTRUCTION }],
+  var body = {
+    contents: [{
+      parts: [
+        { inline_data: { mime_type: mime, data: Utilities.base64Encode(blob.getBytes()) } },
+        { text: hint + '\n\n' + EXTRACT_FIELDS_INSTRUCTION },
+      ],
     }],
+    generationConfig: {
+      temperature: 0,
+      maxOutputTokens: CONFIG.GEMINI.MAX_OUTPUT_TOKENS,
+      responseMimeType: 'application/json',
+    },
   };
 
-  var res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
-    method: 'post',
-    contentType: 'application/json',
-    headers: {
-      'x-api-key': getProp_('ANTHROPIC_API_KEY'),
-      'anthropic-version': '2023-06-01',
-    },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true,
-  });
-
-  if (res.getResponseCode() !== 200) {
-    throw new Error('Claude API error ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 500));
-  }
-
-  var body = JSON.parse(res.getContentText());
-  var text = (body.content || [])
-    .filter(function (b) { return b.type === 'text'; })
-    .map(function (b) { return b.text; })
-    .join('');
-
+  var data = geminiCall_(body);
+  var parts = (((data.candidates || [])[0] || {}).content || {}).parts || [];
+  var text = parts.map(function (p) { return p.text || ''; }).join('');
+  if (!text) throw new Error('Gemini returned no text: ' + JSON.stringify(data).slice(0, 300));
   return parseJsonLoose_(text);
 }
 
 /**
- * Runs Google Document AI Invoice Parser on a Drive file (optional 2nd read).
- * Returns { grand_total, vendor_name, document_number } or null when not configured.
- * Requires the Apps Script project to be attached to the same GCP project.
+ * The single funnel for every generateContent call. Enforces the daily
+ * budget, paces requests, and turns quota errors into QUOTA_STOP.
  */
-function docAiExtract_(file) {
-  if (!docAiConfigured_()) return null;
+function geminiCall_(body) {
+  if (!budgetAvailable_()) {
+    throw new Error(QUOTA_STOP + ': self-imposed daily budget (' + CONFIG.GEMINI.DAILY_BUDGET + ') reached');
+  }
 
-  var p = PropertiesService.getScriptProperties();
-  var project = p.getProperty('DOCAI_PROJECT_ID');
-  var location = p.getProperty('DOCAI_LOCATION');
-  var processor = p.getProperty('DOCAI_PROCESSOR_ID');
+  // Pace: stay far below the free RPM limit.
+  var props = PropertiesService.getScriptProperties();
+  var last = Number(props.getProperty('GEMINI_LAST_CALL_MS') || 0);
+  var wait = last + CONFIG.GEMINI.MIN_MS_BETWEEN_CALLS - Date.now();
+  if (wait > 0) Utilities.sleep(wait);
 
-  var url = 'https://' + location + '-documentai.googleapis.com/v1/projects/' +
-    project + '/locations/' + location + '/processors/' + processor + ':process';
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
+    CONFIG.GEMINI.MODEL + ':generateContent?key=' + getProp_('GEMINI_API_KEY');
 
-  var blob = file.getBlob();
   var res = UrlFetchApp.fetch(url, {
     method: 'post',
     contentType: 'application/json',
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-    payload: JSON.stringify({
-      rawDocument: {
-        content: Utilities.base64Encode(blob.getBytes()),
-        mimeType: blob.getContentType(),
-      },
-    }),
+    payload: JSON.stringify(body),
     muteHttpExceptions: true,
   });
+  props.setProperty('GEMINI_LAST_CALL_MS', String(Date.now()));
+  recordBudgetUse_();
 
-  if (res.getResponseCode() !== 200) {
-    throw new Error('Document AI error ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 500));
+  var code = res.getResponseCode();
+  if (code === 429) {
+    // Real quota hit (RPM or RPD). Do NOT retry — that burns more quota.
+    markQuotaExhausted_();
+    throw new Error(QUOTA_STOP + ': Gemini returned 429 (quota). Will retry on a later run.');
   }
-
-  var doc = JSON.parse(res.getContentText()).document || {};
-  var out = { grand_total: null, vendor_name: null, document_number: null };
-  (doc.entities || []).forEach(function (e) {
-    if (e.type === 'total_amount') out.grand_total = numFromDocAi_(e);
-    if (e.type === 'supplier_name') out.vendor_name = e.mentionText || null;
-    if (e.type === 'invoice_id') out.document_number = e.mentionText || null;
-  });
-  return out;
+  if (code !== 200) {
+    throw new Error('Gemini API error ' + code + ': ' + res.getContentText().slice(0, 400));
+  }
+  return JSON.parse(res.getContentText());
 }
 
-function numFromDocAi_(entity) {
-  if (entity.normalizedValue && entity.normalizedValue.moneyValue) {
-    var m = entity.normalizedValue.moneyValue;
-    return Number(m.units || 0) + Number(m.nanos || 0) / 1e9;
+// --- Daily budget bookkeeping (resets at midnight Pacific, like Google's) ---
+
+function quotaDayKey_() {
+  return Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
+}
+
+function budgetState_() {
+  var raw = PropertiesService.getScriptProperties().getProperty('GEMINI_BUDGET');
+  var s = raw ? JSON.parse(raw) : {};
+  if (s.day !== quotaDayKey_()) s = { day: quotaDayKey_(), used: 0, exhausted: false };
+  return s;
+}
+
+function saveBudgetState_(s) {
+  PropertiesService.getScriptProperties().setProperty('GEMINI_BUDGET', JSON.stringify(s));
+}
+
+function budgetAvailable_() {
+  var s = budgetState_();
+  return !s.exhausted && s.used < CONFIG.GEMINI.DAILY_BUDGET;
+}
+
+function recordBudgetUse_() {
+  var s = budgetState_();
+  s.used++;
+  saveBudgetState_(s);
+}
+
+function markQuotaExhausted_() {
+  var s = budgetState_();
+  s.exhausted = true;
+  saveBudgetState_(s);
+}
+
+function isQuotaStop_(e) {
+  return e && String(e.message || e).indexOf(QUOTA_STOP) !== -1;
+}
+
+// ---------------------------------------------------------------------------
+// Setup helpers — verify the key/model WITHOUT spending generation quota
+// ---------------------------------------------------------------------------
+
+/**
+ * Run manually from the editor. Calls ListModels (does not count against
+ * generateContent quota) and confirms the configured model is available to
+ * your key. Check the execution log for the result.
+ */
+function testGeminiSetup() {
+  var res = UrlFetchApp.fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models?pageSize=100&key=' + getProp_('GEMINI_API_KEY'),
+    { muteHttpExceptions: true }
+  );
+  if (res.getResponseCode() !== 200) {
+    console.log('KEY PROBLEM — ListModels returned ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 400));
+    return;
   }
-  var n = parseFloat(String(entity.mentionText || '').replace(/[^0-9.\-]/g, ''));
-  return isNaN(n) ? null : n;
+  var models = (JSON.parse(res.getContentText()).models || []).map(function (m) {
+    return m.name.replace('models/', '');
+  });
+  console.log('Key is valid. ' + models.length + ' models visible.');
+  console.log('Configured model "' + CONFIG.GEMINI.MODEL + '" available: ' +
+    (models.indexOf(CONFIG.GEMINI.MODEL) !== -1));
+  console.log('Flash-family models you could use instead: ' +
+    models.filter(function (m) { return m.indexOf('flash') !== -1 && m.indexOf('preview') === -1; }).join(', '));
+  var s = budgetState_();
+  console.log('Budget today: ' + s.used + '/' + CONFIG.GEMINI.DAILY_BUDGET + ' used' + (s.exhausted ? ' (EXHAUSTED flag set)' : ''));
+}
+
+/**
+ * Optional, run manually: makes exactly ONE tiny generateContent call
+ * (costs 1 request of daily quota) to prove end-to-end generation works.
+ */
+function pingGemini() {
+  var data = geminiCall_({
+    contents: [{ parts: [{ text: 'Reply with exactly: OK' }] }],
+    generationConfig: { maxOutputTokens: 5, temperature: 0 },
+  });
+  console.log(JSON.stringify(data.candidates[0].content.parts));
 }
 
 /** Tolerant JSON parse: strips markdown fences and leading/trailing prose. */

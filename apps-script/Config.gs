@@ -1,18 +1,18 @@
 /**
- * Central configuration for the Invoice/PO parsing pipeline.
+ * Central configuration for the Invoice/PO parsing pipeline (FREE TIER build).
  *
- * Folder IDs below point at the "V3 Invoices-PO-Scan" structure in Drive.
- * Secrets (API keys) live in Script Properties, never in code:
- *   File > Project properties > Script properties
+ * Extraction strategy:
+ *   - POs lane        → deterministic text parse (no API calls at all)
+ *   - Invoices/Scans  → Gemini API free tier, one call per document,
+ *                       paced and capped by a self-imposed daily budget
+ *
+ * Secrets live in Script Properties (File > Project settings > Script properties):
  *
  * Required script properties:
- *   ANTHROPIC_API_KEY   — Claude API key (console.anthropic.com)
+ *   GEMINI_API_KEY      — free key from https://aistudio.google.com/apikey
  *   SPREADSHEET_ID      — ID of the tracker spreadsheet
  *
  * Optional script properties:
- *   DOCAI_PROJECT_ID    — GCP project with Document AI enabled
- *   DOCAI_LOCATION      — e.g. "us" or "eu"
- *   DOCAI_PROCESSOR_ID  — Invoice Parser processor ID
  *   ZOHO_PROXY_URL      — e.g. https://<your-dashboard>.vercel.app/api/zoho
  *   ALERT_EMAIL         — where failure/summary emails go (defaults to owner)
  */
@@ -26,7 +26,7 @@ var CONFIG = {
       inboxId: '13GNrJrQmXWbePrQmlYm8EXSEBNp-Wosc',
       processedId: '1K5US04XU5YcWicOOC638L8DYvRFq3B_d',
       failedId: '1SuOtdqpwu678xKWdrXBXUvsIJG3lPp1U',
-      dualRead: false,
+      deterministicFirst: true, // parse Zoho PO text directly; Gemini only as fallback
     },
     {
       name: 'Invoices-PDF',
@@ -34,7 +34,7 @@ var CONFIG = {
       inboxId: '1NGwUgZo9b9igbgWNTpY6uFJBvl1w63jz',
       processedId: '1ZZ_PxDdowIboVsiW9kNiyZ5wWY4bt1A6',
       failedId: '1TRe-R7PKw_19UBC5mFT24XbKjSXQkw_V',
-      dualRead: false,
+      deterministicFirst: false,
     },
     {
       name: 'Scans',
@@ -42,7 +42,7 @@ var CONFIG = {
       inboxId: '1Ly7yf6DdsC3K_K7FPDwuvO622bzVpI31',
       processedId: '1Xc0qxFaq-Rq_nEFLMdyg-UjEbSwhbUZY',
       failedId: '1yXKVDy54kTE0F26MusKSHv5k4_kWt7fW',
-      dualRead: true, // cross-validate with Document AI when configured
+      deterministicFirst: false,
     },
   ],
 
@@ -65,18 +65,29 @@ var CONFIG = {
   // --- Processing limits (Apps Script has a 6-minute execution cap) ---
   MAX_FILES_PER_RUN: 5,
   MAX_RUNTIME_MS: 4.5 * 60 * 1000,
-  MAX_FILE_BYTES: 30 * 1024 * 1024, // Claude PDF limit is 32 MB
+  MAX_FILE_BYTES: 18 * 1024 * 1024, // Gemini inline data limit is ~20 MB per request
 
-  // --- Extraction ---
-  CLAUDE_MODEL: 'claude-sonnet-5',
-  CLAUDE_MAX_TOKENS: 1500,
+  // --- Gemini free tier settings ---
+  GEMINI: {
+    // Stable, free-tier-eligible model. Change here if Google renames tiers;
+    // run testGeminiSetup() after changing to verify the ID is valid for
+    // your key WITHOUT spending any generation quota.
+    MODEL: 'gemini-2.5-flash',
+    // Self-imposed ceiling on generateContent calls per day (Pacific time,
+    // matching Google's quota reset). Keep this WELL below your key's real
+    // RPD limit — check yours in AI Studio. Free limits have been cut
+    // before (Dec 2025) and can change without notice.
+    DAILY_BUDGET: 150,
+    // Pause between calls to stay far under the free RPM limit (~10/min).
+    MIN_MS_BETWEEN_CALLS: 7000,
+    MAX_OUTPUT_TOKENS: 1024,
+  },
 
   // Auto-accept an invoice above this amount only if it has TWO passing
-  // cross-checks (dual read agreement or a Zoho PO match). Below it, one is
-  // enough. Set to 0 to always require two.
+  // cross-checks. Below it, one is enough. Set to 0 to always require two.
   HIGH_VALUE_THRESHOLD: 100000,
 
-  // Relative tolerance when comparing totals (dual read / Zoho PO match).
+  // Relative tolerance when comparing totals (Zoho PO match).
   TOTAL_TOLERANCE: 0.005, // 0.5%
 
   STATUS: {
@@ -86,6 +97,10 @@ var CONFIG = {
     FAILED: 'FAILED',
   },
 };
+
+// Internal marker used to halt a run cleanly when the Gemini budget/quota is
+// hit: files stay in the inbox and are retried on a later run.
+var QUOTA_STOP = 'GEMINI_QUOTA_STOP';
 
 function getProp_(key, optional) {
   var v = PropertiesService.getScriptProperties().getProperty(key);
@@ -97,11 +112,4 @@ function getProp_(key, optional) {
 
 function getSpreadsheet_() {
   return SpreadsheetApp.openById(getProp_('SPREADSHEET_ID'));
-}
-
-function docAiConfigured_() {
-  var p = PropertiesService.getScriptProperties();
-  return !!(p.getProperty('DOCAI_PROJECT_ID') &&
-            p.getProperty('DOCAI_LOCATION') &&
-            p.getProperty('DOCAI_PROCESSOR_ID'));
 }

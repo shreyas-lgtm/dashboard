@@ -1,7 +1,8 @@
 /**
  * One-time setup. Run setup() manually from the editor after:
- *   1. Setting SPREADSHEET_ID and ANTHROPIC_API_KEY in Script Properties.
- *   2. (Optional) DOCAI_*, ZOHO_PROXY_URL, ALERT_EMAIL properties.
+ *   1. Setting SPREADSHEET_ID and GEMINI_API_KEY in Script Properties.
+ *   2. (Optional) ZOHO_PROXY_URL, ALERT_EMAIL properties.
+ *   3. Running testGeminiSetup() to verify the key (costs zero quota).
  *
  * It is idempotent — safe to run again after config changes.
  */
@@ -48,7 +49,7 @@ function setup() {
 
   installTriggers_();
   log_('Setup complete. Lanes: ' + CONFIG.LANES.map(function (l) { return l.name; }).join(', ') +
-       '. Document AI: ' + (docAiConfigured_() ? 'on' : 'off') +
+       '. Extractor: Gemini free tier (' + CONFIG.GEMINI.MODEL + ', budget ' + CONFIG.GEMINI.DAILY_BUDGET + '/day)' +
        '. Zoho proxy: ' + (PropertiesService.getScriptProperties().getProperty('ZOHO_PROXY_URL') ? 'on' : 'off'));
 }
 

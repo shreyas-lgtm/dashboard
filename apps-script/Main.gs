@@ -51,6 +51,13 @@ function processInbox() {
           file.moveTo(DriveApp.getFolderById(lane.processedId));
           log_('OK [' + lane.name + '] ' + file.getName() + ' → ' + rowInfo.status);
         } catch (e) {
+          if (isQuotaStop_(e)) {
+            // Gemini budget/quota reached: leave the file in the inbox
+            // untouched and end the run. It will be picked up automatically
+            // once quota resets — no quota is wasted on retries.
+            log_('QUOTA STOP [' + lane.name + '] ' + file.getName() + ': ' + e.message);
+            return;
+          }
           failures.push(lane.name + '/' + file.getName() + ': ' + e.message);
           try {
             appendFailedRow_(register, file, lane, e.message);
@@ -75,19 +82,22 @@ function processFile_(file, lane, register, dedupeIndex) {
     throw new Error('File too large (' + Math.round(file.getSize() / 1e6) + ' MB)');
   }
 
-  var extracted = claudeExtract_(file, lane.docType);
-
-  var secondRead = null;
-  if (lane.dualRead && docAiConfigured_()) {
+  // Free-tier routing: POs get the deterministic parser first (zero API
+  // calls); Gemini is only used for invoices, scans, and POs that don't
+  // match the Zoho layout.
+  var extracted = null;
+  if (lane.deterministicFirst && file.getMimeType() === 'application/pdf') {
     try {
-      secondRead = docAiExtract_(file);
+      extracted = parseZohoPo_(pdfToText_(file));
     } catch (e) {
-      // A DocAI outage shouldn't block ingestion — the row just loses one check.
-      extracted.notes = ((extracted.notes || '') + ' | DocAI failed: ' + e.message).trim();
+      log_('Deterministic parse failed for ' + file.getName() + ' (' + e.message + '); falling back to Gemini.');
     }
   }
+  if (!extracted) {
+    extracted = geminiExtract_(file, lane.docType);
+  }
 
-  var v = validate_(extracted, secondRead, lane, dedupeIndex);
+  var v = validate_(extracted, null, lane, dedupeIndex);
 
   // Lane/doc-type mismatch (e.g. a PO dropped into Invoices-PDF) forces review.
   if (lane.docType !== 'auto' && extracted.doc_type && extracted.doc_type !== lane.docType &&

@@ -41,20 +41,25 @@ function validate_(extracted, secondRead, lane, dedupeIndex) {
     checks.push('arithmetic not checkable (missing subtotal/tax)');
   }
 
-  // --- Check 2: dual-read agreement (Scans lane, when Document AI ran) ---
+  // --- Check 2: dual-read agreement (kept for future paid extractors;
+  // always null in the free-tier build, so no check runs here) ---
   var secondTotal = secondRead ? toNum_(secondRead.grand_total) : null;
-  if (lane.dualRead) {
-    if (secondTotal !== null) {
-      if (closeEnough_(total, secondTotal)) {
-        checks.push('dual read agrees');
-        passes++;
-      } else {
-        checks.push('DUAL READ DISAGREES: Claude ' + total + ' vs DocAI ' + secondTotal);
-        return result_(CONFIG.STATUS.REVIEW, checks, null, secondTotal);
-      }
+  if (secondTotal !== null) {
+    if (closeEnough_(total, secondTotal)) {
+      checks.push('dual read agrees');
+      passes++;
     } else {
-      checks.push('single extractor only (Document AI not configured)');
+      checks.push('DUAL READ DISAGREES: ' + total + ' vs ' + secondTotal);
+      return result_(CONFIG.STATUS.REVIEW, checks, null, secondTotal);
     }
+  }
+
+  // Deterministic parses of known formats count as a passing check by
+  // themselves — they can't hallucinate, and the arithmetic check above
+  // already validated internal consistency.
+  if (/deterministic parse/.test(extracted.notes || '')) {
+    checks.push('deterministic (known format)');
+    passes++;
   }
 
   // --- Check 3: Zoho PO cross-check (best effort) ---
