@@ -134,6 +134,10 @@ function parseZohoPo_(text) {
     taxSum += num(t.match(/([\d,]+\.?\d*)\s*$/)[1]);
   });
 
+  // Drive conversion sometimes folds the next line (GSTIN, phone) into the
+  // vendor line — strip anything from GSTIN/phone onwards.
+  var vendorName = vendor ? vendor[1].trim().replace(/\s*(GSTIN|GST IN|Ph(one)?[.:]).*$/i, '').trim() : null;
+
   var curMap = { '₹': 'INR', '$': 'USD', 'CNY': 'CNY', 'USD': 'USD', 'EUR': 'EUR' };
   var notes = [];
   if (disc) notes.push('discount ' + disc[1]);
@@ -142,7 +146,7 @@ function parseZohoPo_(text) {
 
   return {
     doc_type: 'purchase_order',
-    vendor_name: vendor ? vendor[1].trim() : null,
+    vendor_name: vendorName,
     document_number: po[1],
     document_date: date ? date[3] + '-' + date[2] + '-' + date[1] : null,
     po_reference: po[1],
