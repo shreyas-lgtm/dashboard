@@ -18,7 +18,11 @@ function setup() {
     .setFontWeight('bold').setBackground('#1a3c6e').setFontColor('#ffffff');
   register.setFrozenRows(1);
   var verifiedCol = CONFIG.REGISTER_HEADERS.indexOf('Verified') + 1;
-  register.getRange(2, verifiedCol, register.getMaxRows() - 1, 1).insertCheckboxes();
+  // Checkbox VALIDATION only (no inserted FALSE values) — insertCheckboxes()
+  // fills cells with unchecked values, which makes appendRow() treat the
+  // whole column as occupied and strand new rows at the sheet bottom.
+  var checkboxRule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+  register.getRange(2, verifiedCol, register.getMaxRows() - 1, 1).setDataValidation(checkboxRule);
 
   // --- Review tab: live filter of unresolved rows ---
   var review = ss.getSheetByName(CONFIG.SHEETS.REVIEW) || ss.insertSheet(CONFIG.SHEETS.REVIEW);
