@@ -211,10 +211,51 @@ function geminiExtract_(file, laneDocType) {
 }
 
 /**
- * The single funnel for every generateContent call. Enforces the daily
- * budget, paces requests, and turns quota errors into QUOTA_STOP.
+ * The model actually used for calls: a discovered override (set by
+ * self-healing below) wins over the configured default.
  */
-function geminiCall_(body) {
+function effectiveGeminiModel_() {
+  return PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL_ACTIVE') ||
+         CONFIG.GEMINI.MODEL;
+}
+
+/**
+ * Discovers the best Flash-family model this key can actually use, via
+ * ListModels (free — no generation quota). Prefers newest version, full
+ * Flash over Lite, stable over preview/experimental.
+ */
+function resolveGeminiModel_() {
+  var res = UrlFetchApp.fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=' + getProp_('GEMINI_API_KEY'),
+    { muteHttpExceptions: true }
+  );
+  if (res.getResponseCode() !== 200) return null;
+  var names = (JSON.parse(res.getContentText()).models || [])
+    .filter(function (m) {
+      return (m.supportedGenerationMethods || []).indexOf('generateContent') !== -1;
+    })
+    .map(function (m) { return m.name.replace('models/', ''); })
+    .filter(function (n) {
+      return /flash/.test(n) && !/preview|exp|image|tts|live|audio|thinking|8b/.test(n);
+    });
+  if (!names.length) return null;
+  var score = function (n) {
+    var v = parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/) || [0, '0'])[1]) * 100;
+    if (!/lite/.test(n)) v += 10;   // full flash beats lite
+    if (/latest/.test(n)) v += 1;   // "-latest" alias beats dated snapshot
+    return v;
+  };
+  names.sort(function (a, b) { return score(b) - score(a); });
+  return names[0];
+}
+
+/**
+ * The single funnel for every generateContent call. Enforces the daily
+ * budget, paces requests, turns quota errors into QUOTA_STOP, and
+ * SELF-HEALS model retirement: on "model not available" it re-discovers a
+ * usable Flash model via ListModels, remembers it, and retries once.
+ */
+function geminiCall_(body, isRetry) {
   if (!budgetAvailable_()) {
     throw new Error(QUOTA_STOP + ': self-imposed daily budget (' + CONFIG.GEMINI.DAILY_BUDGET + ') reached');
   }
@@ -225,8 +266,9 @@ function geminiCall_(body) {
   var wait = last + CONFIG.GEMINI.MIN_MS_BETWEEN_CALLS - Date.now();
   if (wait > 0) Utilities.sleep(wait);
 
+  var model = effectiveGeminiModel_();
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
-    CONFIG.GEMINI.MODEL + ':generateContent?key=' + getProp_('GEMINI_API_KEY');
+    model + ':generateContent?key=' + getProp_('GEMINI_API_KEY');
 
   var res = UrlFetchApp.fetch(url, {
     method: 'post',
@@ -243,10 +285,19 @@ function geminiCall_(body) {
     markQuotaExhausted_();
     throw new Error(QUOTA_STOP + ': Gemini returned 429 (quota). Will retry on a later run.');
   }
-  if (code !== 200) {
-    throw new Error('Gemini API error ' + code + ': ' + res.getContentText().slice(0, 400));
+  var text = res.getContentText();
+  if (code === 404 && /no longer available|not found|NOT_FOUND/i.test(text) && !isRetry) {
+    var next = resolveGeminiModel_();
+    if (next && next !== model) {
+      props.setProperty('GEMINI_MODEL_ACTIVE', next);
+      log_('Gemini model "' + model + '" unavailable for this key — switched to "' + next + '" (auto-discovered).');
+      return geminiCall_(body, true);
+    }
   }
-  return JSON.parse(res.getContentText());
+  if (code !== 200) {
+    throw new Error('Gemini API error ' + code + ' (model ' + model + '): ' + text.slice(0, 400));
+  }
+  return JSON.parse(text);
 }
 
 // --- Daily budget bookkeeping (resets at midnight Pacific, like Google's) ---
@@ -309,9 +360,10 @@ function testGeminiSetup() {
     return m.name.replace('models/', '');
   });
   console.log('Key is valid. ' + models.length + ' models visible.');
-  console.log('Configured model "' + CONFIG.GEMINI.MODEL + '" available: ' +
-    (models.indexOf(CONFIG.GEMINI.MODEL) !== -1));
-  console.log('Flash-family models you could use instead: ' +
+  console.log('Configured model: "' + CONFIG.GEMINI.MODEL + '". Active override: ' +
+    (PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL_ACTIVE') || '(none)'));
+  console.log('Auto-discovery would pick: "' + resolveGeminiModel_() + '"');
+  console.log('Flash-family models visible: ' +
     models.filter(function (m) { return m.indexOf('flash') !== -1 && m.indexOf('preview') === -1; }).join(', '));
   var s = budgetState_();
   console.log('Budget today: ' + s.used + '/' + CONFIG.GEMINI.DAILY_BUDGET + ' used' + (s.exhausted ? ' (EXHAUSTED flag set)' : ''));
