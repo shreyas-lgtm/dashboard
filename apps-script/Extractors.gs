@@ -285,6 +285,11 @@ function geminiCall_(body, isRetry) {
     markQuotaExhausted_();
     throw new Error(QUOTA_STOP + ': Gemini returned 429 (quota). Will retry on a later run.');
   }
+  if (code >= 500) {
+    // Transient Google-side error (503 overloaded, 500). NOT a document
+    // problem: leave the file in the inbox and retry on the next run.
+    throw new Error(QUOTA_STOP + ': Gemini ' + code + ' (server busy) — file stays in inbox, retried next run.');
+  }
   var text = res.getContentText();
   if (code === 404 && /no longer available|not found|NOT_FOUND/i.test(text) && !isRetry) {
     var next = resolveGeminiModel_();
