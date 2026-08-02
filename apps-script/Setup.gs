@@ -38,6 +38,15 @@ function setup() {
     );
   }
 
+  // --- Line Items tab (Layer 2) ---
+  var li = ss.getSheetByName(CONFIG.SHEETS.LINE_ITEMS) || ss.insertSheet(CONFIG.SHEETS.LINE_ITEMS);
+  if (li.getLastRow() === 0) {
+    li.appendRow(CONFIG.LINE_HEADERS);
+    li.getRange(1, 1, 1, CONFIG.LINE_HEADERS.length)
+      .setFontWeight('bold').setBackground('#1a3c6e').setFontColor('#ffffff');
+    li.setFrozenRows(1);
+  }
+
   // --- Log tab ---
   var log = ss.getSheetByName(CONFIG.SHEETS.LOG) || ss.insertSheet(CONFIG.SHEETS.LOG);
   if (log.getLastRow() === 0) {
@@ -174,6 +183,57 @@ function dryRunChecks() {
 function firstPdfIn_(folderId) {
   var it = DriveApp.getFolderById(folderId).getFilesByType('application/pdf');
   return it.hasNext() ? it.next() : null;
+}
+
+/**
+ * LAYER 2 BACKFILL — run manually a few times until the log says complete.
+ * Extracts line items from the 50 historical POs in POs/Processed/ (all
+ * free, deterministic) and writes them to the Line Items tab. Idempotent:
+ * documents whose lines are already recorded are skipped, so re-running is
+ * always safe. Processes up to 12 files per run to stay under the 6-minute
+ * execution cap.
+ */
+function backfillLineItems() {
+  var started = Date.now();
+  var ss = getSpreadsheet_();
+  var li = ss.getSheetByName(CONFIG.SHEETS.LINE_ITEMS);
+  if (!li) { console.log("Run setup() first — no 'Line Items' tab."); return; }
+
+  // Doc numbers already backfilled
+  var have = {};
+  if (li.getLastRow() > 1) {
+    li.getRange(2, 2, li.getLastRow() - 1, 1).getValues().forEach(function (r) {
+      if (r[0]) have[String(r[0])] = true;
+    });
+  }
+
+  var files = DriveApp.getFolderById(CONFIG.LANES[0].processedId).getFilesByType('application/pdf');
+  var done = 0, skipped = 0, failed = 0;
+  while (files.hasNext()) {
+    if (done >= 12 || Date.now() - started > CONFIG.MAX_RUNTIME_MS) {
+      console.log('Batch limit reached: ' + done + ' backfilled this run, ' + skipped + ' already present. RUN AGAIN to continue.');
+      return;
+    }
+    var file = files.next();
+    try {
+      // Cheap skip: file names are PO-xxxxx.pdf
+      var guess = (file.getName().match(/PO-\d+/) || [null])[0];
+      if (guess && have[guess]) { skipped++; continue; }
+
+      var parsed = parseZohoPo_(pdfToText_(file));
+      if (!parsed) { failed++; log_('Backfill: ' + file.getName() + ' is not a Zoho PO — skipped.'); continue; }
+      if (have[parsed.document_number]) { skipped++; continue; }
+      if (!parsed.line_items.length) { failed++; log_('Backfill: no line items found in ' + file.getName()); continue; }
+      writeLineItems_(ss, file, parsed);
+      have[parsed.document_number] = true;
+      done++;
+    } catch (e) {
+      failed++;
+      log_('Backfill error on ' + file.getName() + ': ' + e.message);
+    }
+  }
+  console.log('BACKFILL COMPLETE: ' + done + ' added this run, ' + skipped + ' already present, ' + failed + ' problems (see Log tab).');
+  log_('Line-item backfill complete.');
 }
 
 /**

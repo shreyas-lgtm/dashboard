@@ -114,10 +114,38 @@ function processFile_(file, lane, register, dedupeIndex) {
 
   appendRegisterRow_(register, file, lane, extracted, v);
 
+  // LAYER 2: line items (currently produced by the deterministic PO parser
+  // only). Duplicates are skipped — their lines are already recorded.
+  if (v.status !== CONFIG.STATUS.DUPLICATE && extracted.line_items && extracted.line_items.length) {
+    writeLineItems_(register.getParent(), file, extracted);
+  }
+
   var key = dedupeKey_(extracted);
   if (key) dedupeIndex[key] = register.getLastRow();
 
   return v;
+}
+
+/** Batch-writes one document's line items to the Line Items tab. */
+function writeLineItems_(ss, file, x) {
+  var sh = ss.getSheetByName(CONFIG.SHEETS.LINE_ITEMS);
+  if (!sh) {
+    sh = ss.insertSheet(CONFIG.SHEETS.LINE_ITEMS);
+    sh.appendRow(CONFIG.LINE_HEADERS);
+    sh.getRange(1, 1, 1, CONFIG.LINE_HEADERS.length)
+      .setFontWeight('bold').setBackground('#1a3c6e').setFontColor('#ffffff');
+    sh.setFrozenRows(1);
+  }
+  var now = new Date();
+  var rows = x.line_items.map(function (it) {
+    return [
+      now, x.document_number || '', x.doc_type || '', x.vendor_name || '',
+      x.document_date || '', it.n, it.description, it.part_number || '',
+      it.hsn || '', it.qty, it.rate, it.amount, x.currency || '',
+      it.check, file.getName(),
+    ];
+  });
+  sh.getRange(sh.getLastRow() + 1, 1, rows.length, CONFIG.LINE_HEADERS.length).setValues(rows);
 }
 
 function appendRegisterRow_(register, file, lane, x, v) {

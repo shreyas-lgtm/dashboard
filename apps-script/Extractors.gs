@@ -157,6 +157,95 @@ function parseZohoPo_(text) {
     grand_total: num(totalM[2]),
     confidence: 'high',
     notes: notes.length ? 'deterministic parse; ' + notes.join('; ') : 'deterministic parse',
+    line_items: parseZohoPoLines_(text, sub ? num(sub[1]) : null),
+  };
+}
+
+/**
+ * LAYER 2 — Extracts line items (description, qty, UNIT RATE, amount) from
+ * Zoho PO text. Deterministic and self-validating: a number run only counts
+ * as a line's qty/rate/amount if qty × rate ≈ amount, which makes false
+ * matches from numbers inside descriptions ("4:1", "1.0 meter") nearly
+ * impossible. Lines must additionally sum to the document subtotal or every
+ * line is flagged. Returns [] when no item table is found.
+ */
+function parseZohoPoLines_(text, subtotal) {
+  var HEADER = /#\s*Item\s*&\s*Description(\s+HSN\/SAC)?\s+Qty\s+Rate\s+Amount/g;
+  var head = HEADER.exec(text);
+  if (!head) return [];
+  var hasHsn = !!head[1];
+
+  // Region: from the first header to the signature/notes tail.
+  var tail = text.slice(head.index).search(/\n(Authorized Signature|Notes\n|Terms & Conditions)/);
+  var region = tail === -1 ? text.slice(head.index) : text.slice(head.index, head.index + tail);
+
+  region = region
+    .replace(HEADER, '\n')                    // strip (repeated) table headers
+    .replace(/(\d[\d,]*\.)\n(\d)/g, '$1$2')   // rejoin numbers wrapped after the dot: "3,19,506.\n00"
+    .replace(/(\d[\d,]*)\n(\.\d+)/g, '$1$2')  // ...and wrapped before the dot: "14,63,000\n.00"
+    // totals block can appear mid-region at a page break — remove those lines
+    .replace(/^(Sub Total|Total\s*[₹$]|Total\s+(CNY|USD|EUR|[\d,])|Discount\s*\(-\)|(IGST|CGST|SGST|UTGST)\S*|Adjustment)[^\n]*$/gm, '')
+    .replace(/\n\d{1,2}(?=\n)/g, '\n');       // standalone page-number lines
+
+  var isNum = function (t) { return /^-?[\d,]*\d(\.\d+)?$/.test(t); };
+  var toN = function (t) { return parseFloat(t.replace(/,/g, '')); };
+  var lineOk = function (q, r, a) {
+    return Math.abs(q * r - a) <= Math.max(0.51, Math.abs(a) * 0.002);
+  };
+
+  var tokens = region.split(/\s+/).filter(function (t) { return t.length; });
+  var items = [];
+  var desc = [];
+  var i = 0;
+  while (i < tokens.length) {
+    var t = tokens[i];
+    var matched = false;
+    if (isNum(t)) {
+      if (hasHsn && /^\d{4,8}$/.test(t) && i + 3 < tokens.length &&
+          isNum(tokens[i + 1]) && isNum(tokens[i + 2]) && isNum(tokens[i + 3]) &&
+          lineOk(toN(tokens[i + 1]), toN(tokens[i + 2]), toN(tokens[i + 3]))) {
+        items.push(makeLine_(items.length + 1, desc, t, toN(tokens[i + 1]), toN(tokens[i + 2]), toN(tokens[i + 3])));
+        desc = []; i += 4; matched = true;
+      } else if (i + 2 < tokens.length && isNum(tokens[i + 1]) && isNum(tokens[i + 2]) &&
+                 lineOk(toN(t), toN(tokens[i + 1]), toN(tokens[i + 2]))) {
+        items.push(makeLine_(items.length + 1, desc, null, toN(t), toN(tokens[i + 1]), toN(tokens[i + 2])));
+        desc = []; i += 3; matched = true;
+      }
+    }
+    if (!matched) {
+      // drop the leading item-index token (it equals the next expected line number)
+      if (!(desc.length === 0 && t === String(items.length + 1))) desc.push(t);
+      i++;
+    }
+  }
+
+  // Reconcile: line amounts must sum to the document subtotal.
+  if (subtotal !== null && items.length) {
+    var sum = 0;
+    items.forEach(function (it) { sum += it.amount; });
+    if (Math.abs(sum - subtotal) > Math.max(1, subtotal * 0.001)) {
+      items.forEach(function (it) {
+        it.check = 'SUM MISMATCH: lines total ' + Math.round(sum * 100) / 100 + ' vs subtotal ' + subtotal;
+      });
+    }
+  }
+  return items;
+}
+
+function makeLine_(n, descTokens, hsn, qty, rate, amount) {
+  var d = descTokens.join(' ').trim();
+  // Manufacturer part number: an explicit label wins; else a code-like first token.
+  var pn = null;
+  var lbl = d.match(/part number[:\s]*([A-Za-z0-9][A-Za-z0-9\-\._\/]{2,})/i);
+  if (lbl) pn = lbl[1];
+  else {
+    var first = d.split(' ')[0] || '';
+    if (/^[A-Z0-9][A-Za-z0-9\-\._\/]{4,}$/.test(first) && /\d/.test(first) && /[A-Za-z]/.test(first)) pn = first;
+  }
+  return {
+    n: n, description: d, part_number: pn, hsn: hsn,
+    qty: qty, rate: rate, amount: Math.round(amount * 100) / 100,
+    check: 'qty×rate OK',
   };
 }
 

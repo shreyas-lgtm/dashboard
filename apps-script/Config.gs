@@ -53,7 +53,14 @@ var CONFIG = {
     REGISTER: 'Register',
     REVIEW: 'Review',
     LOG: 'Log',
+    LINE_ITEMS: 'Line Items',
   },
+
+  LINE_HEADERS: [
+    'Ingested At', 'Doc Number', 'Doc Type', 'Vendor', 'Doc Date', 'Line #',
+    'Description', 'Part Number', 'HSN', 'Qty', 'Unit Rate', 'Amount',
+    'Currency', 'Line Check', 'Source File',
+  ],
 
   REGISTER_HEADERS: [
     'Ingested At', 'Lane', 'File Name', 'File Link', 'Doc Type', 'Vendor',
