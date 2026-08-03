@@ -215,6 +215,145 @@ function commitAliases() {
   log_(msg);
 }
 
+// ---------------------------------------------------------------------------
+// LAYER 4.2 — Gemini-assisted alias suggestions (SUGGESTION-ONLY)
+// ---------------------------------------------------------------------------
+
+// One batched call per run; rows beyond this wait for the next run.
+var AI_SUGGEST_MAX_ROWS = 80;
+
+var AI_SUGGEST_INSTRUCTION =
+  'You match purchase-order line wordings to a robotics BOM catalog. ' +
+  'Reply ONLY with a JSON array: [{"index": <line index>, "uid": "<uid copied from the catalog>", ' +
+  '"confidence": "high" | "medium" | "low", "reason": "<10 words max>"}]. ' +
+  'Rules: the uid MUST be copied verbatim from the catalog — never invent one. ' +
+  'Omit lines you cannot match with real confidence, or mark them "low". ' +
+  'Freight/shipping/packing charges and services (welding, powder coating, contract manufacturing, ' +
+  'inspection, labour) are NOT parts — omit them. ' +
+  'Match on meaning: synonyms, abbreviations, size codes (e.g. "hex bolt" vs "SHCS"), not string similarity alone.';
+
+/**
+ * Fills the Suggested UID / Part / Score columns of UNMATCHED rows that the
+ * deterministic scorer left blank, using ONE batched Gemini call (counts
+ * against the same self-imposed daily budget as document extraction).
+ *
+ * Suggestions only — nothing is priced and nothing is saved until a human
+ * ticks Confirm and runs commitAliases(). AI rows are labeled "AI high/medium"
+ * in the Score column so you always know which engine proposed them.
+ */
+function suggestAliasesWithGemini() {
+  var norm = function (s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+  var ss = getSpreadsheet_();
+  var pp = ss.getSheetByName(CONFIG.SHEETS.PART_PRICES);
+  if (!pp || pp.getLastRow() < 2) { console.log('Run buildPartPrices() first.'); return; }
+
+  var vals = pp.getRange(1, 1, pp.getLastRow(), 11).getValues();
+  var start = -1;
+  for (var i = 0; i < vals.length; i++) {
+    if (String(vals[i][0]).indexOf('UNMATCHED') === 0) { start = i + 1; break; }
+  }
+  if (start < 0) { console.log('No UNMATCHED section — nothing to suggest.'); return; }
+
+  var c = CONFIG.DESIGN_TRACKER;
+  var dt = ss.getSheetByName(c.SHEET);
+  if (!dt || dt.getLastRow() <= c.HEADER_ROW) { console.log('Design Tracker is empty.'); return; }
+  var dtVals = dt.getRange(c.HEADER_ROW + 1, 1, dt.getLastRow() - c.HEADER_ROW, Math.max(c.UID_COL, c.IPN_COL, c.MPN_COL, c.DESC_COL)).getValues();
+  var bom = dtVals.map(function (r) {
+    return { uid: String(r[c.UID_COL - 1] || '').trim(), ipn: String(r[c.IPN_COL - 1] || '').trim(),
+             mpn: String(r[c.MPN_COL - 1] || '').trim(), desc: String(r[c.DESC_COL - 1] || '').trim() };
+  }).filter(function (b) { return b.uid; });
+  var validUid = {};
+  bom.forEach(function (b) { if (!validUid[norm(b.uid)]) validUid[norm(b.uid)] = b; });
+
+  // candidates: unmatched rows with NO suggestion yet and a usable alias key
+  var cands = [];
+  for (var r = start; r < vals.length && cands.length < AI_SUGGEST_MAX_ROWS; r++) {
+    var uidCell = String(vals[r][6] || '').trim();
+    var key = String(vals[r][10] || '').trim();
+    if (uidCell || !key || norm(key).length < 4) continue;
+    cands.push({ row: r + 1, key: key });
+  }
+  if (!cands.length) { console.log('Every unmatched row already has a suggestion (or is junk) — nothing to send.'); return; }
+
+  var catalog = bom.map(function (b) { return b.uid + ' | ' + b.ipn + ' | ' + b.mpn + ' | ' + b.desc; }).join('\n');
+  var linesTxt = cands.map(function (x, i2) { return i2 + ' | ' + x.key; }).join('\n');
+  var body = {
+    contents: [{ parts: [{ text: AI_SUGGEST_INSTRUCTION +
+      '\n\nBOM CATALOG (uid | internal pn | manufacturer pn | description):\n' + catalog +
+      '\n\nUNMATCHED PURCHASE LINES (index | wording):\n' + linesTxt }] }],
+    generationConfig: { temperature: 0, maxOutputTokens: CONFIG.GEMINI.MAX_OUTPUT_TOKENS, responseMimeType: 'application/json' },
+  };
+
+  var data;
+  try {
+    data = geminiCall_(body);
+  } catch (e) {
+    // budget/quota/5xx — nothing written, safe to just retry another day
+    var m = 'AI suggest skipped: ' + String(e.message || e);
+    console.log(m); log_(m);
+    return;
+  }
+  var cand0 = (data.candidates || [])[0];
+  if (!cand0) { console.log('AI suggest: no candidates returned.'); return; }
+  var text = ((cand0.content || {}).parts || []).map(function (p) { return p.text || ''; }).join('');
+  if (cand0.finishReason === 'MAX_TOKENS') {
+    console.log('AI suggest: response truncated (MAX_TOKENS) — nothing written. Re-run; fewer rows will be pending.');
+    return;
+  }
+  // parseJsonLoose_ extracts {...} spans (built for the extraction path) and
+  // would collapse a JSON ARRAY to its first object — parse arrays here.
+  var out;
+  try {
+    var cleaned = String(text).replace(/```(json)?/g, '').trim();
+    var s0 = cleaned.indexOf('['), e0 = cleaned.lastIndexOf(']');
+    if (s0 !== -1 && e0 > s0) out = JSON.parse(cleaned.slice(s0, e0 + 1));
+    else out = [parseJsonLoose_(cleaned)]; // model returned a single object
+  } catch (e2) {
+    console.log('AI suggest: could not parse model output — nothing written. ' + String(e2.message || e2));
+    return;
+  }
+
+  var applied = applyAiSuggestions_(cands, out, validUid);
+  applied.forEach(function (a) {
+    pp.getRange(a.row, 7).setValue(a.uid);
+    pp.getRange(a.row, 8).setValue(a.label);
+    pp.getRange(a.row, 9).setValue(a.score);
+  });
+  var msg = 'AI suggest: ' + applied.length + ' suggestion(s) written for ' + cands.length +
+    ' unsuggested row(s) sent (1 API call). Review each, tick Confirm, run commitAliases(). ' +
+    'AI rows are labeled "AI high/medium" in the Score column.';
+  console.log(msg);
+  log_(msg);
+}
+
+/**
+ * Pure filter for the model's output (unit-tested off-platform): only
+ * catalog-valid UIDs, only high/medium confidence, only known line indexes.
+ */
+function applyAiSuggestions_(cands, aiOut, validUidMap) {
+  var norm = function (s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+  var applied = [];
+  if (!aiOut || !aiOut.length) return applied;
+  var seen = {};
+  for (var i = 0; i < aiOut.length; i++) {
+    var s = aiOut[i] || {};
+    var idx = Number(s.index);
+    if (!(idx >= 0 && idx < cands.length) || seen[idx]) continue;
+    var b = s.uid ? validUidMap[norm(String(s.uid))] : null;
+    if (!b) continue;
+    var conf = String(s.confidence || '').toLowerCase();
+    if (conf !== 'high' && conf !== 'medium') continue;
+    seen[idx] = 1;
+    applied.push({
+      row: cands[idx].row,
+      uid: b.uid,
+      label: (b.mpn || b.ipn || '') + (b.desc ? ' — ' + b.desc.slice(0, 50) : ''),
+      score: 'AI ' + conf + (s.reason ? ' — ' + String(s.reason).slice(0, 60) : ''),
+    });
+  }
+  return applied;
+}
+
 /**
  * Doc-level GST %: tax ÷ (subtotal − discount), snapped to a standard GST
  * slab. A document mixing slabs (18% + 28% lines) yields a blended rate that
@@ -292,15 +431,22 @@ function computePartPrices_(bom, lines, aliases) {
   // ambiguous, refuse rather than guess.
   var descMatch = function (descNorm) {
     if (!descNorm) return null;
-    var found = null, foundKey = '';
-    for (var k = 0; k < mpnKeys.length; k++) {
-      var key = mpnKeys[k];
-      if (key.length >= 8 && descNorm.indexOf(key) !== -1) {
-        if (found && found.uid !== mpnMap[key].uid) return null; // ambiguous
-        if (key.length > foundKey.length) { found = mpnMap[key]; foundKey = key; }
+    var hitUids = {}, best = null, bestKey = '', bestVia = '';
+    var scan = function (keys, map, via) {
+      for (var k = 0; k < keys.length; k++) {
+        var key = keys[k];
+        if (key.length >= 8 && descNorm.indexOf(key) !== -1) {
+          hitUids[map[key].uid] = 1;
+          if (key.length > bestKey.length) { best = map[key]; bestKey = key; bestVia = via; }
+        }
       }
-    }
-    return found;
+    };
+    scan(mpnKeys, mpnMap, 'MPN');
+    // fab vendors (made-to-print parts) put the internal part number in the
+    // line text — scan IPNs the same way
+    scan(ipnKeys, ipnMap, 'IPN');
+    if (Object.keys(hitUids).length !== 1) return null; // ambiguous or none
+    return { b: best, via: bestVia };
   };
 
   // ---- suggestion scorer (ADVISORY ONLY — output goes to the UNMATCHED
@@ -373,6 +519,16 @@ function computePartPrices_(bom, lines, aliases) {
       else if (uidMap[p]) { hit = uidMap[p]; type = 'UID exact'; }
     }
 
+    // made-to-print fab POs (Arunagiri, Pooja Metallic, ...) write the part
+    // number AS the whole line text, often with stray spaces ("TSM -ASM-002")
+    // — the normalized full description equals a BOM key exactly. As strong
+    // as a pn match, so it sits with the exacts and carries no verify flag.
+    if (!hit && dn) {
+      if (mpnMap[dn]) { hit = mpnMap[dn]; type = 'MPN exact (description)'; }
+      else if (ipnMap[dn]) { hit = ipnMap[dn]; type = 'IPN exact (description)'; }
+      else if (uidMap[dn]) { hit = uidMap[dn]; type = 'UID exact (description)'; }
+    }
+
     // human-approved alias outranks every guess (variant/desc rules below)
     if (!hit && ((p && aliasMap[p]) || (dn && aliasMap[dn]))) {
       hit = aliasMap[p] || aliasMap[dn];
@@ -394,7 +550,7 @@ function computePartPrices_(bom, lines, aliases) {
 
     if (!hit) {
       var d = descMatch(dn);
-      if (d) { hit = d; type = 'MPN in description — verify'; stats.descMatchedLines++; }
+      if (d) { hit = d.b; type = d.via + ' in description — verify'; stats.descMatchedLines++; }
     }
 
     if (!hit) {
