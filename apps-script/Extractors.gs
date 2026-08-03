@@ -334,11 +334,21 @@ function geminiExtract_(file, laneDocType) {
     : 'This folder should contain only documents of type "' + laneDocType +
       '". If this document is clearly a different type, still extract it but flag the mismatch in notes.';
 
+  // LAYER 3 (gated): ask for line items only when enabled in Config.
+  var lineItemsAddon = CONFIG.INVOICE_LINE_ITEMS
+    ? '\n\nAdditionally include a "line_items" array in the same JSON object — one entry per billed line:\n' +
+      '"line_items": [{"description": string, "part_number": string | null, "hsn": string | null, ' +
+      '"qty": number, "rate": number, "amount": number}]\n' +
+      'Rules for line_items: "rate" is the UNIT price; qty × rate must equal amount for each line; ' +
+      'line amounts must sum to the subtotal; part_number is any manufacturer/internal part code printed on the line; ' +
+      'never invent lines — omit the array if no line table is readable.'
+    : '';
+
   var body = {
     contents: [{
       parts: [
         { inline_data: { mime_type: mime, data: Utilities.base64Encode(blob.getBytes()) } },
-        { text: hint + '\n\n' + EXTRACT_FIELDS_INSTRUCTION },
+        { text: hint + '\n\n' + EXTRACT_FIELDS_INSTRUCTION + lineItemsAddon },
       ],
     }],
     generationConfig: {
@@ -365,7 +375,51 @@ function geminiExtract_(file, laneDocType) {
   if (!text) {
     throw new Error('Gemini returned no text (finishReason: ' + (cand.finishReason || '?') + ')');
   }
-  return parseJsonLoose_(text);
+  var out = parseJsonLoose_(text);
+  if (CONFIG.INVOICE_LINE_ITEMS) {
+    out.line_items = validateAiLines_(out);
+  } else {
+    delete out.line_items; // gated: never write AI lines while Layer 3 is off
+  }
+  return out;
+}
+
+/**
+ * LAYER 3 validation — applies the same discipline to Gemini-extracted
+ * lines as the deterministic PO parser applies to its own: every line must
+ * satisfy qty × rate ≈ amount, and lines must sum to the document subtotal,
+ * or they carry loud flags into the Line Items tab.
+ */
+function validateAiLines_(x) {
+  var raw = x.line_items;
+  if (!raw || !raw.length) return [];
+  var toNum = function (v) { var n = Number(v); return isNaN(n) ? null : n; };
+  var items = [];
+  for (var i = 0; i < raw.length; i++) {
+    var l = raw[i] || {};
+    var qty = toNum(l.qty), rate = toNum(l.rate), amount = toNum(l.amount);
+    var ok = qty !== null && rate !== null && amount !== null &&
+      Math.abs(qty * rate - amount) <= Math.max(0.51, Math.abs(amount) * 0.002);
+    items.push({
+      n: i + 1,
+      description: String(l.description || '').slice(0, 300),
+      part_number: l.part_number ? String(l.part_number) : null,
+      hsn: l.hsn ? String(l.hsn) : null,
+      qty: qty, rate: rate, amount: amount === null ? null : Math.round(amount * 100) / 100,
+      check: ok ? 'qty×rate OK (AI)' : 'AI LINE FAILS qty×rate — verify',
+    });
+  }
+  var subtotal = toNum(x.subtotal);
+  if (subtotal !== null) {
+    var sum = 0;
+    items.forEach(function (it) { sum += it.amount || 0; });
+    if (Math.abs(sum - subtotal) > Math.max(1, subtotal * 0.001)) {
+      items.forEach(function (it) {
+        it.check = 'SUM MISMATCH (AI): lines total ' + Math.round(sum * 100) / 100 + ' vs subtotal ' + subtotal;
+      });
+    }
+  }
+  return items;
 }
 
 /**

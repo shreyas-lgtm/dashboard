@@ -54,7 +54,27 @@ var CONFIG = {
     REVIEW: 'Review',
     LOG: 'Log',
     LINE_ITEMS: 'Line Items',
+    PART_PRICES: 'Part Prices',
   },
+
+  // LAYER 4 — where to find part identity columns on the Design Tracker tab
+  // (1-based column numbers: E=5, F=6, G=7, H=8). Adjust here if the BOM
+  // layout ever changes.
+  DESIGN_TRACKER: {
+    SHEET: 'Design Tracker',
+    HEADER_ROW: 1,
+    UID_COL: 5,   // E: UID (P0001...)
+    IPN_COL: 6,   // F: Internal Part Number (CON-000001...)
+    MPN_COL: 7,   // G: Manufacturer part Number
+    DESC_COL: 8,  // H: Component Description
+  },
+
+  // LAYER 3 — invoice line items via Gemini. Code-complete but GATED:
+  // stays false until the Layer 1 trust clock passes (weeks of running with
+  // zero silent errors). Flipping to true makes Gemini return line_items,
+  // validated per-line (qty×rate=amount) and per-document (sum=subtotal)
+  // with the same flag discipline as the PO parser.
+  INVOICE_LINE_ITEMS: false,
 
   LINE_HEADERS: [
     'Ingested At', 'Doc Number', 'Doc Type', 'Vendor', 'Doc Date', 'Line #',
