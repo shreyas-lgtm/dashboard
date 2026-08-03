@@ -299,8 +299,13 @@ function makeLine_(n, descTokens, hsn, qty, rate, amount, checkSuffix) {
   var d = descTokens.join(' ')
     .replace(/\s*\bNotes\b\s.*$/, '')        // strip Notes block folded into a description
     .replace(/\s*\bMade as per\b.*$/i, '')   // ...and its content when the "Notes" line was already removed
+    .replace(/\s*\bTerms\s*&\s*Conditions\b.*$/i, '') // footer folded into single-line POs
     .replace(/\s+/g, ' ')
-    .trim();
+    .trim()
+    // single-line POs keep the printed item index in the token stream (the
+    // multi-line path splits ON those indexes, so it never sees them) — a
+    // leading "1 " here hides the real part number from extraction below
+    .replace(new RegExp('^' + n + '\\s+'), '');
   // Manufacturer part number: an explicit label wins; else a code-like first token.
   var pn = null;
   var lbl = d.match(/part number[:\s]*([A-Za-z0-9][A-Za-z0-9\-\._\/]{2,})/i);
