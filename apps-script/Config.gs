@@ -55,6 +55,7 @@ var CONFIG = {
     LOG: 'Log',
     LINE_ITEMS: 'Line Items',
     PART_PRICES: 'Part Prices',
+    ALIASES: 'Aliases',
   },
 
   // LAYER 4 — where to find part identity columns on the Design Tracker tab

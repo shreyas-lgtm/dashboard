@@ -3,17 +3,25 @@
  *
  * Run buildPartPrices() manually (rebuilds the whole 'Part Prices' tab each
  * time — idempotent). One row per matched BOM part: latest unit price with
- * full provenance (which document, which line, which match rule), plus an
- * UNMATCHED section listing part numbers seen on documents that have no BOM
- * entry yet — the to-do list for growing the Design Tracker.
+ * full provenance, plus an UNMATCHED section where every unrecognized line
+ * gets the script's best-guess BOM part and a Confirm checkbox.
  *
  * Match rules, strongest first (all four BOM columns are identifiers):
  *   1. MPN / IPN / UID exact (normalized)
- *   2. MPN/IPN containment variant             — flagged "verify"
- *   3. specific MPN found inside the line desc — flagged "verify";
+ *   2. Alias approved by a human (Aliases tab)   — clean match
+ *   3. MPN/IPN containment variant               — flagged "verify"
+ *   4. specific MPN found inside the line desc   — flagged "verify";
  *      ambiguous (2+ BOM parts) is refused, never guessed
- * LLM/fuzzy alias matching is deliberately NOT here — flagged matches and
- * the unmatched list are the honest outputs until it earns its place.
+ *
+ * The guess-and-tick loop (teaching the matcher new wordings):
+ *   1. buildPartPrices()  → UNMATCHED section shows a Suggested UID + score
+ *   2. tick Confirm ✓ on rows where the guess is right (or type the correct
+ *      UID into the Suggested UID cell first, then tick)
+ *   3. commitAliases()    → ticked mappings are saved to the Aliases tab
+ *   4. buildPartPrices()  → those lines now price their parts, forever
+ *
+ * Suggestions NEVER price anything on their own — a part is only ever priced
+ * from a hard key or a human-approved alias. Fuzzy scoring is advisory only.
  */
 
 function buildPartPrices() {
@@ -38,44 +46,128 @@ function buildPartPrices() {
              rate: r[10], amount: r[11], currency: String(r[12]), check: String(r[13]), src: String(r[14]) };
   });
 
-  var result = computePartPrices_(bom, lines);
+  var result = computePartPrices_(bom, lines, readAliases_(ss));
 
   var sh = ss.getSheetByName(CONFIG.SHEETS.PART_PRICES) || ss.insertSheet(CONFIG.SHEETS.PART_PRICES);
   sh.clear();
+  // stale checkbox validations from a previous (taller) unmatched section
+  // would strand live checkboxes on now-empty rows — clear them explicitly
+  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
+
   var headers = ['UID', 'Internal PN', 'Mfr PN', 'BOM Description', 'Purchases',
     'Latest Unit Rate', 'Currency', 'Latest Doc', 'Latest Doc Date', 'Latest Vendor',
     'Match Type', 'Min Rate', 'Max Rate', 'Notes'];
-  var rows = [headers];
-  result.parts.forEach(function (p) { rows.push(p); });
-  rows.push(new Array(headers.length).fill(''));
-  rows.push(['UNMATCHED PART NUMBERS (on documents, not in Design Tracker)', 'Seen (lines)', 'Latest Rate', 'Currency', 'Sample Description', 'Sample Doc'].concat(new Array(headers.length - 6).fill('')));
-  result.unmatched.forEach(function (u) { rows.push(u.concat(new Array(headers.length - u.length).fill(''))); });
+  var uHeaders = ['UNMATCHED — tick Confirm ✓ then run commitAliases()', 'Seen (lines)',
+    'Latest Rate', 'Currency', 'Latest Description', 'Sample Doc',
+    'Suggested UID', 'Suggested Part', 'Score', 'Confirm ✓', 'Alias Key (saved on commit)'];
+  var W = Math.max(headers.length, uHeaders.length);
+  var pad = function (a) { return a.concat(new Array(W - a.length).fill('')); };
 
-  sh.getRange(1, 1, rows.length, headers.length).setValues(rows);
+  var rows = [pad(headers)];
+  result.parts.forEach(function (p) { rows.push(pad(p)); });
+  rows.push(new Array(W).fill(''));
+  rows.push(pad(uHeaders));
+  result.unmatched.forEach(function (u) { rows.push(pad(u)); });
+
+  sh.getRange(1, 1, rows.length, W).setValues(rows);
   // machine-readable summary cells for the Progress tab (avoids fragile
   // range arithmetic over the two-section layout)
   sh.getRange(1, 16).setValue('PARTS PRICED');
   sh.getRange(2, 16).setValue(result.parts.length);
-  sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#1a3c6e').setFontColor('#ffffff');
+  sh.getRange(1, 1, 1, W).setFontWeight('bold').setBackground('#1a3c6e').setFontColor('#ffffff');
   var unmatchedHeaderRow = result.parts.length + 3;
-  sh.getRange(unmatchedHeaderRow, 1, 1, headers.length).setFontWeight('bold').setBackground('#fce8e6');
+  sh.getRange(unmatchedHeaderRow, 1, 1, W).setFontWeight('bold').setBackground('#fce8e6');
+  if (result.unmatched.length) {
+    // checkbox VALIDATION, never insertCheckboxes() — the latter fills cells
+    // with FALSE and breaks appendRow-style logic elsewhere
+    sh.getRange(unmatchedHeaderRow + 1, 10, result.unmatched.length, 1)
+      .setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+  }
   sh.setFrozenRows(1);
 
   var msg = 'Part Prices rebuilt: ' + result.parts.length + ' BOM parts priced, ' +
-    result.stats.matchedLines + ' lines matched (' + result.stats.descMatchedLines +
-    ' via MPN-in-description), ' + result.stats.pnLines + ' lines had a part number, ' +
-    result.unmatched.length + ' unmatched part numbers, ' +
-    result.stats.noPnLines + ' lines matched nothing (no part number, no MPN in description).';
+    result.stats.matchedLines + ' lines matched (' + result.stats.aliasLines + ' via approved alias, ' +
+    result.stats.descMatchedLines + ' via MPN-in-description), ' +
+    result.unmatched.length + ' unmatched wordings (' + result.stats.suggested +
+    ' with a suggested part awaiting your tick).';
   console.log(msg);
   log_(msg);
 }
 
 /**
- * Pure matching core (unit-tested off-platform).
- * bom:   [{uid, ipn, mpn, desc}]
- * lines: [{doc, docType, vendor, date, n, desc, pn, qty, rate, amount, currency, check, src}]
+ * Saves every ticked row of the UNMATCHED section as a permanent alias:
+ * "this document wording = this BOM part". Validates the UID against the
+ * Design Tracker, skips duplicates, then tells you to rerun buildPartPrices().
  */
-function computePartPrices_(bom, lines) {
+function commitAliases() {
+  var ss = getSpreadsheet_();
+  var pp = ss.getSheetByName(CONFIG.SHEETS.PART_PRICES);
+  if (!pp || pp.getLastRow() < 2) { console.log('No Part Prices tab — run buildPartPrices() first.'); return; }
+
+  var vals = pp.getRange(1, 1, pp.getLastRow(), 11).getValues();
+  var start = -1;
+  for (var i = 0; i < vals.length; i++) {
+    if (String(vals[i][0]).indexOf('UNMATCHED') === 0) { start = i + 1; break; }
+  }
+  if (start < 0) { console.log('No UNMATCHED section found — nothing to commit.'); return; }
+
+  // canonical UIDs from the Design Tracker (norm → exact spelling)
+  var c = CONFIG.DESIGN_TRACKER;
+  var dt = ss.getSheetByName(CONFIG.DESIGN_TRACKER.SHEET);
+  if (!dt || dt.getLastRow() <= c.HEADER_ROW) { console.log('Design Tracker is empty — cannot validate UIDs.'); return; }
+  var norm = function (s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+  var validUid = {};
+  dt.getRange(c.HEADER_ROW + 1, c.UID_COL, dt.getLastRow() - c.HEADER_ROW, 1).getValues().forEach(function (r) {
+    var u = String(r[0] || '').trim();
+    if (u) validUid[norm(u)] = u;
+  });
+
+  var al = ss.getSheetByName(CONFIG.SHEETS.ALIASES) || ss.insertSheet(CONFIG.SHEETS.ALIASES);
+  if (al.getLastRow() === 0) al.appendRow(['Alias Text', 'UID', 'Added By', 'Added At']);
+  var existing = {};
+  if (al.getLastRow() > 1) {
+    al.getRange(2, 1, al.getLastRow() - 1, 1).getValues().forEach(function (r) { existing[norm(r[0])] = 1; });
+  }
+
+  var added = 0, dupes = 0, badUid = 0;
+  for (var r = start; r < vals.length; r++) {
+    var row = vals[r];
+    if (row[9] !== true && String(row[9]).toUpperCase() !== 'TRUE') continue; // Confirm ✓ (col J)
+    var uid = String(row[6] || '').trim();   // Suggested UID (col G) — user can overtype
+    var key = String(row[10] || '').trim();  // Alias Key (col K)
+    if (!uid || !key) continue;
+    var canon = validUid[norm(uid)];
+    if (!canon) { badUid++; log_('commitAliases: UID "' + uid + '" not in Design Tracker — row skipped.'); continue; }
+    if (existing[norm(key)]) { dupes++; continue; }
+    al.appendRow([key, canon, Session.getEffectiveUser().getEmail(), new Date()]);
+    existing[norm(key)] = 1;
+    added++;
+  }
+
+  var msg = 'commitAliases: ' + added + ' new alias(es) saved' +
+    (dupes ? ', ' + dupes + ' already known' : '') +
+    (badUid ? ', ' + badUid + ' skipped (UID not in Design Tracker — see Log)' : '') +
+    '. Now run buildPartPrices() to apply them.';
+  console.log(msg);
+  log_(msg);
+}
+
+/** Reads the human-approved Aliases tab → [{alias, uid}]. Missing tab = []. */
+function readAliases_(ss) {
+  var sh = ss.getSheetByName(CONFIG.SHEETS.ALIASES);
+  if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues().map(function (r) {
+    return { alias: String(r[0] || '').trim(), uid: String(r[1] || '').trim() };
+  }).filter(function (a) { return a.alias && a.uid; });
+}
+
+/**
+ * Pure matching core (unit-tested off-platform).
+ * bom:     [{uid, ipn, mpn, desc}]
+ * lines:   [{doc, docType, vendor, date, n, desc, pn, qty, rate, amount, currency, check, src}]
+ * aliases: [{alias, uid}] — human-approved wordings from the Aliases tab
+ */
+function computePartPrices_(bom, lines, aliases) {
   var norm = function (s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
   // Sheets hands dates back as Date objects; strings come from tests/exports.
   // Compare on epoch millis — string comparison of Date objects sorts
@@ -94,6 +186,16 @@ function computePartPrices_(bom, lines) {
     if (u2.length >= 4 && !uidMap[u2]) uidMap[u2] = b;
   });
   var mpnKeys = Object.keys(mpnMap), ipnKeys = Object.keys(ipnMap);
+
+  // human-approved wordings — matched exactly (normalized), never fuzzily
+  var aliasMap = {};
+  var bomByUid = {};
+  bom.forEach(function (b) { bomByUid[norm(b.uid)] = b; });
+  (aliases || []).forEach(function (a) {
+    var target = bomByUid[norm(a.uid)];
+    var key = norm(a.alias);
+    if (target && key.length >= 4 && !aliasMap[key]) aliasMap[key] = target;
+  });
 
   // All four BOM columns are identifiers. MPNs like "Loctite 243 Blue" or
   // "Sikaflex 227" are product NAMES that appear inside a document line's
@@ -114,44 +216,110 @@ function computePartPrices_(bom, lines) {
     return found;
   };
 
+  // ---- suggestion scorer (ADVISORY ONLY — output goes to the UNMATCHED
+  // section for a human tick; it never prices a part by itself) ----
+  var tokenize = function (s) {
+    return String(s || '').toUpperCase().split(/[^A-Z0-9]+/).filter(function (t) { return t.length >= 2; });
+  };
+  var df = {};
+  var bomTokens = bom.map(function (b) {
+    var set = {};
+    tokenize(b.mpn + ' ' + b.desc).forEach(function (t) { set[t] = 1; });
+    Object.keys(set).forEach(function (t) { df[t] = (df[t] || 0) + 1; });
+    return set;
+  });
+  // generic words ("adhesive", "screw") appear across many BOM rows → low
+  // weight; numbers and rare tokens carry the identity → high weight
+  var weight = function (t) {
+    var w = 1 / (df[t] || 1);
+    if (/\d/.test(t)) w *= 3;
+    if (t.length >= 5) w *= 1.5;
+    return w;
+  };
+  var suggest = function (text) {
+    var lt = {};
+    tokenize(text).forEach(function (t) { lt[t] = 1; });
+    // denominator counts only tokens the BOM knows — packaging noise like
+    // "50ml bottle" must not dilute the score of the tokens that matter
+    var known = 0;
+    Object.keys(lt).forEach(function (t) { if (df[t]) known += weight(t); });
+    if (!known) return null;
+    var best = null, second = null;
+    bom.forEach(function (b, bi) {
+      var toks = bomTokens[bi];
+      var shared = 0, totalB = 0, sharedCount = 0, distinctive = false;
+      Object.keys(toks).forEach(function (t) {
+        var w = weight(t);
+        totalB += w;
+        if (lt[t]) {
+          shared += w;
+          sharedCount++;
+          if (/\d/.test(t) || df[t] === 1) distinctive = true;
+        }
+      });
+      if (!totalB || sharedCount < 2 || !distinctive) return;
+      var score = Math.min(1, shared / Math.min(totalB, known));
+      var cand = { b: b, score: score };
+      if (!best || score > best.score) { second = best; best = cand; }
+      else if (!second || score > second.score) { second = cand; }
+    });
+    if (!best || best.score < 0.45) return null;
+    if (second && second.b.uid !== best.b.uid && second.score >= best.score * 0.8) {
+      return { ambiguous: true, a: best.b, b2: second.b };
+    }
+    return { b: best.b, score: best.score };
+  };
+
   var byUid = {};
-  var unmatchedByPn = {};
-  var stats = { pnLines: 0, matchedLines: 0, noPnLines: 0, descMatchedLines: 0 };
+  var unmatchedByKey = {};
+  var stats = { pnLines: 0, matchedLines: 0, noPnLines: 0, descMatchedLines: 0, aliasLines: 0, suggested: 0 };
 
   lines.forEach(function (ln) {
     if (ln.check.indexOf('qty×rate OK') !== 0) return; // never price from flagged lines
     var hit = null, type = null;
+    var p = norm(ln.pn), dn = norm(ln.desc);
 
     if (ln.pn) {
       stats.pnLines++;
-      var p = norm(ln.pn);
       if (mpnMap[p]) { hit = mpnMap[p]; type = 'MPN exact'; }
       else if (ipnMap[p]) { hit = ipnMap[p]; type = 'IPN exact'; }
       else if (uidMap[p]) { hit = uidMap[p]; type = 'UID exact'; }
-      else if (p.length >= 6) {
-        // containment variant (packaging suffixes, folded qualifiers) — flagged for a human eye
-        for (var k = 0; k < mpnKeys.length && !hit; k++) {
-          var key = mpnKeys[k];
-          if (key.length >= 6 && (key.indexOf(p) !== -1 || p.indexOf(key) !== -1)) { hit = mpnMap[key]; type = 'MPN variant — verify'; }
-        }
-        for (var j = 0; j < ipnKeys.length && !hit; j++) {
-          var key2 = ipnKeys[j];
-          if (key2.length >= 6 && (key2.indexOf(p) !== -1 || p.indexOf(key2) !== -1)) { hit = ipnMap[key2]; type = 'IPN variant — verify'; }
-        }
+    }
+
+    // human-approved alias outranks every guess (variant/desc rules below)
+    if (!hit && ((p && aliasMap[p]) || (dn && aliasMap[dn]))) {
+      hit = aliasMap[p] || aliasMap[dn];
+      type = 'Alias (approved)';
+      stats.aliasLines++;
+    }
+
+    if (!hit && ln.pn && p.length >= 6) {
+      // containment variant (packaging suffixes, folded qualifiers) — flagged for a human eye
+      for (var k = 0; k < mpnKeys.length && !hit; k++) {
+        var key = mpnKeys[k];
+        if (key.length >= 6 && (key.indexOf(p) !== -1 || p.indexOf(key) !== -1)) { hit = mpnMap[key]; type = 'MPN variant — verify'; }
+      }
+      for (var j = 0; j < ipnKeys.length && !hit; j++) {
+        var key2 = ipnKeys[j];
+        if (key2.length >= 6 && (key2.indexOf(p) !== -1 || p.indexOf(key2) !== -1)) { hit = ipnMap[key2]; type = 'IPN variant — verify'; }
       }
     }
 
     if (!hit) {
-      var d = descMatch(norm(ln.desc));
+      var d = descMatch(dn);
       if (d) { hit = d; type = 'MPN in description — verify'; stats.descMatchedLines++; }
     }
 
     if (!hit) {
-      if (!ln.pn) { stats.noPnLines++; return; }
-      var u = unmatchedByPn[ln.pn] || { count: 0, latest: ln };
+      if (!ln.pn) stats.noPnLines++;
+      // one unmatched row per distinct wording (pn if present, else the
+      // description) — this key is exactly what commitAliases() will save
+      var akey = ln.pn || ln.desc.trim();
+      if (!akey) return;
+      var u = unmatchedByKey[akey] || { count: 0, latest: ln, pn: ln.pn };
       u.count++;
       if (ts(ln.date) > ts(u.latest.date)) u.latest = ln;
-      unmatchedByPn[ln.pn] = u;
+      unmatchedByKey[akey] = u;
       return;
     }
 
@@ -179,9 +347,20 @@ function computePartPrices_(bom, lines) {
     ];
   });
 
-  var unmatched = Object.keys(unmatchedByPn).sort().map(function (pn) {
-    var u = unmatchedByPn[pn];
-    return [pn, u.count, u.latest.rate, u.latest.currency, u.latest.desc.slice(0, 80), u.latest.doc];
+  var unmatched = Object.keys(unmatchedByKey).sort().map(function (akey) {
+    var u = unmatchedByKey[akey];
+    var s = suggest((u.pn ? u.pn + ' ' : '') + u.latest.desc);
+    var sugUid = '', sugLabel = '', sugScore = '';
+    if (s && s.ambiguous) {
+      sugLabel = '2 candidates: ' + s.a.uid + ' / ' + s.b2.uid + ' — type one into Suggested UID';
+    } else if (s) {
+      sugUid = s.b.uid;
+      sugLabel = (s.b.mpn || s.b.ipn || '') + (s.b.desc ? ' — ' + s.b.desc.slice(0, 50) : '');
+      sugScore = Math.round(s.score * 100) + '%';
+      stats.suggested++;
+    }
+    return [u.pn || '(no PN)', u.count, u.latest.rate, u.latest.currency,
+      u.latest.desc.slice(0, 80), u.latest.doc, sugUid, sugLabel, sugScore, false, akey];
   });
 
   return { parts: parts, unmatched: unmatched, stats: stats };
