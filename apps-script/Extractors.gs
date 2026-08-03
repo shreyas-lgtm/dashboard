@@ -170,57 +170,120 @@ function parseZohoPo_(text) {
  * line is flagged. Returns [] when no item table is found.
  */
 function parseZohoPoLines_(text, subtotal) {
-  var HEADER = /#\s*Item\s*&\s*Description(\s+HSN\/SAC)?\s+Qty\s+Rate\s+Amount/g;
-  var head = HEADER.exec(text);
+  var HEADER_RE = /#\s*Item\s*&\s*Description(\s+HSN\/SAC)?\s+Qty\s+Rate\s+Amount/;
+  var head = HEADER_RE.exec(text);
   if (!head) return [];
   var hasHsn = !!head[1];
 
-  // Region: from the first header to the signature/notes tail.
-  var tail = text.slice(head.index).search(/\n(Authorized Signature|Notes\n|Terms & Conditions)/);
-  var region = tail === -1 ? text.slice(head.index) : text.slice(head.index, head.index + tail);
+  // Region: header → last 'Sub Total'. Drive's conversion can push the
+  // numbers AFTER "Authorized Signature"/"Notes", so those markers must NOT
+  // terminate the region. If another item header follows the last Sub Total
+  // (pdf-extractors that emit totals mid-document at page breaks), fall back
+  // to taking everything and stripping totals lines instead.
+  var cut = text.lastIndexOf('Sub Total');
+  var region;
+  if (cut > head.index && !HEADER_RE.test(text.slice(cut))) {
+    region = text.slice(head.index, cut);
+  } else {
+    region = text.slice(head.index);
+  }
 
   region = region
-    .replace(HEADER, '\n')                    // strip (repeated) table headers
-    .replace(/(\d[\d,]*\.)\n(\d)/g, '$1$2')   // rejoin numbers wrapped after the dot: "3,19,506.\n00"
-    .replace(/(\d[\d,]*)\n(\.\d+)/g, '$1$2')  // ...and wrapped before the dot: "14,63,000\n.00"
-    // totals block can appear mid-region at a page break — remove those lines
+    .replace(/#\s*Item\s*&\s*Description(\s+HSN\/SAC)?\s+Qty\s+Rate\s+Amount/g, '\n') // strip (repeated) headers
+    .replace(/(\d[\d,]*\.)\s+(\d)/g, '$1$2')   // rejoin numbers split after the dot: "1,93,898. 30" / "...\n30"
+    .replace(/(\d[\d,]*)\n\s*(\.\d+)/g, '$1$2') // ...and split before the dot: "14,63,000\n.00"
+    .replace(/^Authorized Signature ?$/gm, '')
+    .replace(/^Notes ?$/gm, '')
+    // totals lines that leak into the region (page-break layouts)
     .replace(/^(Sub Total|Total\s*[₹$]|Total\s+(CNY|USD|EUR|[\d,])|Discount\s*\(-\)|(IGST|CGST|SGST|UTGST)\S*|Adjustment)[^\n]*$/gm, '')
-    .replace(/\n\d{1,2}(?=\n)/g, '\n');       // standalone page-number lines
+    .replace(/\n\d{1,2} ?(?=\n)/g, '\n');      // standalone page-number lines
 
   var isNum = function (t) { return /^-?[\d,]*\d(\.\d+)?$/.test(t); };
   var toN = function (t) { return parseFloat(t.replace(/,/g, '')); };
   var lineOk = function (q, r, a) {
-    return Math.abs(q * r - a) <= Math.max(0.51, Math.abs(a) * 0.002);
+    return q !== null && r !== null && a !== null &&
+      Math.abs(q * r - a) <= Math.max(0.51, Math.abs(a) * 0.002);
   };
 
-  var tokens = region.split(/\s+/).filter(function (t) { return t.length; });
-  var items = [];
-  var desc = [];
+  var allTokens = region.split(/\s+/).filter(function (t) { return t.length; });
+
+  // ---- PASS 1: pull product-validated qty/rate/amount runs, in order ----
+  // A run only counts if qty × rate ≈ amount, so numbers inside
+  // descriptions ("4:1", "0.05 mm", "DIN 35") can't form a line.
+  var triples = [];
+  var rest = [];
   var i = 0;
-  while (i < tokens.length) {
-    var t = tokens[i];
-    var matched = false;
+  while (i < allTokens.length) {
+    var consumed = 0;
+    var t = allTokens[i];
+    var t1 = allTokens[i + 1], t2 = allTokens[i + 2], t3 = allTokens[i + 3], t4 = allTokens[i + 4];
+
     if (isNum(t)) {
-      if (hasHsn && /^\d{4,8}$/.test(t) && i + 3 < tokens.length &&
-          isNum(tokens[i + 1]) && isNum(tokens[i + 2]) && isNum(tokens[i + 3]) &&
-          lineOk(toN(tokens[i + 1]), toN(tokens[i + 2]), toN(tokens[i + 3]))) {
-        items.push(makeLine_(items.length + 1, desc, t, toN(tokens[i + 1]), toN(tokens[i + 2]), toN(tokens[i + 3])));
-        desc = []; i += 4; matched = true;
-      } else if (i + 2 < tokens.length && isNum(tokens[i + 1]) && isNum(tokens[i + 2]) &&
-                 lineOk(toN(t), toN(tokens[i + 1]), toN(tokens[i + 2]))) {
-        items.push(makeLine_(items.length + 1, desc, null, toN(t), toN(tokens[i + 1]), toN(tokens[i + 2])));
-        desc = []; i += 3; matched = true;
+      // (a) HSN qty rate amount
+      if (hasHsn && /^\d{4,8}$/.test(t) && t1 && t2 && t3 &&
+          isNum(t1) && isNum(t2) && isNum(t3) && lineOk(toN(t1), toN(t2), toN(t3))) {
+        triples.push({ hsn: t, qty: toN(t1), rate: toN(t2), amount: toN(t3) });
+        consumed = 4;
+      // (b) qty rate amount
+      } else if (t1 && t2 && isNum(t1) && isNum(t2) && lineOk(toN(t), toN(t1), toN(t2))) {
+        triples.push({ hsn: null, qty: toN(t), rate: toN(t1), amount: toN(t2) });
+        consumed = 3;
+      // (c) qty rate-splitAcrossTokens amount: "18.00 376.3333 33 6,774.00"
+      } else if (t1 && t2 && t3 && isNum(t1) && t1.indexOf('.') !== -1 &&
+                 /^\d{1,4}$/.test(t2) && isNum(t3) &&
+                 lineOk(toN(t), parseFloat(t1.replace(/,/g, '') + t2), toN(t3))) {
+        triples.push({ hsn: null, qty: toN(t), rate: parseFloat(t1.replace(/,/g, '') + t2), amount: toN(t3) });
+        consumed = 4;
+      // (d) HSN + split rate
+      } else if (hasHsn && /^\d{4,8}$/.test(t) && t1 && t2 && t3 && t4 &&
+                 isNum(t1) && isNum(t2) && t2.indexOf('.') !== -1 &&
+                 /^\d{1,4}$/.test(t3) && isNum(t4) &&
+                 lineOk(toN(t1), parseFloat(t2.replace(/,/g, '') + t3), toN(t4))) {
+        triples.push({ hsn: t, qty: toN(t1), rate: parseFloat(t2.replace(/,/g, '') + t3), amount: toN(t4) });
+        consumed = 5;
       }
     }
-    if (!matched) {
-      // drop the leading item-index token (it equals the next expected line number)
-      if (!(desc.length === 0 && t === String(items.length + 1))) desc.push(t);
-      i++;
+    if (consumed) { i += consumed; }
+    else { rest.push(t); i++; }
+  }
+  if (!triples.length) return [];
+
+  // ---- PASS 2: split the remaining text into description segments by the
+  // printed item numbers 1, 2, 3, ... (Zoho column-flow layouts emit several
+  // descriptions in a block, then their numbers in a block — pairing by
+  // document order is the layout's own contract). A guard rejects an index
+  // lookalike right after a separator ("2D-Lidar 1 / 2 Mount").
+  var SEP = { '/': 1, '-': 1, '–': 1, 'x': 1, 'X': 1, 'to': 1, '(': 1, '&': 1, '@': 1, '+': 1 };
+  var segs = [];
+  var cur = null;
+  var expected = 1;
+  var prev = '';
+  for (var k = 0; k < rest.length; k++) {
+    var tok = rest[k];
+    if (tok === String(expected) && !SEP[prev]) {
+      if (cur !== null) segs.push(cur);
+      cur = [];
+      expected++;
+    } else if (cur !== null) {
+      cur.push(tok);
     }
+    prev = tok;
+  }
+  if (cur !== null) segs.push(cur);
+
+  // ---- Pair descriptions with number runs ----
+  // A single line is never ambiguous: all description text belongs to it,
+  // even if a numbered sub-list inside the description over-segmented.
+  var items = [];
+  var aligned = segs.length === triples.length || triples.length === 1;
+  for (var n = 0; n < triples.length; n++) {
+    var descTokens = triples.length === 1 ? rest : (aligned ? segs[n] : (n === 0 ? rest : []));
+    items.push(makeLine_(n + 1, descTokens, triples[n].hsn, triples[n].qty, triples[n].rate, triples[n].amount,
+      aligned ? '' : '; DESC UNALIGNED (' + segs.length + ' descs vs ' + triples.length + ' lines)'));
   }
 
-  // Reconcile: line amounts must sum to the document subtotal.
-  if (subtotal !== null && items.length) {
+  // ---- Reconcile: line amounts must sum to the document subtotal ----
+  if (subtotal !== null) {
     var sum = 0;
     items.forEach(function (it) { sum += it.amount; });
     if (Math.abs(sum - subtotal) > Math.max(1, subtotal * 0.001)) {
@@ -232,20 +295,26 @@ function parseZohoPoLines_(text, subtotal) {
   return items;
 }
 
-function makeLine_(n, descTokens, hsn, qty, rate, amount) {
-  var d = descTokens.join(' ').trim();
+function makeLine_(n, descTokens, hsn, qty, rate, amount, checkSuffix) {
+  var d = descTokens.join(' ')
+    .replace(/\s*\bNotes\b\s.*$/, '')        // strip Notes block folded into a description
+    .replace(/\s*\bMade as per\b.*$/i, '')   // ...and its content when the "Notes" line was already removed
+    .replace(/\s+/g, ' ')
+    .trim();
   // Manufacturer part number: an explicit label wins; else a code-like first token.
   var pn = null;
   var lbl = d.match(/part number[:\s]*([A-Za-z0-9][A-Za-z0-9\-\._\/]{2,})/i);
   if (lbl) pn = lbl[1];
   else {
     var first = d.split(' ')[0] || '';
-    if (/^[A-Z0-9][A-Za-z0-9\-\._\/]{4,}$/.test(first) && /\d/.test(first) && /[A-Za-z]/.test(first)) pn = first;
+    if (/^[A-Z0-9][A-Za-z0-9\-\._\/:]{4,}$/.test(first) && /\d/.test(first) && /[A-Za-z]/.test(first)) {
+      pn = first.replace(/[:.,]$/, '');
+    }
   }
   return {
     n: n, description: d, part_number: pn, hsn: hsn,
     qty: qty, rate: rate, amount: Math.round(amount * 100) / 100,
-    check: 'qty×rate OK',
+    check: 'qty×rate OK' + (checkSuffix || ''),
   };
 }
 
