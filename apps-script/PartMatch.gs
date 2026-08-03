@@ -46,6 +46,19 @@ function buildPartPrices() {
              rate: r[10], amount: r[11], currency: String(r[12]), check: String(r[13]), src: String(r[14]) };
   });
 
+  // Doc-level GST % from the Register (subtotal/discount/tax are already
+  // there — no reparsing, no API calls). Attached to each line by doc number.
+  var docGst = {};
+  var reg = ss.getSheetByName(CONFIG.SHEETS.REGISTER);
+  if (reg && reg.getLastRow() > 1) {
+    reg.getRange(2, 1, reg.getLastRow() - 1, 13).getValues().forEach(function (r) {
+      var doc = String(r[6] || '').trim();
+      if (!doc || docGst[doc] != null) return; // first non-null reading wins
+      docGst[doc] = docGstPercent_(r[10], r[11], r[12]);
+    });
+  }
+  lines.forEach(function (ln) { ln.gst = docGst[ln.doc]; });
+
   var result = computePartPrices_(bom, lines, readAliases_(ss));
 
   var sh = ss.getSheetByName(CONFIG.SHEETS.PART_PRICES) || ss.insertSheet(CONFIG.SHEETS.PART_PRICES);
@@ -55,8 +68,8 @@ function buildPartPrices() {
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
 
   var headers = ['UID', 'Internal PN', 'Mfr PN', 'BOM Description', 'Purchases',
-    'Total Qty Bought', 'Total Spend', 'Latest Unit Rate', 'Currency', 'Latest Doc',
-    'Latest Doc Date', 'Latest Vendor', 'Match Type', 'Min Rate', 'Max Rate', 'Notes'];
+    'Total Qty Bought', 'Total Spend', 'Latest Unit Rate', 'Currency', 'GST %',
+    'Latest Doc', 'Latest Doc Date', 'Latest Vendor', 'Match Type', 'Min Rate', 'Max Rate', 'Notes'];
   var uHeaders = ['UNMATCHED — tick Confirm ✓ then run commitAliases()', 'Seen (lines)',
     'Latest Rate', 'Currency', 'Latest Description', 'Sample Doc',
     'Suggested UID', 'Suggested Part', 'Score', 'Confirm ✓', 'Alias Key (saved on commit)'];
@@ -151,6 +164,30 @@ function commitAliases() {
     '. Now run buildPartPrices() to apply them.';
   console.log(msg);
   log_(msg);
+}
+
+/**
+ * Doc-level GST %: tax ÷ (subtotal − discount), snapped to a standard GST
+ * slab. A document mixing slabs (18% + 28% lines) yields a blended rate that
+ * snaps to nothing → null, shown blank — never a misleading average.
+ * Number(null) is 0, so blanks are checked explicitly (a REVIEW row with no
+ * tax must NOT read as 0% GST).
+ */
+function docGstPercent_(subtotal, discount, tax) {
+  var toN = function (v) {
+    if (v === null || v === undefined || v === '') return null;
+    var n = Number(v);
+    return isNaN(n) ? null : n;
+  };
+  var s = toN(subtotal), t = toN(tax), d = toN(discount) || 0;
+  if (s === null || t === null || s - d <= 0) return null;
+  if (t === 0) return 0;
+  var eff = (t / (s - d)) * 100;
+  var slabs = [0.25, 3, 5, 12, 18, 28];
+  for (var i = 0; i < slabs.length; i++) {
+    if (Math.abs(eff - slabs[i]) <= 0.15) return slabs[i];
+  }
+  return null;
 }
 
 /** Reads the human-approved Aliases tab → [{alias, uid}]. Missing tab = []. */
@@ -351,8 +388,8 @@ function computePartPrices_(bom, lines, aliases) {
     return [
       uid, agg.bom.ipn, agg.bom.mpn, agg.bom.desc, agg.buys.length,
       Math.round(totalQty * 1000) / 1000, mixed ? '' : Math.round(totalSpend * 100) / 100,
-      latest.ln.rate, latest.ln.currency, latest.ln.doc,
-      latest.ln.date, latest.ln.vendor, latest.type,
+      latest.ln.rate, latest.ln.currency, latest.ln.gst == null ? '' : latest.ln.gst,
+      latest.ln.doc, latest.ln.date, latest.ln.vendor, latest.type,
       mixed ? '' : Math.min.apply(null, rates), mixed ? '' : Math.max.apply(null, rates),
       (mixed ? 'MIXED CURRENCIES — spend/min/max omitted. ' : '') + (anyVariant ? 'Contains variant matches — verify.' : ''),
     ];
