@@ -119,7 +119,7 @@ function buildPartPrices() {
 
   var msg = 'Part Prices rebuilt: ' + result.parts.length + ' BOM parts priced, ' +
     result.stats.matchedLines + ' lines matched (' + result.stats.aliasLines + ' via approved alias, ' +
-    result.stats.descMatchedLines + ' via MPN-in-description), ' +
+    result.stats.descMatchedLines + ' via description rules), ' +
     result.unmatched.length + ' unmatched wordings (' + result.stats.suggested +
     ' with a suggested part awaiting your tick).';
   console.log(msg);
@@ -413,6 +413,22 @@ function computePartPrices_(bom, lines, aliases) {
   });
   var mpnKeys = Object.keys(mpnMap), ipnKeys = Object.keys(ipnMap);
 
+  // The BOM's Component Description column is an identifier too (fab parts
+  // often live only there). Exact-equality map: collision-excluded — a desc
+  // shared by two BOM rows identifies neither.
+  var descExactMap = {}, descCollide = {};
+  bom.forEach(function (b) {
+    var dk = norm(b.desc);
+    if (dk.length < 6) return;
+    if (descExactMap[dk] && descExactMap[dk].uid !== b.uid) { descCollide[dk] = 1; return; }
+    descExactMap[dk] = b;
+  });
+  Object.keys(descCollide).forEach(function (dk) { delete descExactMap[dk]; });
+  // containment scan keys: only descs carrying a digit (part-number-like,
+  // "TSM-ASM-002 bracket") — wordy descs like "PU adhesive sealant" would
+  // over-match by containment
+  var descKeys = Object.keys(descExactMap).filter(function (dk) { return dk.length >= 8 && /\d/.test(dk); });
+
   // human-approved wordings — matched exactly (normalized), never fuzzily
   var aliasMap = {};
   var bomByUid = {};
@@ -432,12 +448,16 @@ function computePartPrices_(bom, lines, aliases) {
   var descMatch = function (descNorm) {
     if (!descNorm) return null;
     var hitUids = {}, best = null, bestKey = '', bestVia = '';
-    var scan = function (keys, map, via) {
+    var scan = function (keys, map, via, bothWays) {
       for (var k = 0; k < keys.length; k++) {
         var key = keys[k];
-        if (key.length >= 8 && descNorm.indexOf(key) !== -1) {
+        if (key.length < 8) continue;
+        var hit2 = descNorm.indexOf(key) !== -1 ||
+          (bothWays && descNorm.length >= 8 && key.indexOf(descNorm) !== -1);
+        if (hit2) {
           hitUids[map[key].uid] = 1;
-          if (key.length > bestKey.length) { best = map[key]; bestKey = key; bestVia = via; }
+          // scan order is priority order — a later scan never relabels a hit
+          if (!best || (via === bestVia && key.length > bestKey.length)) { best = map[key]; bestKey = key; bestVia = via; }
         }
       }
     };
@@ -445,6 +465,10 @@ function computePartPrices_(bom, lines, aliases) {
     // fab vendors (made-to-print parts) put the internal part number in the
     // line text — scan IPNs the same way
     scan(ipnKeys, ipnMap, 'IPN');
+    // ...and sometimes the identifier only exists in the BOM's Component
+    // Description. Both directions: PO wording inside BOM desc, or BOM desc
+    // inside PO wording (digit-bearing descs only, see descKeys above).
+    scan(descKeys, descExactMap, 'BOM-description', true);
     if (Object.keys(hitUids).length !== 1) return null; // ambiguous or none
     return { b: best, via: bestVia };
   };
@@ -527,6 +551,11 @@ function computePartPrices_(bom, lines, aliases) {
       if (mpnMap[dn]) { hit = mpnMap[dn]; type = 'MPN exact (description)'; }
       else if (ipnMap[dn]) { hit = ipnMap[dn]; type = 'IPN exact (description)'; }
       else if (uidMap[dn]) { hit = uidMap[dn]; type = 'UID exact (description)'; }
+      else if (descExactMap[dn]) {
+        // whole line text == a BOM Component Description (collision-free) —
+        // text-on-text, so it prices with a verify note
+        hit = descExactMap[dn]; type = 'Component description exact — verify';
+      }
     }
 
     // human-approved alias outranks every guess (variant/desc rules below)
