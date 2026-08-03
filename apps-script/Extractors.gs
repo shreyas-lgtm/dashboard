@@ -191,7 +191,7 @@ function parseZohoPoLines_(text, subtotal) {
   region = region
     .replace(/#\s*Item\s*&\s*Description(\s+HSN\/SAC)?\s+Qty\s+Rate\s+Amount/g, '\n') // strip (repeated) headers
     .replace(/(\d[\d,]*\.)\s+(\d)/g, '$1$2')   // rejoin numbers split after the dot: "1,93,898. 30" / "...\n30"
-    .replace(/(\d[\d,]*)\n\s*(\.\d+)/g, '$1$2') // ...and split before the dot: "14,63,000\n.00"
+    .replace(/(\d[\d,]*)\s+(\.\d+)/g, '$1$2')  // ...and split before the dot: "14,63,000\n.00" / "22,47,700 .00"
     .replace(/^Authorized Signature ?$/gm, '')
     .replace(/^Notes ?$/gm, '')
     // totals lines that leak into the region (page-break layouts)
