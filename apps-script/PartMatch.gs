@@ -7,10 +7,13 @@
  * UNMATCHED section listing part numbers seen on documents that have no BOM
  * entry yet — the to-do list for growing the Design Tracker.
  *
- * v1 matches on hard keys only (normalized Manufacturer PN / Internal PN,
- * plus a flagged containment-variant rule). Description/LLM fuzzy matching
- * is deliberately NOT here — flagged variants and unmatched lists are the
- * honest outputs until an alias layer earns its place.
+ * Match rules, strongest first (all four BOM columns are identifiers):
+ *   1. MPN / IPN / UID exact (normalized)
+ *   2. MPN/IPN containment variant             — flagged "verify"
+ *   3. specific MPN found inside the line desc — flagged "verify";
+ *      ambiguous (2+ BOM parts) is refused, never guessed
+ * LLM/fuzzy alias matching is deliberately NOT here — flagged matches and
+ * the unmatched list are the honest outputs until it earns its place.
  */
 
 function buildPartPrices() {
@@ -59,9 +62,10 @@ function buildPartPrices() {
   sh.setFrozenRows(1);
 
   var msg = 'Part Prices rebuilt: ' + result.parts.length + ' BOM parts priced, ' +
-    result.stats.matchedLines + '/' + result.stats.pnLines + ' part-numbered lines matched, ' +
+    result.stats.matchedLines + ' lines matched (' + result.stats.descMatchedLines +
+    ' via MPN-in-description), ' + result.stats.pnLines + ' lines had a part number, ' +
     result.unmatched.length + ' unmatched part numbers, ' +
-    result.stats.noPnLines + ' lines without a part number (not matchable in v1).';
+    result.stats.noPnLines + ' lines matched nothing (no part number, no MPN in description).';
   console.log(msg);
   log_(msg);
 }
@@ -82,40 +86,68 @@ function computePartPrices_(bom, lines) {
     return isNaN(t) ? 0 : t;
   };
 
-  var mpnMap = {}, ipnMap = {};
+  var mpnMap = {}, ipnMap = {}, uidMap = {};
   bom.forEach(function (b) {
-    var m = norm(b.mpn), i2 = norm(b.ipn);
+    var m = norm(b.mpn), i2 = norm(b.ipn), u2 = norm(b.uid);
     if (m.length >= 4 && !mpnMap[m]) mpnMap[m] = b;
     if (i2.length >= 4 && !ipnMap[i2]) ipnMap[i2] = b;
+    if (u2.length >= 4 && !uidMap[u2]) uidMap[u2] = b;
   });
   var mpnKeys = Object.keys(mpnMap), ipnKeys = Object.keys(ipnMap);
 
+  // All four BOM columns are identifiers. MPNs like "Loctite 243 Blue" or
+  // "Sikaflex 227" are product NAMES that appear inside a document line's
+  // description, never as a leading part code — so when hard keys fail, look
+  // for a sufficiently-specific MPN (normalized length >= 8) contained in the
+  // line description. Exactly one BOM hit → flagged match; two or more →
+  // ambiguous, refuse rather than guess.
+  var descMatch = function (descNorm) {
+    if (!descNorm) return null;
+    var found = null, foundKey = '';
+    for (var k = 0; k < mpnKeys.length; k++) {
+      var key = mpnKeys[k];
+      if (key.length >= 8 && descNorm.indexOf(key) !== -1) {
+        if (found && found.uid !== mpnMap[key].uid) return null; // ambiguous
+        if (key.length > foundKey.length) { found = mpnMap[key]; foundKey = key; }
+      }
+    }
+    return found;
+  };
+
   var byUid = {};
   var unmatchedByPn = {};
-  var stats = { pnLines: 0, matchedLines: 0, noPnLines: 0 };
+  var stats = { pnLines: 0, matchedLines: 0, noPnLines: 0, descMatchedLines: 0 };
 
   lines.forEach(function (ln) {
     if (ln.check.indexOf('qty×rate OK') !== 0) return; // never price from flagged lines
-    if (!ln.pn) { stats.noPnLines++; return; }
-    stats.pnLines++;
-
-    var p = norm(ln.pn);
     var hit = null, type = null;
-    if (mpnMap[p]) { hit = mpnMap[p]; type = 'MPN exact'; }
-    else if (ipnMap[p]) { hit = ipnMap[p]; type = 'IPN exact'; }
-    else if (p.length >= 6) {
-      // containment variant (packaging suffixes, folded qualifiers) — flagged for a human eye
-      for (var k = 0; k < mpnKeys.length && !hit; k++) {
-        var key = mpnKeys[k];
-        if (key.length >= 6 && (key.indexOf(p) !== -1 || p.indexOf(key) !== -1)) { hit = mpnMap[key]; type = 'MPN variant — verify'; }
-      }
-      for (var j = 0; j < ipnKeys.length && !hit; j++) {
-        var key2 = ipnKeys[j];
-        if (key2.length >= 6 && (key2.indexOf(p) !== -1 || p.indexOf(key2) !== -1)) { hit = ipnMap[key2]; type = 'IPN variant — verify'; }
+
+    if (ln.pn) {
+      stats.pnLines++;
+      var p = norm(ln.pn);
+      if (mpnMap[p]) { hit = mpnMap[p]; type = 'MPN exact'; }
+      else if (ipnMap[p]) { hit = ipnMap[p]; type = 'IPN exact'; }
+      else if (uidMap[p]) { hit = uidMap[p]; type = 'UID exact'; }
+      else if (p.length >= 6) {
+        // containment variant (packaging suffixes, folded qualifiers) — flagged for a human eye
+        for (var k = 0; k < mpnKeys.length && !hit; k++) {
+          var key = mpnKeys[k];
+          if (key.length >= 6 && (key.indexOf(p) !== -1 || p.indexOf(key) !== -1)) { hit = mpnMap[key]; type = 'MPN variant — verify'; }
+        }
+        for (var j = 0; j < ipnKeys.length && !hit; j++) {
+          var key2 = ipnKeys[j];
+          if (key2.length >= 6 && (key2.indexOf(p) !== -1 || p.indexOf(key2) !== -1)) { hit = ipnMap[key2]; type = 'IPN variant — verify'; }
+        }
       }
     }
 
     if (!hit) {
+      var d = descMatch(norm(ln.desc));
+      if (d) { hit = d; type = 'MPN in description — verify'; stats.descMatchedLines++; }
+    }
+
+    if (!hit) {
+      if (!ln.pn) { stats.noPnLines++; return; }
       var u = unmatchedByPn[ln.pn] || { count: 0, latest: ln };
       u.count++;
       if (ts(ln.date) > ts(u.latest.date)) u.latest = ln;
@@ -137,7 +169,7 @@ function computePartPrices_(bom, lines) {
     var currencies = {};
     agg.buys.forEach(function (b) { currencies[b.ln.currency] = 1; });
     var mixed = Object.keys(currencies).length > 1;
-    var anyVariant = agg.buys.some(function (b) { return b.type.indexOf('variant') !== -1; });
+    var anyVariant = agg.buys.some(function (b) { return b.type.indexOf('verify') !== -1; });
     return [
       uid, agg.bom.ipn, agg.bom.mpn, agg.bom.desc, agg.buys.length,
       latest.ln.rate, latest.ln.currency, latest.ln.doc,
