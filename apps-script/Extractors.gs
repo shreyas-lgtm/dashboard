@@ -306,9 +306,11 @@ function makeLine_(n, descTokens, hsn, qty, rate, amount, checkSuffix) {
   var lbl = d.match(/part number[:\s]*([A-Za-z0-9][A-Za-z0-9\-\._\/]{2,})/i);
   if (lbl) pn = lbl[1];
   else {
-    var first = d.split(' ')[0] || '';
-    if (/^[A-Z0-9][A-Za-z0-9\-\._\/:]{4,}$/.test(first) && /\d/.test(first) && /[A-Za-z]/.test(first)) {
-      pn = first.replace(/[:.,]$/, '');
+    // Take the token up to any colon — Zoho folds "PRT-100815:wheel_bracket"
+    // into one token, and the part code is the piece before the colon.
+    var first = (d.split(' ')[0] || '').split(':')[0];
+    if (/^[A-Z0-9][A-Za-z0-9\-\._\/]{3,}$/.test(first) && /\d/.test(first) && /[A-Za-z]/.test(first)) {
+      pn = first.replace(/[.,]$/, '');
     }
   }
   return {
@@ -393,7 +395,13 @@ function geminiExtract_(file, laneDocType) {
 function validateAiLines_(x) {
   var raw = x.line_items;
   if (!raw || !raw.length) return [];
-  var toNum = function (v) { var n = Number(v); return isNaN(n) ? null : n; };
+  // Number(null) is 0, not NaN — a missing subtotal must stay null, or every
+  // line gets a false "SUM MISMATCH vs subtotal 0" flag.
+  var toNum = function (v) {
+    if (v === null || v === undefined || v === '') return null;
+    var n = Number(v);
+    return isNaN(n) ? null : n;
+  };
   var items = [];
   for (var i = 0; i < raw.length; i++) {
     var l = raw[i] || {};

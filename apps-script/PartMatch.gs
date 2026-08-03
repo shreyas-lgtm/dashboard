@@ -21,6 +21,7 @@ function buildPartPrices() {
   if (!li || li.getLastRow() < 2) { console.log('No line items yet — run backfillLineItems() first.'); return; }
 
   var c = CONFIG.DESIGN_TRACKER;
+  if (dt.getLastRow() <= c.HEADER_ROW) { console.log('Design Tracker has no data rows below the header.'); return; }
   var dtVals = dt.getRange(c.HEADER_ROW + 1, 1, dt.getLastRow() - c.HEADER_ROW, Math.max(c.UID_COL, c.IPN_COL, c.MPN_COL, c.DESC_COL)).getValues();
   var bom = dtVals.map(function (r) {
     return { uid: String(r[c.UID_COL - 1] || '').trim(), ipn: String(r[c.IPN_COL - 1] || '').trim(),
@@ -72,6 +73,14 @@ function buildPartPrices() {
  */
 function computePartPrices_(bom, lines) {
   var norm = function (s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+  // Sheets hands dates back as Date objects; strings come from tests/exports.
+  // Compare on epoch millis — string comparison of Date objects sorts
+  // alphabetically ("Sat" > "Mon"), not chronologically.
+  var ts = function (v) {
+    if (v && typeof v.getTime === 'function') return v.getTime();
+    var t = Date.parse(String(v));
+    return isNaN(t) ? 0 : t;
+  };
 
   var mpnMap = {}, ipnMap = {};
   bom.forEach(function (b) {
@@ -109,7 +118,7 @@ function computePartPrices_(bom, lines) {
     if (!hit) {
       var u = unmatchedByPn[ln.pn] || { count: 0, latest: ln };
       u.count++;
-      if (String(ln.date) > String(u.latest.date)) u.latest = ln;
+      if (ts(ln.date) > ts(u.latest.date)) u.latest = ln;
       unmatchedByPn[ln.pn] = u;
       return;
     }
@@ -123,7 +132,7 @@ function computePartPrices_(bom, lines) {
   var parts = Object.keys(byUid).sort().map(function (uid) {
     var agg = byUid[uid];
     var latest = agg.buys[0];
-    agg.buys.forEach(function (b) { if (String(b.ln.date) > String(latest.ln.date)) latest = b; });
+    agg.buys.forEach(function (b) { if (ts(b.ln.date) > ts(latest.ln.date)) latest = b; });
     var rates = agg.buys.map(function (b) { return b.ln.rate; });
     var currencies = {};
     agg.buys.forEach(function (b) { currencies[b.ln.currency] = 1; });
