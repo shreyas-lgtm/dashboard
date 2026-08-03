@@ -70,12 +70,12 @@ var CONFIG = {
     DESC_COL: 8,  // H: Component Description
   },
 
-  // LAYER 3 — invoice line items via Gemini. Code-complete but GATED:
-  // stays false until the Layer 1 trust clock passes (weeks of running with
-  // zero silent errors). Flipping to true makes Gemini return line_items,
-  // validated per-line (qty×rate=amount) and per-document (sum=subtotal)
-  // with the same flag discipline as the PO parser.
-  INVOICE_LINE_ITEMS: false,
+  // LAYER 3 — invoice line items via Gemini (ACTIVATED 2026-08-03 on user's
+  // call). Gemini returns line_items for invoices/scans, validated per-line
+  // (qty×rate=amount) and per-document (sum=subtotal) with the same flag
+  // discipline as the PO parser: any line that fails carries a loud check
+  // flag and NEVER prices a part in Layer 4. Set false to re-gate.
+  INVOICE_LINE_ITEMS: true,
 
   LINE_HEADERS: [
     'Ingested At', 'Doc Number', 'Doc Type', 'Vendor', 'Doc Date', 'Line #',
