@@ -215,6 +215,47 @@ function commitAliases() {
   log_(msg);
 }
 
+/**
+ * Turns the UNMATCHED section into a review-ready worklist for growing the
+ * Design Tracker: one row per unmatched PART NUMBER (services and no-PN
+ * wordings excluded), sorted by money so the expensive gaps surface first.
+ * Nothing touches the Design Tracker — you review, assign UIDs, and paste
+ * the rows you accept. Rerun buildPartPrices() after and they all match.
+ */
+function exportBomCandidates() {
+  var ss = getSpreadsheet_();
+  var pp = ss.getSheetByName(CONFIG.SHEETS.PART_PRICES);
+  if (!pp || pp.getLastRow() < 2) { console.log('Run buildPartPrices() first.'); return; }
+  var vals = pp.getRange(1, 1, pp.getLastRow(), 11).getValues();
+  var start = -1;
+  for (var i = 0; i < vals.length; i++) {
+    if (String(vals[i][0]).indexOf('UNMATCHED') === 0) { start = i + 1; break; }
+  }
+  if (start < 0) { console.log('No UNMATCHED section found.'); return; }
+
+  var cands = [];
+  for (var r = start; r < vals.length; r++) {
+    var pn = String(vals[r][0] || '').trim();
+    if (!pn || pn === '(no PN)') continue; // no identifier → alias/AI territory, not a BOM row
+    cands.push([pn, String(vals[r][4] || ''), vals[r][1], vals[r][2], String(vals[r][3] || ''), String(vals[r][5] || '')]);
+  }
+  cands.sort(function (a, b) { return (Number(b[3]) || 0) - (Number(a[3]) || 0); });
+
+  var sh = ss.getSheetByName('BOM Candidates') || ss.insertSheet('BOM Candidates');
+  sh.clear();
+  var rows = [['Part Number (→ Internal PN or Mfr PN)', 'Description from PO', 'Seen (lines)', 'Latest Rate', 'Currency', 'Sample Doc']];
+  cands.forEach(function (c2) { rows.push(c2); });
+  sh.getRange(1, 1, rows.length, 6).setValues(rows);
+  sh.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#1a3c6e').setFontColor('#ffffff');
+  sh.setFrozenRows(1);
+
+  var msg = 'BOM Candidates rebuilt: ' + cands.length + ' unmatched part numbers, sorted by latest rate. ' +
+    'Review each, add the real parts to the Design Tracker (part number into Internal PN or Mfr PN, plus a UID), ' +
+    'then rerun buildPartPrices().';
+  console.log(msg);
+  log_(msg);
+}
+
 // ---------------------------------------------------------------------------
 // LAYER 4.2 — Gemini-assisted alias suggestions (SUGGESTION-ONLY)
 // ---------------------------------------------------------------------------
