@@ -55,8 +55,8 @@ function buildPartPrices() {
   sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
 
   var headers = ['UID', 'Internal PN', 'Mfr PN', 'BOM Description', 'Purchases',
-    'Latest Unit Rate', 'Currency', 'Latest Doc', 'Latest Doc Date', 'Latest Vendor',
-    'Match Type', 'Min Rate', 'Max Rate', 'Notes'];
+    'Total Qty Bought', 'Total Spend', 'Latest Unit Rate', 'Currency', 'Latest Doc',
+    'Latest Doc Date', 'Latest Vendor', 'Match Type', 'Min Rate', 'Max Rate', 'Notes'];
   var uHeaders = ['UNMATCHED — tick Confirm ✓ then run commitAliases()', 'Seen (lines)',
     'Latest Rate', 'Currency', 'Latest Description', 'Sample Doc',
     'Suggested UID', 'Suggested Part', 'Score', 'Confirm ✓', 'Alias Key (saved on commit)'];
@@ -71,9 +71,10 @@ function buildPartPrices() {
 
   sh.getRange(1, 1, rows.length, W).setValues(rows);
   // machine-readable summary cells for the Progress tab (avoids fragile
-  // range arithmetic over the two-section layout)
-  sh.getRange(1, 16).setValue('PARTS PRICED');
-  sh.getRange(2, 16).setValue(result.parts.length);
+  // range arithmetic over the two-section layout) — column R, clear of the
+  // 16 data columns
+  sh.getRange(1, 18).setValue('PARTS PRICED');
+  sh.getRange(2, 18).setValue(result.parts.length);
   sh.getRange(1, 1, 1, W).setFontWeight('bold').setBackground('#1a3c6e').setFontColor('#ffffff');
   var unmatchedHeaderRow = result.parts.length + 3;
   sh.getRange(unmatchedHeaderRow, 1, 1, W).setFontWeight('bold').setBackground('#fce8e6');
@@ -338,12 +339,22 @@ function computePartPrices_(bom, lines, aliases) {
     agg.buys.forEach(function (b) { currencies[b.ln.currency] = 1; });
     var mixed = Object.keys(currencies).length > 1;
     var anyVariant = agg.buys.some(function (b) { return b.type.indexOf('verify') !== -1; });
+    // total ACTUALLY bought across all documents — spares included, which is
+    // exactly the point: BOM qty says what the design needs, this says what
+    // was really purchased. Spend is money so it goes blank on mixed
+    // currencies (adding ₹ to $ is meaningless); qty is units and always sums.
+    var totalQty = 0, totalSpend = 0;
+    agg.buys.forEach(function (b) {
+      totalQty += Number(b.ln.qty) || 0;
+      totalSpend += Number(b.ln.amount) || 0;
+    });
     return [
       uid, agg.bom.ipn, agg.bom.mpn, agg.bom.desc, agg.buys.length,
+      Math.round(totalQty * 1000) / 1000, mixed ? '' : Math.round(totalSpend * 100) / 100,
       latest.ln.rate, latest.ln.currency, latest.ln.doc,
       latest.ln.date, latest.ln.vendor, latest.type,
       mixed ? '' : Math.min.apply(null, rates), mixed ? '' : Math.max.apply(null, rates),
-      (mixed ? 'MIXED CURRENCIES — min/max omitted. ' : '') + (anyVariant ? 'Contains variant matches — verify.' : ''),
+      (mixed ? 'MIXED CURRENCIES — spend/min/max omitted. ' : '') + (anyVariant ? 'Contains variant matches — verify.' : ''),
     ];
   });
 

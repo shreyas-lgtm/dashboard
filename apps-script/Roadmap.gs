@@ -29,7 +29,7 @@ function buildProgressTracker() {
     /* B9  */ ['Line items captured', '=MAX(0,COUNTA(' + L + '!B2:B))', '', ''],
     /* B10 */ ['Line items flagged (want 0)', '=COUNTIF(' + L + '!N2:N,"SUM MISMATCH*")+COUNTIF(' + L + '!N2:N,"*DESC UNALIGNED*")+COUNTIF(' + L + '!N2:N,"*FAILS*")', '', ''],
     /* B11 */ ['POs with line items', '=IFERROR(COUNTA(UNIQUE(FILTER(' + L + '!B2:B,' + L + '!B2:B<>""))),0)', '', ''],
-    /* B12 */ ['BOM parts priced (Layer 4)', '=IFERROR(' + P + '!P2,0)', '', ''],
+    /* B12 */ ['BOM parts priced (Layer 4)', '=IFERROR(' + P + '!R2,0)', '', ''],
     /* B13 */ ['SILENT ERRORS FOUND (AUTO row later found wrong) — EDIT BY HAND', 0, '', ''],
     ['', '', '', ''],
     ['— LAYERS (status computed live) —', 'GATE', 'PROGRESS', 'STATUS'],
