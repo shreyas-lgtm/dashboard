@@ -133,21 +133,12 @@ function buildPartPrices() {
  */
 function commitAliases() {
   var ss = getSpreadsheet_();
-  var pp = ss.getSheetByName(CONFIG.SHEETS.PART_PRICES);
-  if (!pp || pp.getLastRow() < 2) { console.log('No Part Prices tab — run buildPartPrices() first.'); return; }
-
-  var vals = pp.getRange(1, 1, pp.getLastRow(), 11).getValues();
-  var start = -1;
-  for (var i = 0; i < vals.length; i++) {
-    if (String(vals[i][0]).indexOf('UNMATCHED') === 0) { start = i + 1; break; }
-  }
-  if (start < 0) { console.log('No UNMATCHED section found — nothing to commit.'); return; }
+  var norm = function (s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
 
   // canonical UIDs from the Design Tracker (norm → exact spelling)
   var c = CONFIG.DESIGN_TRACKER;
   var dt = ss.getSheetByName(CONFIG.DESIGN_TRACKER.SHEET);
   if (!dt || dt.getLastRow() <= c.HEADER_ROW) { console.log('Design Tracker is empty — cannot validate UIDs.'); return; }
-  var norm = function (s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
   var validUid = {};
   dt.getRange(c.HEADER_ROW + 1, c.UID_COL, dt.getLastRow() - c.HEADER_ROW, 1).getValues().forEach(function (r) {
     var u = String(r[0] || '').trim();
@@ -168,41 +159,66 @@ function commitAliases() {
   // (bad UID, missing UID, junk key, conflict) STAY ticked — the guard then
   // forces the fix-or-untick decision instead of silently losing it.
   var added = 0, dupes = 0, badUid = 0, noUid = 0, junkKey = 0, conflicts = 0;
-  for (var r = start; r < vals.length; r++) {
-    var row = vals[r];
-    if (row[9] !== true && String(row[9]).toUpperCase() !== 'TRUE') continue; // Confirm ✓ (col J)
-    var uid = String(row[6] || '').trim();   // Suggested UID (col G) — user can overtype
-    var key = String(row[10] || '').trim();  // Alias Key (col K)
-    var done = false;
-    if (!uid || !key) {
-      noUid++;
-    } else if (norm(key).length < 4) {
-      // an alias that normalizes to under 4 chars ("." rows, stray digits)
-      // can never match anything — refuse loudly instead of saving a no-op
-      junkKey++;
-      log_('commitAliases: alias "' + key + '" is too short/unspecific to ever match — row skipped.');
-    } else {
-      var canon = validUid[norm(uid)];
-      var prior = existing[norm(key)];
-      if (!canon) {
-        badUid++;
-        log_('commitAliases: UID "' + uid + '" not in Design Tracker — row skipped.');
-      } else if (prior !== undefined && prior !== canon) {
-        conflicts++;
-        log_('commitAliases: "' + key + '" already maps to ' + prior + ' — refused remap to ' + canon +
-          '. Delete the old row on the Aliases tab first if the remap is intended.');
-      } else if (prior !== undefined) {
-        dupes++;
-        done = true;
-      } else {
-        al.appendRow([key, canon, Session.getEffectiveUser().getEmail(), new Date()]);
-        existing[norm(key)] = canon;
-        added++;
-        done = true;
+  var scanned = 0;
+
+  // Ticks live on two tabs: Part Prices' UNMATCHED section (UID in col G,
+  // document-first view) and BOM Coverage (UID in col A, Design-Tracker-first
+  // view). Same columns for Confirm (J) and Alias Key (K) on both.
+  var targets = [
+    { name: CONFIG.SHEETS.PART_PRICES, uidIdx: 6, marker: 'UNMATCHED' },
+    { name: 'BOM Coverage', uidIdx: 0, marker: null },
+  ];
+  targets.forEach(function (t) {
+    var sh = ss.getSheetByName(t.name);
+    if (!sh || sh.getLastRow() < 2) return;
+    var vals = sh.getRange(1, 1, sh.getLastRow(), 11).getValues();
+    var start = 1; // data begins under the header row
+    if (t.marker) {
+      start = -1;
+      for (var i = 0; i < vals.length; i++) {
+        if (String(vals[i][0]).indexOf(t.marker) === 0) { start = i + 1; break; }
       }
+      if (start < 0) return;
     }
-    if (done) pp.getRange(r + 1, 10).setValue(false);
-  }
+    scanned++;
+
+    for (var r = start; r < vals.length; r++) {
+      var row = vals[r];
+      if (row[9] !== true && String(row[9]).toUpperCase() !== 'TRUE') continue; // Confirm ✓ (col J)
+      var uid = String(row[t.uidIdx] || '').trim();
+      var key = String(row[10] || '').trim();  // Alias Key (col K)
+      var done = false;
+      if (!uid || !key) {
+        noUid++;
+      } else if (norm(key).length < 4) {
+        // an alias that normalizes to under 4 chars ("." rows, stray digits)
+        // can never match anything — refuse loudly instead of saving a no-op
+        junkKey++;
+        log_('commitAliases: alias "' + key + '" is too short/unspecific to ever match — row skipped.');
+      } else {
+        var canon = validUid[norm(uid)];
+        var prior = existing[norm(key)];
+        if (!canon) {
+          badUid++;
+          log_('commitAliases: UID "' + uid + '" not in Design Tracker — row skipped.');
+        } else if (prior !== undefined && prior !== canon) {
+          conflicts++;
+          log_('commitAliases: "' + key + '" already maps to ' + prior + ' — refused remap to ' + canon +
+            '. Delete the old row on the Aliases tab first if the remap is intended.');
+        } else if (prior !== undefined) {
+          dupes++;
+          done = true;
+        } else {
+          al.appendRow([key, canon, Session.getEffectiveUser().getEmail(), new Date()]);
+          existing[norm(key)] = canon;
+          added++;
+          done = true;
+        }
+      }
+      if (done) sh.getRange(r + 1, 10).setValue(false);
+    }
+  });
+  if (!scanned) { console.log('No Part Prices or BOM Coverage tab — run buildPartPrices() or buildBomCoverage() first.'); return; }
 
   var msg = 'commitAliases: ' + added + ' new alias(es) saved' +
     (dupes ? ', ' + dupes + ' already known' : '') +
@@ -216,11 +232,163 @@ function commitAliases() {
 }
 
 /**
- * Turns the UNMATCHED section into a review-ready worklist for growing the
- * Design Tracker: one row per unmatched PART NUMBER (services and no-PN
- * wordings excluded), sorted by money so the expensive gaps surface first.
- * Nothing touches the Design Tracker — you review, assign UIDs, and paste
- * the rows you accept. Rerun buildPartPrices() after and they all match.
+ * BOM-first view: walks the DESIGN TRACKER (not the documents) and reports,
+ * for every BOM part without a price yet, the closest document wording found
+ * in the parsed purchase data — with a Confirm checkbox to teach the match.
+ *
+ * This is the "parse via Design Tracker" direction: your BOM defines what
+ * matters; document lines that belong to no BOM part are ignored noise, not
+ * a to-do list. Tick → commitAliases() → buildPartPrices(), same as always.
+ */
+function buildBomCoverage() {
+  var ss = getSpreadsheet_();
+  var dt = ss.getSheetByName(CONFIG.DESIGN_TRACKER.SHEET);
+  var li = ss.getSheetByName(CONFIG.SHEETS.LINE_ITEMS);
+  if (!dt) { console.log("No '" + CONFIG.DESIGN_TRACKER.SHEET + "' tab found."); return; }
+  if (!li || li.getLastRow() < 2) { console.log('No line items yet — run backfillLineItems() first.'); return; }
+  var c = CONFIG.DESIGN_TRACKER;
+  if (dt.getLastRow() <= c.HEADER_ROW) { console.log('Design Tracker has no data rows below the header.'); return; }
+
+  // never wipe un-committed ticks on this tab either
+  var prev = ss.getSheetByName('BOM Coverage');
+  if (prev && prev.getLastRow() > 1) {
+    var pv = prev.getRange(2, 10, prev.getLastRow() - 1, 1).getValues();
+    var pending = pv.filter(function (r) { return r[0] === true || String(r[0]).toUpperCase() === 'TRUE'; }).length;
+    if (pending > 0) {
+      var warn = 'buildBomCoverage ABORTED: ' + pending + ' Confirm tick(s) not yet committed — run commitAliases() first (or untick), then rebuild.';
+      console.log(warn); log_(warn); return;
+    }
+  }
+
+  var dtVals = dt.getRange(c.HEADER_ROW + 1, 1, dt.getLastRow() - c.HEADER_ROW, Math.max(c.UID_COL, c.IPN_COL, c.MPN_COL, c.DESC_COL)).getValues();
+  var bom = dtVals.map(function (r) {
+    return { uid: String(r[c.UID_COL - 1] || '').trim(), ipn: String(r[c.IPN_COL - 1] || '').trim(),
+             mpn: String(r[c.MPN_COL - 1] || '').trim(), desc: String(r[c.DESC_COL - 1] || '').trim() };
+  }).filter(function (b) { return b.uid; });
+
+  var liVals = li.getRange(2, 1, li.getLastRow() - 1, 15).getValues();
+  var lines = liVals.map(function (r) {
+    return { doc: String(r[1]), docType: String(r[2]), vendor: String(r[3]), date: r[4],
+             n: r[5], desc: String(r[6]), pn: String(r[7] || '').trim(), qty: r[9],
+             rate: r[10], amount: r[11], currency: String(r[12]), check: String(r[13]), src: String(r[14]) };
+  });
+
+  var result = computePartPrices_(bom, lines, readAliases_(ss));
+  var priced = {};
+  result.parts.forEach(function (p) { priced[p[0]] = 1; });
+
+  var cov = computeBomCoverage_(bom, priced, result.unmatched);
+
+  var sh = prev || ss.insertSheet('BOM Coverage');
+  sh.clear();
+  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
+  var headers = ['UID', 'Internal PN', 'Mfr PN', 'BOM Description',
+    'Closest document wording', 'Sample Doc', 'Latest Rate', 'Currency', 'Score', 'Confirm ✓', 'Alias Key (saved on commit)'];
+  var rows = [headers];
+  cov.rows.forEach(function (r2) { rows.push(r2); });
+  sh.getRange(1, 1, rows.length, headers.length).setValues(rows);
+  sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#1a3c6e').setFontColor('#ffffff');
+  if (cov.rows.length) {
+    sh.getRange(2, 10, cov.rows.length, 1)
+      .setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
+  }
+  sh.setFrozenRows(1);
+
+  var msg = 'BOM Coverage rebuilt: ' + bom.length + ' Design Tracker parts, ' + result.parts.length +
+    ' priced (see Part Prices), ' + cov.rows.length + ' awaiting a price — ' + cov.withCandidate +
+    ' of them have a candidate wording from your documents (sorted to the top; tick to teach).';
+  console.log(msg);
+  log_(msg);
+}
+
+/**
+ * Pure core (unit-tested off-platform): for every UNPRICED BOM part, find the
+ * closest unmatched document wording by weighted token overlap. Candidates
+ * need 2+ shared tokens including a distinctive one (digit or BOM-unique);
+ * near-ties are declared, never guessed.
+ */
+function computeBomCoverage_(bom, pricedUids, unmatchedRows) {
+  var tokenize = function (s) {
+    return String(s || '').toUpperCase().split(/[^A-Z0-9]+/).filter(function (t) { return t.length >= 2; });
+  };
+  var df = {};
+  var bomTok = {};
+  bom.forEach(function (b) {
+    var set = {};
+    tokenize(b.ipn + ' ' + b.mpn + ' ' + b.desc).forEach(function (t) { set[t] = 1; });
+    bomTok[b.uid] = set;
+    Object.keys(set).forEach(function (t) { df[t] = (df[t] || 0) + 1; });
+  });
+  var weight = function (t) {
+    var w = 1 / (df[t] || 1);
+    if (/\d/.test(t)) w *= 3;
+    if (t.length >= 5) w *= 1.5;
+    return w;
+  };
+
+  var wordings = (unmatchedRows || []).map(function (u) {
+    var pn = String(u[0]) === '(no PN)' ? '' : String(u[0]);
+    return { key: String(u[10] || ''), text: pn + ' ' + String(u[4] || ''),
+             doc: String(u[5] || ''), rate: u[2], cur: String(u[3] || '') };
+  }).filter(function (w) { return w.key; });
+  var wTok = wordings.map(function (w) {
+    var set = {};
+    tokenize(w.text).forEach(function (t) { set[t] = 1; });
+    return set;
+  });
+
+  var rows = [], withCandidate = 0;
+  bom.forEach(function (b) {
+    if (pricedUids[b.uid]) return;
+    var toks = bomTok[b.uid];
+    var totalB = 0;
+    Object.keys(toks).forEach(function (t) { totalB += weight(t); });
+    var best = null, second = null;
+    for (var i = 0; i < wordings.length; i++) {
+      var shared = 0, sharedCount = 0, distinctive = false, known = 0;
+      Object.keys(wTok[i]).forEach(function (t) {
+        if (!df[t]) return;
+        var w2 = weight(t);
+        known += w2;
+        if (toks[t]) {
+          shared += w2; sharedCount++;
+          if (/\d/.test(t) || df[t] === 1) distinctive = true;
+        }
+      });
+      if (!known || sharedCount < 2 || !distinctive || !totalB) continue;
+      var score = Math.min(1, shared / Math.min(totalB, known));
+      if (score < 0.45) continue;
+      var cand = { w: wordings[i], score: score };
+      if (!best || score > best.score) { second = best; best = cand; }
+      else if (!second || score > second.score) { second = cand; }
+    }
+    if (best && second && second.w.key !== best.w.key && second.score >= best.score * 0.8) {
+      rows.push([b.uid, b.ipn, b.mpn, b.desc, '', '', '', '',
+        '2+ close wordings — pick from Part Prices unmatched list', false, '']);
+    } else if (best) {
+      withCandidate++;
+      rows.push([b.uid, b.ipn, b.mpn, b.desc, best.w.text.slice(0, 80), best.w.doc,
+        best.w.rate, best.w.cur, Math.round(best.score * 100) + '%', false, best.w.key]);
+    } else {
+      rows.push([b.uid, b.ipn, b.mpn, b.desc, '', '', '', '', '', false, '']);
+    }
+  });
+
+  // actionable first: candidates by score desc, then ambiguous, then the rest
+  rows.sort(function (a, b2) {
+    var sa = parseInt(a[8], 10), sb = parseInt(b2[8], 10);
+    var ka = isNaN(sa) ? (a[8] ? 1 : 0) : 100 + sa;
+    var kb = isNaN(sb) ? (b2[8] ? 1 : 0) : 100 + sb;
+    if (kb !== ka) return kb - ka;
+    return String(a[0]) < String(b2[0]) ? -1 : 1;
+  });
+  return { rows: rows, withCandidate: withCandidate };
+}
+
+/**
+ * (Optional, document-first view) Turns the UNMATCHED section into a
+ * review-ready worklist for growing the Design Tracker — kept for when a
+ * document part number SHOULD become a new BOM row.
  */
 function exportBomCandidates() {
   var ss = getSpreadsheet_();
