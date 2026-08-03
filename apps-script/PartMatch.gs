@@ -31,6 +31,24 @@ function buildPartPrices() {
   if (!dt) { console.log("No '" + CONFIG.DESIGN_TRACKER.SHEET + "' tab found."); return; }
   if (!li || li.getLastRow() < 2) { console.log('No line items yet — run backfillLineItems() first.'); return; }
 
+  // NEVER wipe un-committed human work: a rebuild clears the sheet, so any
+  // Confirm tick that hasn't been through commitAliases() would be lost.
+  var prev = ss.getSheetByName(CONFIG.SHEETS.PART_PRICES);
+  if (prev && prev.getLastRow() > 1) {
+    var prevVals = prev.getRange(1, 1, prev.getLastRow(), 10).getValues();
+    var inUnmatched = false, pending = 0;
+    for (var pv = 0; pv < prevVals.length; pv++) {
+      if (String(prevVals[pv][0]).indexOf('UNMATCHED') === 0) { inUnmatched = true; continue; }
+      if (inUnmatched && (prevVals[pv][9] === true || String(prevVals[pv][9]).toUpperCase() === 'TRUE')) pending++;
+    }
+    if (pending > 0) {
+      var warn = 'buildPartPrices ABORTED: ' + pending + ' Confirm tick(s) not yet committed — run commitAliases() first (or untick them), then rebuild.';
+      console.log(warn);
+      log_(warn);
+      return;
+    }
+  }
+
   var c = CONFIG.DESIGN_TRACKER;
   if (dt.getLastRow() <= c.HEADER_ROW) { console.log('Design Tracker has no data rows below the header.'); return; }
   var dtVals = dt.getRange(c.HEADER_ROW + 1, 1, dt.getLastRow() - c.HEADER_ROW, Math.max(c.UID_COL, c.IPN_COL, c.MPN_COL, c.DESC_COL)).getValues();
@@ -138,30 +156,61 @@ function commitAliases() {
 
   var al = ss.getSheetByName(CONFIG.SHEETS.ALIASES) || ss.insertSheet(CONFIG.SHEETS.ALIASES);
   if (al.getLastRow() === 0) al.appendRow(['Alias Text', 'UID', 'Added By', 'Added At']);
-  var existing = {};
+  var existing = {}; // normalized alias → UID it maps to
   if (al.getLastRow() > 1) {
-    al.getRange(2, 1, al.getLastRow() - 1, 1).getValues().forEach(function (r) { existing[norm(r[0])] = 1; });
+    al.getRange(2, 1, al.getLastRow() - 1, 2).getValues().forEach(function (r) {
+      existing[norm(r[0])] = String(r[1] || '').trim();
+    });
   }
 
-  var added = 0, dupes = 0, badUid = 0;
+  // Rows that are fully handled (saved / already known) get UNTICKED so the
+  // rebuild guard doesn't block on finished work. Rows needing a human fix
+  // (bad UID, missing UID, junk key, conflict) STAY ticked — the guard then
+  // forces the fix-or-untick decision instead of silently losing it.
+  var added = 0, dupes = 0, badUid = 0, noUid = 0, junkKey = 0, conflicts = 0;
   for (var r = start; r < vals.length; r++) {
     var row = vals[r];
     if (row[9] !== true && String(row[9]).toUpperCase() !== 'TRUE') continue; // Confirm ✓ (col J)
     var uid = String(row[6] || '').trim();   // Suggested UID (col G) — user can overtype
     var key = String(row[10] || '').trim();  // Alias Key (col K)
-    if (!uid || !key) continue;
-    var canon = validUid[norm(uid)];
-    if (!canon) { badUid++; log_('commitAliases: UID "' + uid + '" not in Design Tracker — row skipped.'); continue; }
-    if (existing[norm(key)]) { dupes++; continue; }
-    al.appendRow([key, canon, Session.getEffectiveUser().getEmail(), new Date()]);
-    existing[norm(key)] = 1;
-    added++;
+    var done = false;
+    if (!uid || !key) {
+      noUid++;
+    } else if (norm(key).length < 4) {
+      // an alias that normalizes to under 4 chars ("." rows, stray digits)
+      // can never match anything — refuse loudly instead of saving a no-op
+      junkKey++;
+      log_('commitAliases: alias "' + key + '" is too short/unspecific to ever match — row skipped.');
+    } else {
+      var canon = validUid[norm(uid)];
+      var prior = existing[norm(key)];
+      if (!canon) {
+        badUid++;
+        log_('commitAliases: UID "' + uid + '" not in Design Tracker — row skipped.');
+      } else if (prior !== undefined && prior !== canon) {
+        conflicts++;
+        log_('commitAliases: "' + key + '" already maps to ' + prior + ' — refused remap to ' + canon +
+          '. Delete the old row on the Aliases tab first if the remap is intended.');
+      } else if (prior !== undefined) {
+        dupes++;
+        done = true;
+      } else {
+        al.appendRow([key, canon, Session.getEffectiveUser().getEmail(), new Date()]);
+        existing[norm(key)] = canon;
+        added++;
+        done = true;
+      }
+    }
+    if (done) pp.getRange(r + 1, 10).setValue(false);
   }
 
   var msg = 'commitAliases: ' + added + ' new alias(es) saved' +
     (dupes ? ', ' + dupes + ' already known' : '') +
-    (badUid ? ', ' + badUid + ' skipped (UID not in Design Tracker — see Log)' : '') +
-    '. Now run buildPartPrices() to apply them.';
+    (conflicts ? ', ' + conflicts + ' CONFLICT(s) refused (see Log)' : '') +
+    (badUid ? ', ' + badUid + ' skipped — UID not in Design Tracker (see Log)' : '') +
+    (noUid ? ', ' + noUid + ' ticked row(s) have no Suggested UID — type one and re-run' : '') +
+    (junkKey ? ', ' + junkKey + ' alias key(s) too short to ever match (see Log)' : '') +
+    '. Now run buildPartPrices() to apply.';
   console.log(msg);
   log_(msg);
 }
