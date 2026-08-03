@@ -388,7 +388,10 @@ function computePartPrices_(bom, lines, aliases) {
     return [
       uid, agg.bom.ipn, agg.bom.mpn, agg.bom.desc, agg.buys.length,
       Math.round(totalQty * 1000) / 1000, mixed ? '' : Math.round(totalSpend * 100) / 100,
-      latest.ln.rate, latest.ln.currency, latest.ln.gst == null ? '' : latest.ln.gst,
+      latest.ln.rate, latest.ln.currency,
+      // international purchases (non-INR) carry no GST — always 0, even if
+      // the Register row had no usable tax numbers
+      (latest.ln.currency && latest.ln.currency !== 'INR') ? 0 : (latest.ln.gst == null ? '' : latest.ln.gst),
       latest.ln.doc, latest.ln.date, latest.ln.vendor, latest.type,
       mixed ? '' : Math.min.apply(null, rates), mixed ? '' : Math.max.apply(null, rates),
       (mixed ? 'MIXED CURRENCIES — spend/min/max omitted. ' : '') + (anyVariant ? 'Contains variant matches — verify.' : ''),
