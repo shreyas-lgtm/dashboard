@@ -474,15 +474,23 @@ function suggestAliasesWithGemini() {
   var validUid = {};
   bom.forEach(function (b) { if (!validUid[norm(b.uid)]) validUid[norm(b.uid)] = b; });
 
-  // candidates: unmatched rows with NO suggestion yet and a usable alias key
-  var cands = [];
-  for (var r = start; r < vals.length && cands.length < AI_SUGGEST_MAX_ROWS; r++) {
+  // candidates: unmatched rows with NO suggestion yet and a usable alias key.
+  // Money-priority: the model's attention (and the 80-row cap) goes to the
+  // most expensive wordings first, not to whatever sorts alphabetically first.
+  var all = [];
+  for (var r = start; r < vals.length; r++) {
     var uidCell = String(vals[r][6] || '').trim();
     var key = String(vals[r][10] || '').trim();
     if (uidCell || !key || norm(key).length < 4) continue;
-    cands.push({ row: r + 1, key: key });
+    all.push({ row: r + 1, key: key, rate: Number(vals[r][2]) || 0 });
   }
+  all.sort(function (a, b) { return b.rate - a.rate; });
+  var cands = all.slice(0, AI_SUGGEST_MAX_ROWS);
   if (!cands.length) { console.log('Every unmatched row already has a suggestion (or is junk) — nothing to send.'); return; }
+  if (all.length > cands.length) {
+    log_('AI suggest: ' + all.length + ' rows need a suggestion; sending the ' + cands.length +
+      ' most expensive this run (rerun for the next batch).');
+  }
 
   var catalog = bom.map(function (b) { return b.uid + ' | ' + b.ipn + ' | ' + b.mpn + ' | ' + b.desc; }).join('\n');
   var linesTxt = cands.map(function (x, i2) { return i2 + ' | ' + x.key; }).join('\n');
@@ -522,15 +530,34 @@ function suggestAliasesWithGemini() {
     return;
   }
 
-  var applied = applyAiSuggestions_(cands, out, validUid);
+  var res = applyAiSuggestions_(cands, out, validUid);
+  var applied = res.applied;
   applied.forEach(function (a) {
     pp.getRange(a.row, 7).setValue(a.uid);
     pp.getRange(a.row, 8).setValue(a.label);
     pp.getRange(a.row, 9).setValue(a.score);
   });
-  var msg = 'AI suggest: ' + applied.length + ' suggestion(s) written for ' + cands.length +
-    ' unsuggested row(s) sent (1 API call). Review each, tick Confirm, run commitAliases(). ' +
-    'AI rows are labeled "AI high/medium" in the Score column.';
+
+  // "0 written" must never be a mystery: say what the model returned and
+  // exactly why each proposal was dropped.
+  var st = res.stats;
+  var msg = 'AI suggest: ' + applied.length + ' suggestion(s) written. Sent ' + cands.length +
+    ' wording(s) against ' + bom.length + ' BOM parts (1 API call). Model returned ' +
+    st.returned + ' proposal(s)';
+  if (st.returned) {
+    msg += ' — dropped: ' + st.badUid + ' invented/unknown UID, ' + st.lowConf +
+      ' low-confidence, ' + st.badIndex + ' bad index, ' + st.dupe + ' duplicate';
+  }
+  msg += '. ';
+  if (!st.returned) {
+    msg += 'An empty list means the model found nothing in the BOM catalog matching these wordings ' +
+      '(they are probably parts/services absent from the Design Tracker). Raw reply: ' +
+      String(text).replace(/\s+/g, ' ').slice(0, 200);
+  } else if (!applied.length) {
+    msg += 'All proposals were rejected by the safety filter — see the counts above.';
+  } else {
+    msg += 'Review each, tick Confirm, run commitAliases(). AI rows are labeled "AI high/medium".';
+  }
   console.log(msg);
   log_(msg);
 }
@@ -538,20 +565,23 @@ function suggestAliasesWithGemini() {
 /**
  * Pure filter for the model's output (unit-tested off-platform): only
  * catalog-valid UIDs, only high/medium confidence, only known line indexes.
+ * Returns {applied, stats} — the stats make a zero-result run explainable.
  */
 function applyAiSuggestions_(cands, aiOut, validUidMap) {
   var norm = function (s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
   var applied = [];
-  if (!aiOut || !aiOut.length) return applied;
+  var stats = { returned: (aiOut && aiOut.length) || 0, badUid: 0, lowConf: 0, badIndex: 0, dupe: 0 };
+  if (!aiOut || !aiOut.length) return { applied: applied, stats: stats };
   var seen = {};
   for (var i = 0; i < aiOut.length; i++) {
     var s = aiOut[i] || {};
     var idx = Number(s.index);
-    if (!(idx >= 0 && idx < cands.length) || seen[idx]) continue;
+    if (!(idx >= 0 && idx < cands.length)) { stats.badIndex++; continue; }
+    if (seen[idx]) { stats.dupe++; continue; }
     var b = s.uid ? validUidMap[norm(String(s.uid))] : null;
-    if (!b) continue;
+    if (!b) { stats.badUid++; continue; }
     var conf = String(s.confidence || '').toLowerCase();
-    if (conf !== 'high' && conf !== 'medium') continue;
+    if (conf !== 'high' && conf !== 'medium') { stats.lowConf++; continue; }
     seen[idx] = 1;
     applied.push({
       row: cands[idx].row,
@@ -560,7 +590,7 @@ function applyAiSuggestions_(cands, aiOut, validUidMap) {
       score: 'AI ' + conf + (s.reason ? ' — ' + String(s.reason).slice(0, 60) : ''),
     });
   }
-  return applied;
+  return { applied: applied, stats: stats };
 }
 
 /**
