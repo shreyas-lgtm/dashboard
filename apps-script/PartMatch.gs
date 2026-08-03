@@ -413,6 +413,22 @@ function computePartPrices_(bom, lines, aliases) {
   });
   var mpnKeys = Object.keys(mpnMap), ipnKeys = Object.keys(ipnMap);
 
+  // Fab vendors confuse look-alike characters between drawings and POs —
+  // the same part arrives as "AMR-BC1-0016" (digit one) and "AMR-BCI-0016"
+  // (letter I). Secondary lookup with I→1 / O→0 folded, collision-excluded,
+  // always flagged for a human eye.
+  var cnorm = function (s) { return norm(s).replace(/I/g, '1').replace(/O/g, '0'); };
+  var cMap = {}, cCollide = {};
+  bom.forEach(function (b) {
+    [b.mpn, b.ipn].forEach(function (v) {
+      var ck = cnorm(v);
+      if (ck.length < 6) return;
+      if (cMap[ck] && cMap[ck].uid !== b.uid) { cCollide[ck] = 1; return; }
+      cMap[ck] = b;
+    });
+  });
+  Object.keys(cCollide).forEach(function (ck) { delete cMap[ck]; });
+
   // The BOM's Component Description column is an identifier too (fab parts
   // often live only there). Exact-equality map: collision-excluded — a desc
   // shared by two BOM rows identifies neither.
@@ -541,6 +557,7 @@ function computePartPrices_(bom, lines, aliases) {
       if (mpnMap[p]) { hit = mpnMap[p]; type = 'MPN exact'; }
       else if (ipnMap[p]) { hit = ipnMap[p]; type = 'IPN exact'; }
       else if (uidMap[p]) { hit = uidMap[p]; type = 'UID exact'; }
+      else if (cMap[cnorm(ln.pn)]) { hit = cMap[cnorm(ln.pn)]; type = 'Exact after I/1 O/0 fold — verify'; }
     }
 
     // made-to-print fab POs (Arunagiri, Pooja Metallic, ...) write the part
@@ -574,6 +591,18 @@ function computePartPrices_(bom, lines, aliases) {
       for (var j = 0; j < ipnKeys.length && !hit; j++) {
         var key2 = ipnKeys[j];
         if (key2.length >= 6 && (key2.indexOf(p) !== -1 || p.indexOf(key2) !== -1)) { hit = ipnMap[key2]; type = 'IPN variant — verify'; }
+      }
+      // fab suffix + look-alike confusion combined ("AMR-BCI-0016-MS-1.5mm-Q2"
+      // vs BOM "AMR-BC1-0016") — containment over the I/1 O/0 folded space
+      if (!hit) {
+        var cp = cnorm(ln.pn);
+        var cKeys = Object.keys(cMap);
+        for (var q = 0; q < cKeys.length && !hit; q++) {
+          var ckey = cKeys[q];
+          if (ckey.indexOf(cp) !== -1 || cp.indexOf(ckey) !== -1) {
+            hit = cMap[ckey]; type = 'Variant after I/1 O/0 fold — verify';
+          }
+        }
       }
     }
 

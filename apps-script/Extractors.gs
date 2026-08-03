@@ -300,6 +300,9 @@ function makeLine_(n, descTokens, hsn, qty, rate, amount, checkSuffix) {
     .replace(/\s*\bNotes\b\s.*$/, '')        // strip Notes block folded into a description
     .replace(/\s*\bMade as per\b.*$/i, '')   // ...and its content when the "Notes" line was already removed
     .replace(/\s*\bTerms\s*&\s*Conditions\b.*$/i, '') // footer folded into single-line POs
+    // fab POs fold their own document references into the last line's text —
+    // noise that breaks exact description matching and pollutes alias keys
+    .replace(/\s*\b(Purchase Order Number|Quote No\.?:?|PO Number)\b.*$/i, '')
     .replace(/\s+/g, ' ')
     .trim()
     // single-line POs keep the printed item index in the token stream (the
