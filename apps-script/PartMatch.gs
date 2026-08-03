@@ -424,6 +424,103 @@ function exportBomCandidates() {
   log_(msg);
 }
 
+/**
+ * DIAGNOSTIC — answers "why didn't this line match?" against your live data.
+ * Zero API calls, changes nothing.
+ *
+ * Edit the search text below (or call explainMatch('PRT-100696') from the
+ * editor) and read the execution log: it prints the Line Items rows that
+ * mention it, the part number the parser extracted, whether the Design
+ * Tracker contains that identifier at all, the nearest BOM entries when it
+ * doesn't, and which match rule fires (or the precise reason none does).
+ */
+function explainMatchDefault() { explainMatch('PRT-100696'); }
+
+function explainMatch(needle) {
+  var q = String(needle || '').trim();
+  if (!q) { console.log('Pass a part number or wording, e.g. explainMatch("PRT-100696")'); return; }
+  var norm = function (s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+  var qn = norm(q);
+  var ss = getSpreadsheet_();
+  var out = ['=== explainMatch("' + q + '") ==='];
+
+  // 1) what the DESIGN TRACKER knows
+  var c = CONFIG.DESIGN_TRACKER;
+  var dt = ss.getSheetByName(c.SHEET);
+  if (!dt || dt.getLastRow() <= c.HEADER_ROW) { console.log('Design Tracker is empty.'); return; }
+  var width = Math.max(c.UID_COL, c.IPN_COL, c.MPN_COL, c.DESC_COL);
+  var bom = dt.getRange(c.HEADER_ROW + 1, 1, dt.getLastRow() - c.HEADER_ROW, width).getValues().map(function (r, i) {
+    return { row: c.HEADER_ROW + 1 + i, uid: String(r[c.UID_COL - 1] || '').trim(),
+             ipn: String(r[c.IPN_COL - 1] || '').trim(), mpn: String(r[c.MPN_COL - 1] || '').trim(),
+             desc: String(r[c.DESC_COL - 1] || '').trim() };
+  }).filter(function (b) { return b.uid; });
+
+  var exact = bom.filter(function (b) { return norm(b.ipn) === qn || norm(b.mpn) === qn || norm(b.uid) === qn; });
+  var partial = bom.filter(function (b) {
+    return exact.indexOf(b) === -1 && qn.length >= 4 &&
+      (norm(b.ipn).indexOf(qn) !== -1 || norm(b.mpn).indexOf(qn) !== -1 ||
+       (norm(b.ipn) && qn.indexOf(norm(b.ipn)) !== -1) || (norm(b.mpn) && qn.indexOf(norm(b.mpn)) !== -1) ||
+       norm(b.desc).indexOf(qn) !== -1);
+  });
+  out.push('DESIGN TRACKER (' + bom.length + ' parts): ' + exact.length + ' exact, ' + partial.length + ' partial.');
+  exact.slice(0, 5).forEach(function (b) {
+    out.push('  EXACT  row ' + b.row + ': uid=' + b.uid + ' | ipn=' + b.ipn + ' | mpn=' + b.mpn + ' | ' + b.desc.slice(0, 40));
+  });
+  partial.slice(0, 5).forEach(function (b) {
+    out.push('  PARTIAL row ' + b.row + ': uid=' + b.uid + ' | ipn=' + b.ipn + ' | mpn=' + b.mpn + ' | ' + b.desc.slice(0, 40));
+  });
+  if (!exact.length && !partial.length) {
+    // nearest neighbours by shared prefix — usually reveals a numbering gap
+    var pre = qn.slice(0, Math.min(6, qn.length));
+    var near = bom.filter(function (b) { return norm(b.ipn).indexOf(pre) === 0 || norm(b.mpn).indexOf(pre) === 0; });
+    out.push('  NOT IN THE DESIGN TRACKER. ' + near.length + ' part(s) share the prefix "' + pre + '":');
+    near.slice(0, 8).forEach(function (b) { out.push('    row ' + b.row + ': ' + (b.ipn || b.mpn) + ' — ' + b.desc.slice(0, 40)); });
+    if (!near.length) out.push('    (no part with that prefix either — this identifier is absent entirely)');
+  }
+
+  // 2) what the LINE ITEMS hold
+  var li = ss.getSheetByName(CONFIG.SHEETS.LINE_ITEMS);
+  if (!li || li.getLastRow() < 2) { out.push('No Line Items yet.'); console.log(out.join('\n')); return; }
+  var liVals = li.getRange(2, 1, li.getLastRow() - 1, 15).getValues();
+  var hits = [];
+  liVals.forEach(function (r, i) {
+    var pn = String(r[7] || ''), desc = String(r[6] || '');
+    if (norm(pn).indexOf(qn) !== -1 || norm(desc).indexOf(qn) !== -1) {
+      hits.push({ row: i + 2, doc: String(r[1]), desc: desc, pn: pn, rate: r[10], check: String(r[13]) });
+    }
+  });
+  out.push('LINE ITEMS: ' + hits.length + ' row(s) mention it.');
+  hits.slice(0, 8).forEach(function (h) {
+    out.push('  row ' + h.row + ' [' + h.doc + '] extracted pn=' + (h.pn || '(none)') +
+      ' | rate=' + h.rate + ' | check=' + h.check + '\n      desc="' + h.desc.slice(0, 70) + '"');
+  });
+  if (!hits.length) out.push('  Nothing in Line Items mentions it — the part was never purchased in the parsed documents.');
+
+  // 3) run the real matcher on just these lines and report the verdict
+  if (hits.length) {
+    var lines = hits.map(function (h) {
+      return { doc: h.doc, docType: 'purchase_order', vendor: '', date: '2026-01-01', n: 1,
+               desc: h.desc, pn: h.pn, qty: 1, rate: h.rate, amount: h.rate, currency: 'INR',
+               check: h.check, src: '' };
+    });
+    var res = computePartPrices_(bom, lines, readAliases_(ss));
+    out.push('MATCHER VERDICT on those lines:');
+    if (res.parts.length) {
+      res.parts.forEach(function (p) { out.push('  ✅ ' + p[0] + ' matched via "' + p[13] + '" (' + p[4] + ' line(s), rate ' + p[7] + ')'); });
+    }
+    if (res.unmatched.length) {
+      res.unmatched.forEach(function (u) { out.push('  ❌ no match for "' + String(u[10]).slice(0, 60) + '"'); });
+      out.push('  Reason: none of MPN/IPN/UID exact, alias, containment variant, I/1-O/0 fold, or');
+      out.push('  description rules found a unique Design Tracker part for that text (see the');
+      out.push('  DESIGN TRACKER section above — if it says NOT IN THE DESIGN TRACKER, that is why).');
+    }
+    var flagged = hits.filter(function (h) { return h.check.indexOf('qty×rate OK') !== 0; });
+    if (flagged.length) out.push('  NOTE: ' + flagged.length + ' line(s) carry a check flag and are excluded from pricing by design.');
+  }
+  console.log(out.join('\n'));
+  return out.join('\n');
+}
+
 // ---------------------------------------------------------------------------
 // LAYER 4.2 — Gemini-assisted alias suggestions (SUGGESTION-ONLY)
 // ---------------------------------------------------------------------------

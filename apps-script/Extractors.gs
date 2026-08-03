@@ -315,7 +315,16 @@ function makeLine_(n, descTokens, hsn, qty, rate, amount, checkSuffix) {
   var pn = null;
   var lbl = d.match(/part number[:\s]*([A-Za-z0-9][A-Za-z0-9\-\._\/]{2,})/i);
   if (lbl) pn = lbl[1];
-  else {
+  // vendors sometimes space out the prefix ("PRT - 0009--MS-1.5mm") so the
+  // first token is just the alpha prefix and nothing is extracted. Rejoin
+  // prefix + number — but ONLY when whitespace is actually present, so a
+  // normal code ("PRT-100012-MS-1.5mm-Q1") still goes through the first-token
+  // path below and keeps its full identity (a suffix can be a real variant).
+  if (!pn) {
+    var spaced = d.match(/^([A-Z]{2,5})(?:\s+[-–]\s*|\s*[-–]\s+|\s+)(\d{3,7})/i);
+    if (spaced) pn = spaced[1].toUpperCase() + '-' + spaced[2];
+  }
+  if (!pn) {
     // Take the token up to any colon — Zoho folds "PRT-100815:wheel_bracket"
     // into one token, and the part code is the piece before the colon.
     var first = (d.split(' ')[0] || '').split(':')[0];
