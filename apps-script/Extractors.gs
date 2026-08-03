@@ -356,7 +356,7 @@ function makeLine_(n, descTokens, hsn, qty, rate, amount, checkSuffix) {
 // Gemini (free tier) extraction
 // ---------------------------------------------------------------------------
 
-function geminiExtract_(file, laneDocType) {
+function geminiExtract_(file, laneDocType, skipLineItems) {
   var blob = file.getBlob();
   var mime = blob.getContentType();
   if (mime === 'image/jpg') mime = 'image/jpeg';
@@ -368,8 +368,10 @@ function geminiExtract_(file, laneDocType) {
     : 'This folder should contain only documents of type "' + laneDocType +
       '". If this document is clearly a different type, still extract it but flag the mismatch in notes.';
 
-  // LAYER 3 (gated): ask for line items only when enabled in Config.
-  var lineItemsAddon = CONFIG.INVOICE_LINE_ITEMS
+  // LAYER 3: ask for line items only when enabled — and not on the
+  // shortened retry after a MAX_TOKENS truncation.
+  var wantLines = CONFIG.INVOICE_LINE_ITEMS && !skipLineItems;
+  var lineItemsAddon = wantLines
     ? '\n\nAdditionally include a "line_items" array in the same JSON object — one entry per billed line:\n' +
       '"line_items": [{"description": string, "part_number": string | null, "hsn": string | null, ' +
       '"qty": number, "rate": number, "amount": number}]\n' +
@@ -404,16 +406,28 @@ function geminiExtract_(file, laneDocType) {
   var parts = (cand.content || {}).parts || [];
   var text = parts.map(function (p) { return p.text || ''; }).join('');
   if (cand.finishReason === 'MAX_TOKENS') {
+    // Line items make the reply much longer; a dense invoice can outrun the
+    // output ceiling. Degrade instead of losing the document: retry once for
+    // the doc-level fields only, and say so loudly in the notes.
+    if (wantLines) {
+      log_('Gemini output truncated with line items for "' + file.getName() +
+        '" — retrying for document fields only (this invoice will have no line items).');
+      var lite = geminiExtract_(file, laneDocType, true);
+      lite.notes = (lite.notes ? lite.notes + '; ' : '') +
+        'LINE ITEMS SKIPPED — model output exceeded the token ceiling on this document';
+      lite.confidence = 'medium';
+      return lite;
+    }
     throw new Error('Gemini output truncated (MAX_TOKENS) — raise CONFIG.GEMINI.MAX_OUTPUT_TOKENS');
   }
   if (!text) {
     throw new Error('Gemini returned no text (finishReason: ' + (cand.finishReason || '?') + ')');
   }
   var out = parseJsonLoose_(text);
-  if (CONFIG.INVOICE_LINE_ITEMS) {
+  if (wantLines) {
     out.line_items = validateAiLines_(out);
   } else {
-    delete out.line_items; // gated: never write AI lines while Layer 3 is off
+    delete out.line_items; // gated (or shortened retry): never write AI lines
   }
   return out;
 }

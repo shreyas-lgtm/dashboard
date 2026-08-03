@@ -108,10 +108,13 @@ var CONFIG = {
     DAILY_BUDGET: 150,
     // Pause between calls to stay far under the free RPM limit (~10/min).
     MIN_MS_BETWEEN_CALLS: 7000,
-    // Generous cap: newer Gemini models (3.x) spend internal "thinking"
-    // tokens from this same budget before emitting the JSON — 1024 caused
-    // real MAX_TOKENS truncations. Free-tier TPM (250k/min) dwarfs this.
-    MAX_OUTPUT_TOKENS: 8192,
+    // Newer Gemini models (3.x) spend internal "thinking" tokens from this
+    // same budget before emitting the JSON, and Layer 3 line items make the
+    // JSON itself much longer — 1024 then 8192 both produced real MAX_TOKENS
+    // truncations on dense invoices. Free-tier TPM (250k/min) dwarfs this, and
+    // unused budget costs nothing: you are billed/limited on tokens actually
+    // produced, not on the ceiling.
+    MAX_OUTPUT_TOKENS: 32768,
   },
 
   // Auto-accept an invoice above this amount only if it has TWO passing
