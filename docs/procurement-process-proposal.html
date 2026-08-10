@@ -394,7 +394,7 @@
     <div class="titleblock__main">
       <p class="eyebrow">Process proposal &middot; Supply chain &amp; procurement</p>
       <h1>Turning purchase requests into Asana tickets</h1>
-      <p class="standfirst">The integration is straightforward. The process underneath it is what needs deciding first &mdash; because the approval gate we would trigger on is, today, mostly not being used.</p>
+      <p class="standfirst">The integration is straightforward and the trigger already exists &mdash; it is just sitting in a column that lost its name. Build on that, and the remaining work is cleanup plus one genuine queue problem.</p>
     </div>
     <dl class="meta">
       <div><dt>Prepared for</dt><dd>Origin Tech &middot; SCM</dd></div>
@@ -406,48 +406,54 @@
 
   <div class="verdict">
     <h3>The short answer</h3>
-    <p>Yes &mdash; <em>Purchase Request form (Responses)</em> can create Asana tasks automatically, and the field mapping is clean. But you asked to fire on <code>Final Approval = Approved</code>, and only 18 of 78 requests (23%) have ever had that cell filled in. Meanwhile 49 requests reached <em>Ordered</em> or <em>Handed Over</em>. Build the trigger as specified today and Asana becomes a record of the quarter of your procurement that happens to get stamped.</p>
-    <p>So: fix the gate, then automate it. The good news is that the fix is small, and the data tells us exactly where to aim.</p>
+    <p>Yes, and the trigger to use is <strong>column&nbsp;J</strong> &mdash; the one Google Sheets is currently labelling <code>Column 9</code> because its header cell is empty. It holds <code>Approved</code> 57 times and <code>Rejected</code> 3 times across 78 requests: a <strong>77% decision rate</strong>. That is a working approval gate.</p>
+    <p>Do not trigger on <code>Final Approval</code> (column&nbsp;K). It contains only <code>Approved</code>, 18 times, and all 18 are a subset of column&nbsp;J. It is a half-adopted second stamp and it should be retired, not automated.</p>
+    <p>Firing on column&nbsp;J gives roughly 19 tickets a week. The real remaining problem is not bypassed approvals &mdash; it is that 10 of 27 requests marked <em>Critical &mdash; within 24 hours</em> have no decision at all, and the undecided pool averages 11 days old.</p>
+  </div>
+
+  <div class="verdict" style="border-color: var(--warn); background: var(--warn-wash);">
+    <h3>Correction to the first draft of this document</h3>
+    <p>An earlier version of this page reported that 36 requests had been procured with no approval recorded, and recommended fixing the approval gate before automating it. That was measured against <code>Final Approval</code> and was wrong. Measured against column&nbsp;J, the true figure is <strong>2</strong>, and rejection demonstrably works &mdash; all three rejected requests were left at <em>Pending</em> and never ordered. The gate does not need fixing before automation. The sections below are corrected.</p>
   </div>
 
   <section>
     <h2><span class="num">01</span> What the 78 responses show</h2>
     <div class="tiles">
+      <div class="tile tile--good">
+        <span class="tile__fig">77%</span>
+        <span class="tile__label">Decision rate in column J</span>
+        <span class="tile__note">57 <code>Approved</code>, 3 <code>Rejected</code>, 18 blank. This is the working gate and the right automation trigger.</span>
+      </div>
+      <div class="tile tile--good">
+        <span class="tile__fig">3 / 3</span>
+        <span class="tile__label">Rejections that held</span>
+        <span class="tile__note">All three rejected requests stayed at <em>Pending</em> and were never ordered. The gate has teeth.</span>
+      </div>
+      <div class="tile tile--warn">
+        <span class="tile__fig">18 / 78</span>
+        <span class="tile__label">Redundant second stamp</span>
+        <span class="tile__note"><code>Final Approval</code> (column K) only ever says <code>Approved</code>, and all 18 are already approved in J. Retire it.</span>
+      </div>
       <div class="tile tile--crit">
-        <span class="tile__fig">23%</span>
-        <span class="tile__label">Requests with final approval</span>
-        <span class="tile__note">18 of 78. The remaining 60 have the cell blank &mdash; including 36 that were already ordered or handed over.</span>
+        <span class="tile__fig">10 / 27</span>
+        <span class="tile__label">"Critical" with no decision</span>
+        <span class="tile__note">Requests claiming <em>required within 24 hours</em> that nobody has decided. PR-2026-1490 to 1494 are five of them, all 11 days old.</span>
       </div>
       <div class="tile tile--crit">
         <span class="tile__fig">1 / 78</span>
         <span class="tile__label">Requests with a price</span>
-        <span class="tile__note"><code>Price (INR)</code> is filled once; <code>Estimate</code> never. Nobody approving these can see what they cost.</span>
-      </div>
-      <div class="tile tile--warn">
-        <span class="tile__fig">1 / 27</span>
-        <span class="tile__label">"Critical" ever approved</span>
-        <span class="tile__note">27 requests claim <em>required within 24 hours</em>. One carries an approval stamp; the median unapproved one is 12 days old.</span>
-      </div>
-      <div class="tile tile--good">
-        <span class="tile__fig">0.4d</span>
-        <span class="tile__label">Median approval turnaround</span>
-        <span class="tile__note">When someone does approve, they are fast. The bottleneck is not reviewer speed &mdash; it is that the step gets skipped.</span>
-      </div>
-      <div class="tile tile--warn">
-        <span class="tile__fig">4 / 18</span>
-        <span class="tile__label">Approvals dated before request</span>
-        <span class="tile__note"><code>Approval Date</code> is being back-filled by hand, so it cannot be trusted as an audit trail or an SLA clock.</span>
+        <span class="tile__note"><code>Price (INR)</code> is filled once; <code>Estimate</code> never. No cost visibility means no budget control and no spend analysis.</span>
       </div>
       <div class="tile tile--crit">
         <span class="tile__fig">0%</span>
         <span class="tile__label">Order ID / Delivery Date / ETA</span>
-        <span class="tile__note">The whole downstream tail of the sheet is empty. Fulfilment tracking is happening somewhere else, or nowhere.</span>
+        <span class="tile__note">Empty on all 78 rows. Nothing links a request to a Zoho PO, so fulfilment tracking lives outside this sheet.</span>
       </div>
     </div>
     <div class="stack">
-      <p>Two patterns matter more than the individual numbers.</p>
-      <p><strong>Approval is not a gate, it is a formality applied afterwards.</strong> 24 requests are marked <em>Handed Over</em> &mdash; goods physically with the requester &mdash; with no approval recorded. Another 12 are <em>Ordered</em> the same way. Money is being committed and the sign-off is catching up later, or not at all. That is the actual risk in the current process, and it is invisible on the sheet because a blank cell looks like a pending item rather than a bypass.</p>
-      <p><strong>Urgency has inflated because it is free.</strong> A third of all requests are marked <em>Critical &mdash; required within 24 hours</em>. When everything is critical, the label stops routing anything, and the queue reverts to whoever shouts loudest. Note this is self-declared on a dropdown with no need-by date behind it and no cost attached.</p>
+      <p><strong>Approval works; the queue does not.</strong> With 60 of 78 requests carrying a decision and only two anomalies &mdash; <code>PR-2026-1473</code> and <code>PR-2026-1463</code>, both handed over without a decision recorded &mdash; there is no systemic bypass to fix. What there is instead is an ageing undecided pile: 16 of the 18 blanks are still at <em>Pending</em>, median age 11 days, and 10 of them are self-declared 24-hour criticals.</p>
+      <p>This is the strongest argument for putting these in Asana. A spreadsheet row cannot chase anybody. A ticket with an assignee, a due date and an escalation rule can. The problem is not that approval is being skipped &mdash; it is that a request with nobody's name on it waits indefinitely, and the sheet gives no signal when it does.</p>
+      <p><strong>Urgency has inflated because it is free.</strong> A third of all requests claim 24-hour criticality, self-declared on a dropdown with no need-by date behind it and no cost attached. Notably, every one of the 8 <em>Planned</em> requests got decided while 10 criticals did not &mdash; a reasonable sign the label is being discounted by the people reading it.</p>
     </div>
   </section>
 
@@ -465,8 +471,8 @@
         <tbody>
           <tr>
             <td class="mono">Google Form + Sheet</td>
-            <td>Intake, plus an aspirational tail: approval, order ID, delivery date, ETA, SCM remark</td>
-            <td>Intake works &mdash; 100% fill on requester, vendor, justification. The tail is 0–23% filled.</td>
+            <td>Intake and approval &mdash; plus an aspirational fulfilment tail: order ID, delivery date, ETA, SCM remark</td>
+            <td>Intake works (100% fill on requester, vendor, justification) and so does approval (77% in column&nbsp;J). The fulfilment tail is 0% filled.</td>
           </tr>
           <tr>
             <td class="mono">Zoho Procurement</td>
@@ -530,10 +536,10 @@
         <span class="stage__n">02</span>
         <div class="stage__body">
           <h3>Approve &mdash; tiered by value, with a real SLA</h3>
-          <p>The reason approval gets skipped today is that it costs the same effort for a ₹500 pack of ESD covers as for a ₹1.3&nbsp;lakh Graco assembly. Tier it, auto-approve the small stuff, and the remaining approvals become few enough that people actually do them. Thresholds below are a starting point to calibrate once cost capture exists &mdash; see the open decisions.</p>
+          <p>Approval already happens reliably; what it lacks is a clock and an owner. Tiering is about protecting attention: a ₹500 pack of ESD covers should not consume the same review as a ₹1.3&nbsp;lakh Graco assembly, and auto-approving the small end is what frees people to answer the 10 undecided criticals inside a day. Thresholds below are a starting point to calibrate once cost capture exists.</p>
           <dl class="stage__facts">
-            <div class="fact"><dt>Owner</dt><dd class="is-ink">Tier-dependent</dd></div>
-            <div class="fact"><dt>Hard rule</dt><dd>No PO may be raised without a recorded approval &mdash; this is the bypass that needs closing</dd></div>
+            <div class="fact"><dt>Owner</dt><dd class="is-ink">Tier-dependent &mdash; named, not a role</dd></div>
+            <div class="fact"><dt>Hard rule</dt><dd>Every request gets a decision inside its SLA, or it escalates automatically. Ageing silence is the failure mode here, not bypass.</dd></div>
             <div class="fact"><dt>Exit condition</dt><dd>Approved or rejected, timestamped by the system rather than typed by hand</dd></div>
           </dl>
         </div>
@@ -628,13 +634,14 @@
     <h2><span class="num">05</span> How to sequence it</h2>
     <div class="phases">
       <div class="phase">
-        <span class="phase__tag">Phase 1 &middot; ~1 week</span>
-        <h3>Make the gate real, keep the Google Form</h3>
+        <span class="phase__tag">Phase 1 &middot; ~2 days</span>
+        <h3>Automate on column J, keep the Google Form</h3>
         <ul>
-          <li>Add <strong>required cost estimate</strong> and <strong>need-by date</strong> to the form; retire the urgency dropdown.</li>
-          <li>Clean the sheet schema (see below) so the columns that matter are unambiguous.</li>
-          <li>Apps Script on the responses sheet: on <code>Final Approval = Approved</code>, create the Asana task and write its URL back to the row &mdash; <strong>exactly the trigger you chose</strong>.</li>
-          <li>Publish a weekly bypass report: anything <em>Ordered</em> or <em>Handed Over</em> without an approval. Visibility alone will move this number.</li>
+          <li><strong>Name column J</strong> &mdash; give J1 a real header such as <code>Approval Decision</code>. It is only called <code>Column 9</code> because the cell is blank.</li>
+          <li>Apps Script <strong>installable <code>onEdit</code> trigger</strong> watching column J: when it becomes <code>Approved</code>, create the Asana task. It must be <code>onEdit</code>, not <code>onFormSubmit</code> &mdash; approval is entered well after submission.</li>
+          <li>Write the task URL into a new column and skip rows that already have one, so re-editing J never mints a duplicate.</li>
+          <li><code>Rejected</code> creates nothing, or a closed task for the record.</li>
+          <li>Retire <code>Final Approval</code> (column K) so there is exactly one approval field.</li>
         </ul>
       </div>
       <div class="phase phase--later">
@@ -658,7 +665,7 @@
       </div>
     </div>
     <div class="stack">
-      <p>Worth saying plainly: Phase&nbsp;1 gives you the automation you asked for, but it leaves the bottleneck in place, because it triggers <em>after</em> the step that is being skipped. It is a reasonable place to start &mdash; it is cheap, reversible, and the bypass report it produces is the evidence you would want before committing to Phase&nbsp;2. Just don't expect the ticket count to look healthy until the gate is enforced.</p>
+      <p>Phase&nbsp;1 stands on its own and is worth doing this week: column&nbsp;J is already a reliable signal, so the tickets it produces will reflect real approved procurement from day one &mdash; about 19 a week at current volume. It does not fix the ageing undecided pile, because it only fires once a decision exists. Phase&nbsp;2 is what addresses that, by putting the pending request itself on someone's board with a due date.</p>
     </div>
   </section>
 
@@ -671,12 +678,13 @@
           <tr><th>Column</th><th>Fill rate</th><th>Action</th><th>Why</th></tr>
         </thead>
         <tbody>
+          <tr><td class="mono">Column 9 &nbsp;(col&nbsp;J)</td><td class="num">60 / 78</td><td class="keep">RENAME &amp; KEEP</td><td><strong>The approval gate, and the automation trigger.</strong> Only unnamed because J1 is blank. Give it a real header before any script keys on it.</td></tr>
+          <tr><td class="mono">Final Approval &nbsp;(col&nbsp;K)</td><td class="num">18 / 78</td><td class="drop">RETIRE</td><td>Only ever contains <code>Approved</code>, never <code>Rejected</code>, and all 18 are a subset of column&nbsp;J. Two approval fields is how J lost its header in the first place.</td></tr>
           <tr><td class="mono">Price (INR)</td><td class="num">1 / 78</td><td class="fix">MAKE REQUIRED</td><td>Without it there is no tiering, no budget control, no spend analysis.</td></tr>
-          <tr><td class="mono">Urgency Level</td><td class="num">78 / 78</td><td class="fix">REPLACE</td><td>Swap for a need-by date. 27 of 78 claim 24-hour criticality; the label no longer routes anything.</td></tr>
-          <tr><td class="mono">Final Approval</td><td class="num">18 / 78</td><td class="fix">ENFORCE</td><td>Becomes the automation trigger, so it has to be mandatory before a PO can be raised.</td></tr>
-          <tr><td class="mono">Approval Date</td><td class="num">18 / 78</td><td class="fix">AUTOMATE</td><td>4 of 18 predate the request. Should be system-stamped, never typed.</td></tr>
+          <tr><td class="mono">Urgency Level</td><td class="num">78 / 78</td><td class="fix">REPLACE</td><td>Swap for a need-by date. 27 of 78 claim 24-hour criticality and 10 of those are still undecided; the label no longer routes anything.</td></tr>
+          <tr><td class="mono">Approval Date</td><td class="num">18 / 78</td><td class="fix">AUTOMATE</td><td>4 of 18 predate the request. Should be system-stamped on the column&nbsp;J edit, never typed.</td></tr>
           <tr><td class="mono">Lead Time / Lead time / Lead Time</td><td class="num">3 columns</td><td class="drop">DEDUPE</td><td>Three columns with the same name in different cases. Keep one.</td></tr>
-          <tr><td class="mono">Column 9 &nbsp;&middot;&nbsp; /.</td><td class="num">—</td><td class="drop">DELETE</td><td>Untitled leftovers.</td></tr>
+          <tr><td class="mono">/.</td><td class="num">0 / 78</td><td class="drop">DELETE</td><td>Untitled leftover. Unlike <code>Column 9</code>, this one really is junk.</td></tr>
           <tr><td class="mono">Estimate</td><td class="num">0 / 78</td><td class="drop">DELETE</td><td>Never used and redundant against Price.</td></tr>
           <tr><td class="mono">Item Type</td><td class="num">2 / 78</td><td class="drop">DELETE</td><td>Two entries, neither consistent with the other.</td></tr>
           <tr><td class="mono">Order ID · Delivery Date · ETA</td><td class="num">0 / 78</td><td class="fix">MOVE TO ZOHO</td><td>Zoho owns these natively. Populate by integration, stop asking humans to double-enter.</td></tr>
@@ -728,7 +736,8 @@
   </section>
 
   <footer>
-    <p>Figures come from all 78 data rows of the <em>Form responses&nbsp;1</em> tab of <em>Purchase Request form (Responses)</em>, read on 10 Aug 2026. Approval-latency and ageing figures derive from the sheet's own <code>Timestamp</code> and <code>Approval Date</code> columns, which are hand-entered and internally inconsistent in 4 of 18 cases &mdash; treat them as indicative of a pattern rather than precise measurements. Asana plan details come from the Addrs&nbsp;Labs proposal in your Drive; plan feature limits are not verified against Asana's current documentation.</p>
+    <p>Figures come from all 78 data rows of the <em>Form responses&nbsp;1</em> tab of <em>Purchase Request form (Responses)</em>, read on 10 Aug 2026. Ageing figures are measured from each row's <code>Timestamp</code> to 10 Aug 2026. The <code>Approval Date</code> column is hand-entered and internally inconsistent in 4 of 18 cases, so it is used only to make that point and not as a latency measurement. Asana plan details come from the Addrs&nbsp;Labs proposal in your Drive; plan feature limits are not verified against Asana's current documentation.</p>
+    <p>Revised 10 Aug 2026 after <code>Column 9</code> was identified as the operative approval field. The first version of this document measured approval against <code>Final Approval</code> and consequently overstated the rate of unapproved procurement as 36 requests rather than 2.</p>
   </footer>
 
 </div>
