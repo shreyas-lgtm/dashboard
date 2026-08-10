@@ -3,7 +3,20 @@
 // exercised here. Run with:  node integrations/asana-purchase-requests/test-local.js
 
 global.Session = { getScriptTimeZone: () => 'Asia/Kolkata' };
-global.Utilities = { formatDate: (d) => d.toISOString().slice(0, 10), sleep: () => {} };
+// Minimal formatDate honouring the patterns Code.gs uses, so format assertions
+// test the code rather than the stub. UTC throughout, matching the helpers below.
+global.Utilities = {
+  formatDate: (d, _tz, pattern) => {
+    const p = (n) => String(n).padStart(2, '0');
+    return String(pattern)
+      .replace('yyyy', d.getUTCFullYear())
+      .replace('MM', p(d.getUTCMonth() + 1))
+      .replace('dd', p(d.getUTCDate()))
+      .replace('HH', p(d.getUTCHours()))
+      .replace('mm', p(d.getUTCMinutes()));
+  },
+  sleep: () => {},
+};
 global.PropertiesService = { getScriptProperties: () => ({ getProperty: () => 'stub' }) };
 global.UrlFetchApp = {}; global.SpreadsheetApp = {}; global.ScriptApp = {};
 global.CacheService = {}; global.MailApp = {}; global.LockService = {};
@@ -13,7 +26,8 @@ const src = require('fs').readFileSync(__dirname + '/Code.gs', 'utf8');
 const api = new Function(
   src + `\nreturn { dueDate_, buildNotes_, buildCustomFields_, resolveColumns_,
     routeFor_, needsPrice_, sameStatus_, sectionNameFor_, indexRowsByGid_,
-    isKnownStatus_, assertRequiredFields_, cellText_, REQUIRED_FIELDS, CFG, COL };`
+    isKnownStatus_, assertRequiredFields_, cellText_, formatComments_, shortStamp_,
+    REQUIRED_FIELDS, AUTO_CREATE, CFG, COL };`
 )();
 
 // Snapshot before any test mutates CFG.
@@ -180,7 +194,9 @@ eq('maps requester', cols.fields.requester, 1);
 eq('appends Asana Task', cols.taskUrl, 13);
 eq('appends Asana Task GID', cols.taskGid, 14);
 eq('auto-creates the status column', cols.fields.status, 15);
+eq('auto-creates the comments column', cols.fields.comments, 16);
 eq('status header written', s._headers()[15], 'Order Status');
+eq('comments header written', s._headers()[16], 'Asana Comments');
 eq('GID header written', s._headers()[14], 'Asana Task GID');
 eq('absent optional column stays undefined', cols.fields.orderedDate, undefined);
 
@@ -196,6 +212,7 @@ eq('old sheet: finds approval', cols.approval, 9);
 eq('old sheet: reuses existing Order Status', cols.fields.status, 3);
 eq('old sheet: productType falls back to Item Type', cols.fields.productType, 19);
 eq('old sheet: maps Ordered Date', cols.fields.orderedDate, 28);
+eq('old sheet: comments reuse SCM Remark', cols.fields.comments, 29);
 
 // Header-driven, not position-driven.
 const moved = ['Lead approval'].concat(NEW_HDR.filter((_, i) => i !== 8));
@@ -292,6 +309,52 @@ eq('prefix', api.CFG.prIdPrefix, 'PR');
 const fmt = (n) => api.CFG.prIdPrefix + '-' + new Date().getFullYear() + '-' + n;
 eq('next after seed', fmt(api.CFG.prIdStartFrom + 1), `PR-${new Date().getFullYear()}-1528`);
 eq('matches the old form pattern', /^PR-\d{4}-\d{4}$/.test(fmt(1528)), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- comment log --');
+const STORIES = [
+  { type: 'comment', text: 'Vendor confirmed lead time 3 days', created_at: '2026-08-09T05:32:00.000Z', created_by: { name: 'Kiran' } },
+  { type: 'system', text: 'moved this task to Ordered', created_at: '2026-08-09T06:00:00.000Z', created_by: { name: 'Kiran' } },
+  { type: 'comment', text: 'Quotation received,\n6531 INR', created_at: '2026-08-10T11:15:00.000Z', created_by: { name: 'Abish Kumar' } },
+];
+const onlyComments = STORIES.filter((s) => s.type === 'comment');
+const log = api.formatComments_(onlyComments);
+console.log(log.split('\n').map((l) => '   | ' + l).join('\n'));
+
+eq('newest comment first', log.split('\n')[0].includes('Quotation received'), true);
+eq('oldest comment last', log.split('\n')[1].includes('lead time 3 days'), true);
+eq('one line per comment', log.split('\n').length, 2);
+eq('multi-line comment collapsed', log.includes('Quotation received, / 6531 INR'), true);
+eq('author included', log.includes('Abish Kumar:'), true);
+eq('timestamp included', /^\[\d{2}\/\d{2} \d{2}:\d{2}\]/.test(log), true);
+eq('empty list -> empty string', api.formatComments_([]), '');
+
+// Only the most recent N are kept.
+const many = Array.from({ length: 30 }, (_, i) => ({
+  type: 'comment', text: 'comment ' + i,
+  created_at: '2026-08-10T00:00:00.000Z', created_by: { name: 'X' },
+}));
+eq('capped at commentsMaxCount', api.formatComments_(many).split('\n').length, api.CFG.commentsMaxCount);
+eq('newest of many is first', api.formatComments_(many).split('\n')[0].includes('comment 29'), true);
+
+// Long comments are truncated rather than blowing the cell limit.
+const huge = Array.from({ length: 20 }, (_, i) => ({
+  type: 'comment', text: 'x'.repeat(500),
+  created_at: '2026-08-10T00:00:00.000Z', created_by: { name: 'X' },
+}));
+const truncated = api.formatComments_(huge);
+eq('respects commentsMaxChars', truncated.length <= api.CFG.commentsMaxChars, true);
+eq('says it truncated', truncated.includes('(truncated)'), true);
+
+// System stories must never reach the sheet.
+eq('system stories are excluded upstream',
+   api.formatComments_(onlyComments).includes('moved this task to'), false);
+eq('stories filter keeps comment_added subtype',
+   src.includes("resource_subtype === 'comment_added'"), true);
+
+eq('comments column is auto-created', api.AUTO_CREATE.includes('comments'), true);
+eq('comments sync is one-way (no push to Asana)',
+   src.includes('syncCommentsForRow_') && !src.includes('pushCommentToAsana'), true);
 
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);

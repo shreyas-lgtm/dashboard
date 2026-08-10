@@ -103,6 +103,17 @@ const CFG = {
     vendor: '',
   },
 
+  // ---- Comment sync -------------------------------------------------------
+  // Asana comments are mirrored into a sheet column, newest first. One-way:
+  // comments written in the sheet are not pushed to Asana.
+  //
+  // The whole log is rebuilt from Asana each time rather than appended to, so
+  // there is no "last seen comment" state to get out of step -- and an edited or
+  // deleted comment in Asana corrects itself in the sheet.
+  syncComments: true,
+  commentsMaxCount: 20, // most recent N
+  commentsMaxChars: 5000, // a cell holds 50k; stay well clear
+
   // ---- PR_ID generation ---------------------------------------------------
   // The old form's PR_IDs were static values written at submit time, not a
   // formula: they track submission order rather than row position (so they
@@ -141,13 +152,15 @@ const COL = {
   productType: ['Product type', 'Product Type', 'Item Type', 'Product Main Category'],
   // Status, synced back from Asana. Auto-created if missing.
   status: ['Order Status', 'Status'],
+  // Asana comment log, synced back from Asana. Auto-created if missing.
+  comments: ['Asana Comments', 'SCM Remark', 'Remarks'],
   // Optional; stamped when the status reaches Ordered / Handed Over.
   orderedDate: ['Ordered Date'],
   handedOverDate: ['Handed Over Date', 'Handover Date'],
 };
 
 // Columns the script creates if the sheet does not already have them.
-const AUTO_CREATE = ['status'];
+const AUTO_CREATE = ['status', 'comments'];
 
 // Fields the integration cannot function without. Missing means a silent
 // half-failure -- an unmapped price blocks every ticket at Quotation Awaited,
@@ -483,13 +496,33 @@ function syncStatusesFromAsana() {
     const sections = sectionsByName_();
     const tasks = fetchProjectTasks_();
 
+    // Comments are only refetched for tasks that changed since the last run --
+    // one extra API call per task, so doing it for all of them every ten minutes
+    // would be wasteful. The cutoff is rolled back a few minutes so a change
+    // landing mid-run is not missed.
+    const props = PropertiesService.getScriptProperties();
+    const runStartedAt = new Date().toISOString();
+    const lastSync = props.getProperty('LAST_SYNC_AT');
+    const cutoff = lastSync
+      ? new Date(new Date(lastSync).getTime() - 5 * 60 * 1000).toISOString()
+      : '';
+
     let synced = 0;
     let blocked = 0;
+    let commentsUpdated = 0;
     const unknownSections = {};
 
     tasks.forEach(function (task) {
       const row = rowByGid[task.gid];
       if (!row) return; // a task created by hand in Asana; nothing to sync to
+
+      // Comments first: they are worth syncing even when the status has not moved.
+      if (CFG.syncComments && cols.fields.comments !== undefined) {
+        const changed = !cutoff || !task.modified_at || task.modified_at > cutoff;
+        if (changed && syncCommentsForRow_(sheet, row, cols, task, rowValues(row))) {
+          commentsUpdated++;
+        }
+      }
 
       const asanaStatus = sectionNameFor_(task);
       if (!asanaStatus) return;
@@ -525,9 +558,16 @@ function syncStatusesFromAsana() {
       synced++;
     });
 
-    if (synced || blocked) {
-      console.log('Synced %s status change(s); blocked %s for a missing price.', synced, blocked);
+    if (synced || blocked || commentsUpdated) {
+      console.log(
+        'Synced %s status change(s), %s comment log(s); blocked %s for a missing price.',
+        synced, commentsUpdated, blocked
+      );
     }
+
+    // Advanced only on a clean run, so a failure re-examines the same window
+    // rather than skipping over it.
+    props.setProperty('LAST_SYNC_AT', runStartedAt);
 
     const strays = Object.keys(unknownSections);
     if (strays.length) {
@@ -618,6 +658,65 @@ function revertStatus_(task, sheetStatus, sections, attempted) {
   );
 }
 
+/**
+ * Rebuilds the comment log for one row from Asana. Returns true when the cell
+ * actually changed.
+ *
+ * The full log is rebuilt rather than appended to: no "last seen" bookkeeping to
+ * drift, and an edited or deleted comment in Asana corrects itself here.
+ */
+function syncCommentsForRow_(sheet, row, cols, task, values) {
+  const log = formatComments_(fetchComments_(task.gid));
+  const existing = cellText_(values[cols.fields.comments]);
+  if (log === existing) return false;
+
+  sheet.getRange(row, cols.fields.comments + 1).setValue(log);
+  return true;
+}
+
+/** Real comments on a task, oldest first. System events are excluded. */
+function fetchComments_(taskGid) {
+  const stories = asanaFetchAll_(
+    '/tasks/' + taskGid + '/stories?opt_fields=type,resource_subtype,text,created_at,created_by.name'
+  );
+  return stories.filter(function (s) {
+    return s.type === 'comment' || s.resource_subtype === 'comment_added';
+  });
+}
+
+/**
+ * Newest first, one comment per line:
+ *   [10/08 16:45] Abish: Quotation received, 6531
+ */
+function formatComments_(comments) {
+  const lines = comments
+    .slice()
+    .reverse()
+    .slice(0, CFG.commentsMaxCount)
+    .map(function (c) {
+      const who = (c.created_by && c.created_by.name) || 'Unknown';
+      const when = c.created_at ? shortStamp_(c.created_at) : '';
+      // Collapse newlines: one comment per line keeps the cell readable.
+      const text = cellText_(c.text).replace(/\s*\n+\s*/g, ' / ');
+      return '[' + when + '] ' + who + ': ' + text;
+    });
+
+  let out = lines.join('\n');
+  if (out.length > CFG.commentsMaxChars) {
+    out = out.slice(0, CFG.commentsMaxChars - 20).replace(/\n[^\n]*$/, '') + '\n…(truncated)';
+  }
+  return out;
+}
+
+/** ISO timestamp -> "10/08 16:45" in the script's timezone. */
+function shortStamp_(iso) {
+  try {
+    return Utilities.formatDate(new Date(iso), Session.getScriptTimeZone(), 'dd/MM HH:mm');
+  } catch (err) {
+    return String(iso).slice(0, 10);
+  }
+}
+
 /** Stamps the matching date column, when the sheet has one and it is empty. */
 function stampStatusDate_(sheet, row, cols, status) {
   const map = { ordered: 'orderedDate', 'handed over': 'handedOverDate' };
@@ -662,8 +761,7 @@ function sectionNameFor_(task) {
 function fetchProjectTasks_() {
   return asanaFetchAll_(
     '/tasks?project=' + CFG.projectGid +
-      '&opt_fields=gid,name,memberships.project.gid,memberships.section.name,' +
-      'custom_fields.gid,custom_fields.display_value'
+      '&opt_fields=gid,name,modified_at,memberships.project.gid,memberships.section.name'
   );
 }
 

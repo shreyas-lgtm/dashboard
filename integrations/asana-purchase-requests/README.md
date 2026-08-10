@@ -5,8 +5,8 @@ board.
 
 - **Sheet → Asana**: setting the approval column to `Approved` creates a task,
   routes it to the right procurement owner, and drops it in **Pending**.
-- **Asana → Sheet**: a ten-minute poll reads each card's board section and writes
-  that status back to the sheet.
+- **Asana → Sheet**: a ten-minute poll writes each card's board section back as
+  the order status, and mirrors its comments into the sheet.
 
 **Status lives in the board sections and nowhere else.** A second copy of the same
 fact is how this sheet ended up with `Column 9` and `Final Approval` disagreeing
@@ -69,6 +69,43 @@ company.
 The assignee is set once, at creation, and **never touched again**. Procurement
 pushing tickets between themselves in Asana is expected and is not undone by the
 sync.
+
+### Comments
+
+Asana comments are mirrored into an `Asana Comments` column, newest first, one
+per line:
+
+```
+[10/08 11:15] Abish Kumar: Quotation received, / 6531 INR
+[09/08 05:32] Kiran: Vendor confirmed lead time 3 days
+```
+
+One-way, Asana → sheet. Comments typed in the sheet are not pushed to Asana —
+there would be no reliable way to tell a new sheet comment from an edited mirror
+of an Asana one.
+
+Details worth knowing:
+
+- **System events are excluded.** "moved this task to Ordered" and similar are
+  filtered out; only real comments are mirrored.
+- **The log is rebuilt from Asana each poll, not appended to.** So there is no
+  "last seen comment" bookkeeping to drift, and a comment edited or deleted in
+  Asana corrects itself in the sheet. The flip side: the sheet is a mirror, so
+  editing that cell by hand achieves nothing lasting.
+- **Multi-line comments are collapsed** with ` / ` so one comment stays on one
+  line and the cell remains readable.
+- Capped at the 20 most recent comments and 5000 characters
+  (`CFG.commentsMaxCount`, `CFG.commentsMaxChars`); a cell holds 50k, so this is
+  deliberately conservative.
+- Fetching comments costs one extra API call per task, so it only runs for tasks
+  Asana reports as modified since the last poll. The cutoff is rolled back five
+  minutes so a change landing mid-run is not missed, and `LAST_SYNC_AT` only
+  advances after a clean run — a failed run re-examines the same window rather
+  than skipping it.
+- Set `CFG.syncComments = false` to turn this off.
+
+On the old sheet the mirror lands in the existing `SCM Remark` column; on a fresh
+sheet an `Asana Comments` column is created.
 
 ### Unrecognised sections
 
@@ -230,7 +267,8 @@ Each replaces any previous copy of itself rather than stacking duplicates.
 2. Set the approval column to `Approved`. Within seconds a task link appears in
    `Asana Task`, assigned to Kiran, sitting in **Pending**, and `Order Status`
    reads `Pending`.
-3. Drag it to **Quotation Awaited**. Within ten minutes the sheet follows.
+3. Drag it to **Quotation Awaited** and add a comment on the card. Within ten
+   minutes the sheet's status and comment columns both follow.
 4. Drag it to **Ordered** with the price empty. It should bounce back with a
    comment.
 5. Fill in the price, drag it to **Ordered** again. It should stick, and
@@ -253,6 +291,9 @@ To re-test a row, clear its `Asana Task` cell and re-enter the approval.
 | Card dragged to Ordered / Handed Over with no price | Moved back, comment posted, sheet unchanged |
 | Card dragged to a section not in `CFG.statuses` | Ignored, not written to the sheet, reported by email |
 | Card dragged to Rework | Status synced, and the requester is emailed to recheck |
+| Comment added in Asana | Mirrored to the sheet's comment column on the next poll |
+| Comment edited or deleted in Asana | Mirror is rebuilt, so the sheet corrects itself |
+| Comment typed into the sheet | Not pushed to Asana, and overwritten on the next poll |
 | Form submitted | PR_ID assigned from the counter; never overwritten if already present |
 | Ticket reassigned in Asana | Left alone — the sync never writes assignees |
 | Task created by hand in Asana | Ignored by the sync; it has no GID in the sheet |
@@ -362,6 +403,8 @@ through Step 7.
 | `No status column …` | `Order Status` could not be found or created — check `COL.status` |
 | Nothing happens on approval | `setupTrigger()` not run, or `CFG.sheetName` does not match the tab |
 | Status never syncs | `setupSyncTrigger()` not run, or the row has no `Asana Task GID` |
+| Comments never appear | `CFG.syncComments` is false, or the task has only system events |
+| Comments stopped updating | A failed run leaves `LAST_SYNC_AT` behind; check **Executions** |
 | `These required columns are not mapped` | `price`, `productType` or `item` header not found — run `checkSheetMapping()` |
 | Everything bounces out of Ordered | No price on the row, or `price` is unmapped |
 | PR_IDs restart from 1 | Counter never seeded — run `seedPrIdCounter(1527)` |
