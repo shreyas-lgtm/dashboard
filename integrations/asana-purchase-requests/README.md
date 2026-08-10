@@ -31,9 +31,9 @@ People change status by dragging a card. The sheet follows within ten minutes.
 drag — only react to one — so the sync moves the card back to where the sheet
 says it belongs and comments explaining why:
 
-> Moved back to "Quotation Awaited". A price has to be recorded before this can
-> go to "Ordered". Add the price on the request row in the responses sheet, then
-> move the card again.
+> Moved back to "Quotation Awaited". The price has to be recorded on this
+> request's row in the responses sheet before it can go to "Ordered". Add the
+> price against this PR ID in the sheet, then move the card again.
 
 There is a visible gap of up to ten minutes before the card snaps back. Shorten
 it with `setupSyncTrigger(5)` if that feels too loose.
@@ -41,16 +41,40 @@ it with `setupSyncTrigger(5)` if that feels too loose.
 No revert loop is possible: after the move, Asana matches the sheet, so the next
 poll sees no difference and says nothing further.
 
-**Letting procurement set the price without leaving Asana** is worth doing. Create
-a price custom field on the project, put its GID in `CFG.customFieldGids.price`,
-and the sync copies that value into the sheet *before* evaluating the gate — so
-entering the price on the card and dragging it in one go works.
+**Price is only ever entered in the responses sheet**, never in Asana. A card
+cannot leave Quotation Awaited for Ordered until a price exists on that PR ID's
+row. This is the one place procurement has to touch the sheet rather than the
+board; everything else is done by dragging cards.
+
+If the sheet has no recorded status to move the card back to, the sync comments
+but leaves the card alone — guessing would drag a ticket that has legitimately
+progressed back to Pending.
+
+### Rework
+
+Rework means the **requester** has to recheck the request. Requesters have no
+Asana access, so when a card lands in Rework the sync emails them directly with
+the PR ID and item, asking for a correction. Without that the one person who has
+to act would never see it.
+
+### Who uses Asana
+
+**The procurement team only** — Kiran, Abish and Syed. Requesters never get a
+seat, are never added as followers, and interact solely through the Google Form
+and email. That keeps the board quiet and avoids buying seats for the whole
+company.
 
 ### Reassignment
 
 The assignee is set once, at creation, and **never touched again**. Procurement
 pushing tickets between themselves in Asana is expected and is not undone by the
 sync.
+
+### Unrecognised sections
+
+A section whose name is not in `CFG.statuses` is **ignored**, never written to the
+sheet, and reported by email once per sync. Someone adding an "On Hold" column
+would otherwise write that string straight into `Order Status`.
 
 ---
 
@@ -77,6 +101,30 @@ Kiran.
 If a routing address does not match an Asana user, the task is still created but
 left unassigned, with a warning in its description and an email to
 `CFG.errorNotifyEmail`. Run `verifyRouting()` to catch that before go-live.
+
+---
+
+## PR_ID
+
+PR_IDs are assigned by this script on form submission, from a counter in Script
+Properties — not by a formula.
+
+The old form's values prove that is the right choice. They track submission order
+rather than row position, so they survived the sheet being sorted; and they
+contain gaps (1450, 1501, 1520, 1521, 1523, 1525, 1526 are missing from
+1444–1527). A `ROW()`-based formula renumbers every row when the sheet is sorted,
+and neither a `ROW()` nor a `RANK()` formula can produce gaps. So the old values
+were written once and stored as literals.
+
+A counter reproduces that and is immune to both sorting and row deletion. An
+issued PR_ID never changes, which matters when it has been quoted on a PO.
+
+```js
+seedPrIdCounter(1527)   // next issued is PR-2026-1528
+```
+
+The counter defaults to `CFG.prIdStartFrom` (1527) if never seeded, so the
+sequence continues from the old form rather than restarting.
 
 ---
 
@@ -166,9 +214,13 @@ approvals would look pushed when they were not.
 ### Step 6: Install both triggers
 
 ```js
-setupTrigger()        // sheet -> Asana, on approval
+seedPrIdCounter(1527) // continue the old form's numbering
+setupTrigger()        // PR_ID on submit, + Asana task on approval
 setupSyncTrigger(10)  // Asana -> sheet, every 10 minutes
 ```
+
+`setupTrigger()` installs two triggers: `onFormSubmitAssignPrId` and
+`onApprovalEdit`.
 
 Each replaces any previous copy of itself rather than stacking duplicates.
 
@@ -199,7 +251,9 @@ To re-test a row, clear its `Asana Task` cell and re-enter the approval.
 | Two people approving at once | Serialised by `LockService`, so no double-creation |
 | Card dragged between sections | Status written to the sheet on the next poll |
 | Card dragged to Ordered / Handed Over with no price | Moved back, comment posted, sheet unchanged |
-| Price entered on the card (if the custom field is configured) | Copied to the sheet, then the gate is re-evaluated |
+| Card dragged to a section not in `CFG.statuses` | Ignored, not written to the sheet, reported by email |
+| Card dragged to Rework | Status synced, and the requester is emailed to recheck |
+| Form submitted | PR_ID assigned from the counter; never overwritten if already present |
 | Ticket reassigned in Asana | Left alone — the sync never writes assignees |
 | Task created by hand in Asana | Ignored by the sync; it has no GID in the sheet |
 | Routed owner is not an Asana user | Task created unassigned, warning in the description, email sent |
@@ -210,7 +264,6 @@ To re-test a row, clear its `Asana Task` cell and re-enter the approval.
 ```
 Title     PR-2026-1515 · DC motor for Operation Station Turntable POC
 Assignee  by routing rule
-Follower  requester, if their email matches an Asana user
 Section   Pending
 Due       approval date + urgency allowance
 Notes:
@@ -291,9 +344,9 @@ against both the old and the expected new header rows, and the ticket body:
 node integrations/asana-purchase-requests/test-local.js
 ```
 
-92 assertions. What it cannot check is the Asana API contract itself: payload
-shapes for task creation, section moves, comments, and pagination. Those need one
-real run through Step 7.
+What it cannot check is the Asana API contract itself: payload shapes for task
+creation, section moves, comments, and pagination. Those need one real run
+through Step 7.
 
 ---
 
@@ -309,7 +362,10 @@ real run through Step 7.
 | `No status column …` | `Order Status` could not be found or created — check `COL.status` |
 | Nothing happens on approval | `setupTrigger()` not run, or `CFG.sheetName` does not match the tab |
 | Status never syncs | `setupSyncTrigger()` not run, or the row has no `Asana Task GID` |
-| Everything bounces out of Ordered | `price` is unmapped — run `checkSheetMapping()` |
+| `These required columns are not mapped` | `price`, `productType` or `item` header not found — run `checkSheetMapping()` |
+| Everything bounces out of Ordered | No price on the row, or `price` is unmapped |
+| PR_IDs restart from 1 | Counter never seeded — run `seedPrIdCounter(1527)` |
+| PR_ID blank on a new row | `onFormSubmitAssignPrId` not installed, or no PR_ID column |
 | Cards land outside any section | `ensureSections()` not run, so `Pending` does not exist |
 
 Execution logs are under **Executions** in the Apps Script editor.

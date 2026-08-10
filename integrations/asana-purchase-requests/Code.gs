@@ -94,16 +94,25 @@ const CFG = {
   dueDaysDefault: 7,
 
   // Optional. With no GIDs set, every field still renders into the task
-  // description. If you DO create a price custom field in Asana and set its GID
-  // here, procurement can enter the price on the ticket and the sync copies it
-  // into the sheet -- which is what satisfies the price gate.
+  // description. Price is deliberately absent: it is never entered in Asana,
+  // only in the responses sheet.
   customFieldGids: {
     prId: '',
     productType: '',
     urgency: '',
     vendor: '',
-    price: '',
   },
+
+  // ---- PR_ID generation ---------------------------------------------------
+  // The old form's PR_IDs were static values written at submit time, not a
+  // formula: they track submission order rather than row position (so they
+  // survived the sheet being sorted) and they contain gaps, which a
+  // position- or rank-based formula cannot produce.
+  //
+  // A counter in Script Properties reproduces that behaviour and is immune to
+  // sorting and row deletion -- a PR_ID quoted on a PO stays valid forever.
+  prIdPrefix: 'PR',
+  prIdStartFrom: 1527, // highest on the old form; the next issued is 1528
 };
 
 const ASANA_BASE = 'https://app.asana.com/api/1.0';
@@ -139,6 +148,87 @@ const COL = {
 
 // Columns the script creates if the sheet does not already have them.
 const AUTO_CREATE = ['status'];
+
+// Fields the integration cannot function without. Missing means a silent
+// half-failure -- an unmapped price blocks every ticket at Quotation Awaited,
+// an unmapped productType routes everything to the default owner -- so these
+// are checked before any work is done.
+const REQUIRED_FIELDS = ['price', 'productType', 'item'];
+
+/** Cell -> trimmed string. Numeric 0 must not read as blank. */
+function cellText_(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+}
+
+// ---------------------------------------------------------------------------
+// PR_ID, assigned on submission
+// ---------------------------------------------------------------------------
+
+/**
+ * Installable onFormSubmit handler. Writes the next PR_ID into the new row.
+ *
+ * A stored counter rather than a formula, because this sheet gets sorted and
+ * rows get deleted -- both of which silently renumber a formula. An issued
+ * PR_ID must never change.
+ */
+function onFormSubmitAssignPrId(e) {
+  if (!e || !e.range) return;
+
+  const sheet = e.range.getSheet();
+  if (sheet.getName() !== CFG.sheetName) return;
+
+  const row = e.range.getRow();
+  if (row < 2) return;
+
+  const cols = resolveColumns_(sheet);
+  const idx = cols.fields.prId;
+  if (idx === undefined) {
+    notifyFailure_(
+      'Purchase Request: cannot assign PR_ID',
+      'No PR_ID column found on "' + CFG.sheetName + '". Tried: ' + COL.prId.join(' | ')
+    );
+    return;
+  }
+
+  const cell = sheet.getRange(row, idx + 1);
+  if (cellText_(cell.getValue())) return; // already has one; never overwrite
+
+  cell.setValue(nextPrId_());
+}
+
+/**
+ * Next PR_ID, e.g. "PR-2026-1528". Serialised so two submissions landing at the
+ * same moment cannot collide on the counter.
+ */
+function nextPrId_() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const current = parseInt(props.getProperty('PR_ID_COUNTER'), 10);
+    const next = (isNaN(current) ? CFG.prIdStartFrom : current) + 1;
+    props.setProperty('PR_ID_COUNTER', String(next));
+    return CFG.prIdPrefix + '-' + new Date().getFullYear() + '-' + next;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Sets the counter by hand. Pass the highest PR number already issued -- the
+ * next request gets that plus one.
+ *
+ *   seedPrIdCounter(1527)   // next issued is PR-2026-1528
+ */
+function seedPrIdCounter(highestIssued) {
+  const n = parseInt(highestIssued, 10);
+  if (isNaN(n)) throw new Error('Pass a number, e.g. seedPrIdCounter(1527).');
+
+  PropertiesService.getScriptProperties().setProperty('PR_ID_COUNTER', String(n));
+  console.log('Counter set to %s. Next PR_ID issued: %s-%s-%s',
+    n, CFG.prIdPrefix, new Date().getFullYear(), n + 1);
+}
 
 // ---------------------------------------------------------------------------
 // Half 1: sheet -> Asana, on approval
@@ -269,9 +359,9 @@ function createAsanaTask_(values, cols) {
     console.warn('Could not place task in "' + CFG.initialStatus + '": ' + err.message);
   }
 
-  // Best effort, in its own call: a requester with no Asana account must not
-  // fail the task creation.
-  addFollowerByEmail_(task.gid, get('requester'));
+  // Requesters are deliberately NOT added as followers. Asana is the procurement
+  // team's board; requesters never get a seat, and are reached by email instead
+  // (see notifyRequesterOfRework_).
 
   return {
     gid: task.gid,
@@ -380,18 +470,22 @@ function syncStatusesFromAsana() {
 
   try {
     const cols = resolveColumns_(sheet);
-    if (cols.fields.status === undefined) {
-      throw new Error('No status column on the sheet, and it could not be created.');
-    }
+    assertRequiredFields_(cols);
 
     const rowByGid = indexRowsByGid_(sheet, cols);
     if (!Object.keys(rowByGid).length) return;
+
+    // One read for the whole grid, rather than a round trip per row.
+    const lastRow = sheet.getLastRow();
+    const grid = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+    const rowValues = function (row) { return grid[row - 2] || []; };
 
     const sections = sectionsByName_();
     const tasks = fetchProjectTasks_();
 
     let synced = 0;
     let blocked = 0;
+    const unknownSections = {};
 
     tasks.forEach(function (task) {
       const row = rowByGid[task.gid];
@@ -400,17 +494,19 @@ function syncStatusesFromAsana() {
       const asanaStatus = sectionNameFor_(task);
       if (!asanaStatus) return;
 
-      const values = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
-      const sheetStatus = String(values[cols.fields.status] || '').trim();
+      // Never write a section name we do not recognise into the sheet. Someone
+      // adding an "On Hold" column in Asana must not pollute Order Status.
+      if (!isKnownStatus_(asanaStatus)) {
+        unknownSections[asanaStatus] = (unknownSections[asanaStatus] || 0) + 1;
+        return;
+      }
+
+      const values = rowValues(row);
+      const sheetStatus = cellText_(values[cols.fields.status]);
       if (sameStatus_(asanaStatus, sheetStatus)) return;
 
-      // Let a price entered on the ticket flow into the sheet first, so that
-      // procurement can satisfy the gate without leaving Asana.
-      const priceWritten = syncPriceFromTask_(sheet, row, cols, task, values);
-      const price = priceWritten || (cols.fields.price === undefined
-        ? ''
-        : String(values[cols.fields.price] || '').trim());
-
+      // Price is only ever entered in the responses sheet, never in Asana.
+      const price = cellText_(values[cols.fields.price]);
       if (needsPrice_(asanaStatus) && !price) {
         revertStatus_(task, sheetStatus, sections, asanaStatus);
         blocked++;
@@ -419,14 +515,62 @@ function syncStatusesFromAsana() {
 
       sheet.getRange(row, cols.fields.status + 1).setValue(asanaStatus);
       stampStatusDate_(sheet, row, cols, asanaStatus);
+
+      // Rework means the requester has to recheck the request -- and requesters
+      // are not in Asana, so email is the only way to reach them.
+      if (sameStatus_(asanaStatus, 'Rework')) {
+        notifyRequesterOfRework_(values, cols);
+      }
+
       synced++;
     });
 
     if (synced || blocked) {
       console.log('Synced %s status change(s); blocked %s for a missing price.', synced, blocked);
     }
+
+    const strays = Object.keys(unknownSections);
+    if (strays.length) {
+      const detail = strays
+        .map(function (s) { return '"' + s + '" (' + unknownSections[s] + ' task(s))'; })
+        .join(', ');
+      console.warn('Ignored unrecognised section(s): %s', detail);
+      notifyFailure_(
+        'Purchase Request -> Asana: unrecognised board section',
+        'These board sections are not in CFG.statuses, so tasks sitting in them are ' +
+          'not being synced:\n\n  ' + detail + '\n\nEither rename the section to one of: ' +
+          CFG.statuses.join(', ') + '\nor add it to CFG.statuses.'
+      );
+    }
   } finally {
     lock.releaseLock();
+  }
+}
+
+/** True when the name matches one of the configured statuses. */
+function isKnownStatus_(name) {
+  const s = cellText_(name).toLowerCase();
+  return CFG.statuses.some(function (v) { return v.toLowerCase() === s; });
+}
+
+/**
+ * Stops with a clear message when a field the integration depends on is not
+ * mapped. Without this the failure is silent and looks like partial success.
+ */
+function assertRequiredFields_(cols) {
+  if (cols.fields.status === undefined) {
+    throw new Error('No status column on the sheet, and it could not be created.');
+  }
+
+  const missing = REQUIRED_FIELDS.filter(function (k) { return cols.fields[k] === undefined; });
+  if (missing.length) {
+    throw new Error(
+      'These required columns are not mapped: ' + missing.join(', ') +
+        '. Run checkSheetMapping() and add the real header names to the front of ' +
+        'those entries in COL. Until then: an unmapped price blocks every ticket ' +
+        'at Quotation Awaited, and an unmapped productType routes everything to ' +
+        CFG.routingDefault.assign + '.'
+    );
   }
 }
 
@@ -445,42 +589,33 @@ function sameStatus_(a, b) {
  *
  * No loop risk: after the move, Asana matches the sheet, so the next poll sees
  * no difference and says nothing further.
+ *
+ * When the sheet has no usable status we comment but do NOT move the card.
+ * Guessing would drag a ticket that has legitimately progressed back to Pending.
  */
 function revertStatus_(task, sheetStatus, sections, attempted) {
-  const target = sheetStatus && sections[sheetStatus.toLowerCase()]
-    ? sheetStatus
-    : CFG.initialStatus;
-  const gid = sections[target.toLowerCase()];
+  const known = sheetStatus && isKnownStatus_(sheetStatus) && sections[sheetStatus.toLowerCase()];
 
-  if (gid) {
-    asanaFetch_('POST', '/sections/' + gid + '/addTask', { data: { task: task.gid } });
+  if (known) {
+    asanaFetch_('POST', '/sections/' + sections[sheetStatus.toLowerCase()] + '/addTask', {
+      data: { task: task.gid },
+    });
+    addComment_(
+      task.gid,
+      'Moved back to "' + sheetStatus + '". The price has to be recorded on this ' +
+        'request\'s row in the responses sheet before it can go to "' + attempted + '".\n\n' +
+        'Add the price against this PR ID in the sheet, then move the card again.'
+    );
+    return;
   }
 
   addComment_(
     task.gid,
-    'Moved back to "' + target + '". A price has to be recorded before this can go to "' +
-      attempted + '".\n\n' +
-      'Add the price on the request row in the responses sheet' +
-      (CFG.customFieldGids.price ? ', or in the price field on this task' : '') +
-      ', then move the card again.'
+    'This cannot go to "' + attempted + '" until the price is recorded on this ' +
+      'request\'s row in the responses sheet. Add the price against this PR ID, ' +
+      'and the status will sync.\n\n' +
+      '(Left where it is: the sheet has no recorded status to move it back to.)'
   );
-}
-
-/**
- * Copies a price entered on the Asana task into the sheet. Returns the value
- * written, or '' when there was nothing to copy.
- */
-function syncPriceFromTask_(sheet, row, cols, task, values) {
-  const gid = CFG.customFieldGids.price;
-  if (!gid || cols.fields.price === undefined) return '';
-  if (String(values[cols.fields.price] || '').trim()) return ''; // sheet already has one
-
-  const field = (task.custom_fields || []).filter(function (f) { return f.gid === gid; })[0];
-  const value = field ? String(field.display_value || '').trim() : '';
-  if (!value) return '';
-
-  sheet.getRange(row, cols.fields.price + 1).setValue(value);
-  return value;
 }
 
 /** Stamps the matching date column, when the sheet has one and it is empty. */
@@ -609,14 +744,34 @@ function asanaFetchAll_(path) {
   return out;
 }
 
-function addFollowerByEmail_(taskGid, email) {
-  if (!taskGid || !email) return;
+/**
+ * Emails the requester that their request needs rechecking.
+ *
+ * Requesters have no Asana access by design, so a card moved to Rework would
+ * otherwise be invisible to the one person who has to act on it.
+ */
+function notifyRequesterOfRework_(values, cols) {
+  const email = cellText_(values[cols.fields.requester]);
+  if (!email || email.indexOf('@') === -1) return;
+
+  const prId = cols.fields.prId === undefined ? '' : cellText_(values[cols.fields.prId]);
+  const item = cellText_(values[cols.fields.item]);
+  const label = prId ? prId + ' (' + item + ')' : item;
+
   try {
-    const gid = lookupUserGid_(email);
-    if (!gid) return;
-    asanaFetch_('POST', '/tasks/' + taskGid + '/addFollowers', { data: { followers: [gid] } });
+    MailApp.sendEmail(
+      email,
+      'Action needed: purchase request ' + label + ' sent back for rechecking',
+      'Procurement has moved your purchase request to Rework, which means it needs ' +
+        'another look from you.\n\n' +
+        (prId ? 'PR ID: ' + prId + '\n' : '') +
+        (item ? 'Item:  ' + item + '\n' : '') +
+        '\nUsually this means something is unclear, unavailable, or needs a different ' +
+        'specification. Please check the details and reply to procurement with the ' +
+        'correction.\n'
+    );
   } catch (err) {
-    console.warn('Could not add follower ' + email + ': ' + err.message);
+    console.warn('Could not email requester ' + email + ': ' + err.message);
   }
 }
 
@@ -883,19 +1038,31 @@ function checkSheetMapping() {
   return missing;
 }
 
-/** Installs the onEdit trigger, replacing any previous copy. */
+/**
+ * Installs both sheet-side triggers, replacing any previous copies:
+ *   onFormSubmitAssignPrId -- assigns the PR_ID on submission
+ *   onApprovalEdit         -- creates the Asana task on approval
+ */
 function setupTrigger() {
   if (!CFG.workspaceGid || !CFG.projectGid) {
     throw new Error('Set CFG.workspaceGid and CFG.projectGid before installing triggers.');
   }
 
   const ss = SpreadsheetApp.getActive();
+  const handlers = ['onApprovalEdit', 'onFormSubmitAssignPrId'];
   ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (t.getHandlerFunction() === 'onApprovalEdit') ScriptApp.deleteTrigger(t);
+    if (handlers.indexOf(t.getHandlerFunction()) !== -1) ScriptApp.deleteTrigger(t);
   });
 
   ScriptApp.newTrigger('onApprovalEdit').forSpreadsheet(ss).onEdit().create();
-  console.log('Installed onEdit trigger on "%s".', ss.getName());
+  ScriptApp.newTrigger('onFormSubmitAssignPrId').forSpreadsheet(ss).onFormSubmit().create();
+
+  console.log('Installed onEdit + onFormSubmit triggers on "%s".', ss.getName());
+  console.log(
+    'PR_ID counter is at %s. Run seedPrIdCounter(n) if that is wrong.',
+    PropertiesService.getScriptProperties().getProperty('PR_ID_COUNTER') ||
+      '(unset -- will start from ' + CFG.prIdStartFrom + ')'
+  );
 }
 
 /** Installs the status-sync poll, replacing any previous copy. */

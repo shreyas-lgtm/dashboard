@@ -12,8 +12,12 @@ const src = require('fs').readFileSync(__dirname + '/Code.gs', 'utf8');
 // new Function keeps the script's declarations out of this module's scope.
 const api = new Function(
   src + `\nreturn { dueDate_, buildNotes_, buildCustomFields_, resolveColumns_,
-    routeFor_, needsPrice_, sameStatus_, sectionNameFor_, indexRowsByGid_, CFG, COL };`
+    routeFor_, needsPrice_, sameStatus_, sectionNameFor_, indexRowsByGid_,
+    isKnownStatus_, assertRequiredFields_, cellText_, REQUIRED_FIELDS, CFG, COL };`
 )();
+
+// Snapshot before any test mutates CFG.
+const ORIGINAL_CUSTOM_FIELD_KEYS = Object.keys(api.CFG.customFieldGids);
 
 let fail = 0;
 const eq = (label, got, want) => {
@@ -227,10 +231,67 @@ eq('gid map: skips blanks', Object.keys(map).length, 2);
 console.log('\n-- custom fields --');
 eq('empty by default', Object.keys(api.buildCustomFields_(g(row))).length, 0);
 api.CFG.customFieldGids.productType = '111';
-api.CFG.customFieldGids.price = '222';
+api.CFG.customFieldGids.prId = '222'; // row has no prId, so this must be skipped
 eq('maps configured GIDs only',
    JSON.stringify(api.buildCustomFields_(g(row))), JSON.stringify({ '111': 'Electrical - OTS' }));
 eq('skips a configured field with no value', '222' in api.buildCustomFields_(g(row)), false);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- cell reading (numeric zero must not read as blank) --');
+eq('numeric 0 -> "0"', api.cellText_(0), '0');
+eq('null -> ""', api.cellText_(null), '');
+eq('undefined -> ""', api.cellText_(undefined), '');
+eq('padded string trimmed', api.cellText_('  6531  '), '6531');
+eq('numeric price preserved', api.cellText_(6531), '6531');
+// The bug this replaces: `value || ''` turned a zero-cost item into a blank
+// price, so it could never leave Quotation Awaited.
+eq('a zero price counts as filled', api.cellText_(0) !== '', true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- unrecognised board sections are ignored, not written --');
+api.CFG.statuses.forEach((s) => eq(`"${s}" is known`, api.isKnownStatus_(s), true));
+eq('lowercase known', api.isKnownStatus_('handed over'), true);
+eq('padded known', api.isKnownStatus_('  Ordered '), true);
+['On Hold', 'Blocked', 'Done', 'Ordered 🎉', ''].forEach((s) =>
+  eq(`"${s}" is NOT known`, api.isKnownStatus_(s), false));
+
+// ---------------------------------------------------------------------------
+console.log('\n-- required fields fail loudly --');
+const okCols = { fields: { status: 3, price: 12, productType: 2, item: 4 } };
+let raised = '';
+try { api.assertRequiredFields_(okCols); } catch (e) { raised = e.message; }
+eq('fully mapped -> no error', raised, '');
+
+[['price', 'blocks every ticket'], ['productType', 'routes everything'], ['item', '']]
+  .forEach(([field]) => {
+    const broken = { fields: Object.assign({}, okCols.fields) };
+    delete broken.fields[field];
+    let msg = '';
+    try { api.assertRequiredFields_(broken); } catch (e) { msg = e.message; }
+    eq(`missing ${field} throws`, msg.includes(field), true);
+  });
+
+let noStatus = '';
+try { api.assertRequiredFields_({ fields: { price: 1, productType: 2, item: 3 } }); }
+catch (e) { noStatus = e.message; }
+eq('missing status column throws', noStatus.includes('No status column'), true);
+eq('REQUIRED_FIELDS covers price + productType',
+   api.REQUIRED_FIELDS.includes('price') && api.REQUIRED_FIELDS.includes('productType'), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- Asana holds no price field --');
+eq('price is not an Asana custom field', ORIGINAL_CUSTOM_FIELD_KEYS.includes('price'), false);
+eq('requester is not added as a follower', src.includes('addFollowerByEmail_'), false);
+eq('rework notifies the requester by email', src.includes('notifyRequesterOfRework_'), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- PR_ID format --');
+eq('start seed continues the old sequence', api.CFG.prIdStartFrom, 1527);
+eq('prefix', api.CFG.prIdPrefix, 'PR');
+// Reproduce the generator's format without touching PropertiesService.
+const fmt = (n) => api.CFG.prIdPrefix + '-' + new Date().getFullYear() + '-' + n;
+eq('next after seed', fmt(api.CFG.prIdStartFrom + 1), `PR-${new Date().getFullYear()}-1528`);
+eq('matches the old form pattern', /^PR-\d{4}-\d{4}$/.test(fmt(1528)), true);
 
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);
