@@ -1,6 +1,7 @@
 // Offline tests for the pure helpers in Code.gs -- no Asana credentials needed.
 // The Apps Script globals are stubbed; anything that touches the network is not
 // exercised here. Run with:  node integrations/asana-purchase-requests/test-local.js
+
 global.Session = { getScriptTimeZone: () => 'Asia/Kolkata' };
 global.Utilities = { formatDate: (d) => d.toISOString().slice(0, 10), sleep: () => {} };
 global.PropertiesService = { getScriptProperties: () => ({ getProperty: () => 'stub' }) };
@@ -10,7 +11,8 @@ global.CacheService = {}; global.MailApp = {}; global.LockService = {};
 const src = require('fs').readFileSync(__dirname + '/Code.gs', 'utf8');
 // new Function keeps the script's declarations out of this module's scope.
 const api = new Function(
-  src + '\nreturn { dueDate_, buildNotes_, buildCustomFields_, resolveColumns_, routeFor_, CFG };'
+  src + `\nreturn { dueDate_, buildNotes_, buildCustomFields_, resolveColumns_,
+    routeFor_, needsPrice_, sameStatus_, sectionNameFor_, indexRowsByGid_, CFG, COL };`
 )();
 
 let fail = 0;
@@ -19,153 +21,216 @@ const eq = (label, got, want) => {
   if (!ok) fail++;
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${ok ? '' : `\n        got:  ${got}\n        want: ${want}`}`);
 };
-const days = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); };
+const days = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const g = (o) => (k) => o[k] || '';
 
+// ---------------------------------------------------------------------------
 console.log('-- due dates --');
-eq('Critical -> +1d',  api.dueDate_('Critical (Required within 24 hours)'), days(1));
-eq('High -> +3d',      api.dueDate_('High (Needed within 2–3 day)'), days(3));
-eq('Normal -> +7d',    api.dueDate_('Normal ( Need within a week)'), days(7));
-eq('Planned -> +30d',  api.dueDate_('Planned (Part of future project / inventory stock)'), days(30));
+eq('Critical -> +1d', api.dueDate_('Critical (Required within 24 hours)'), days(1));
+eq('High -> +3d', api.dueDate_('High (Needed within 2–3 day)'), days(3));
+eq('Normal -> +7d', api.dueDate_('Normal ( Need within a week)'), days(7));
+eq('Planned -> +30d', api.dueDate_('Planned (Part of future project / inventory stock)'), days(30));
 eq('blank -> default', api.dueDate_(''), days(7));
 eq('unknown -> default', api.dueDate_('Whenever'), days(7));
-eq('reworded parenthetical', api.dueDate_('Critical (within 12 hours)'), days(1));
 
-console.log('\n-- notes --');
+// ---------------------------------------------------------------------------
+console.log('\n-- routing on the new "Product type" question --');
+const OPTIONS = [
+  ['Mechanical - OTS', 'kiran@origin.tech'],
+  ['Mechanical - Custom', 'kiran@origin.tech'],
+  ['Electrical - OTS', 'abish@origin.tech'],
+  ['Electrical - custom', 'abish@origin.tech'],
+  ['Office supplies', 'syed@origin.tech'],
+];
+OPTIONS.forEach(([choice, owner]) => {
+  eq(`${choice.padEnd(21)} -> ${owner.split('@')[0]}`,
+     api.routeFor_(g({ productType: choice })).assign, owner);
+});
+
+// "Other:" writes the requester's free text straight into the cell.
+eq('Other free text -> abish (default)',
+   api.routeFor_(g({ productType: 'A thing I invented' })).assign, 'abish@origin.tech');
+eq('blank product type -> abish (default)',
+   api.routeFor_(g({ productType: '' })).assign, 'abish@origin.tech');
+// ...but free text that starts with a known word still routes correctly.
+eq('Other "Mechanical fastener" -> kiran',
+   api.routeFor_(g({ productType: 'Mechanical fastener' })).assign, 'kiran@origin.tech');
+
+console.log('   tolerances:');
+eq('lowercase', api.routeFor_(g({ productType: 'mechanical - ots' })).assign, 'kiran@origin.tech');
+eq('padded', api.routeFor_(g({ productType: '  Electrical - OTS  ' })).assign, 'abish@origin.tech');
+eq('office supplies lc', api.routeFor_(g({ productType: 'office supplies' })).assign, 'syed@origin.tech');
+// Must not match on a mere substring.
+eq('"Non-mechanical" does not match kiran',
+   api.routeFor_(g({ productType: 'Non-mechanical' })).assign, 'abish@origin.tech');
+
+// Rule order is the precedence.
+eq('first matching rule wins', api.routeFor_(g({ productType: 'Mechanical' })).label,
+   'Product type = Mechanical');
+
+// ---------------------------------------------------------------------------
+console.log('\n-- price gate --');
+eq('Ordered needs a price', api.needsPrice_('Ordered'), true);
+eq('Handed Over needs a price', api.needsPrice_('Handed Over'), true);
+eq('handed over, lowercase', api.needsPrice_('handed over'), true);
+eq('Pending does not', api.needsPrice_('Pending'), false);
+eq('Quotation Awaited does not', api.needsPrice_('Quotation Awaited'), false);
+eq('Rework does not', api.needsPrice_('Rework'), false);
+eq('blank does not', api.needsPrice_(''), false);
+
+console.log('   every configured status is classified:');
+api.CFG.statuses.forEach((s) => {
+  const gated = api.needsPrice_(s);
+  const expected = s === 'Ordered' || s === 'Handed Over';
+  eq(`${s.padEnd(18)} gated=${gated}`, gated, expected);
+});
+
+console.log('   status comparison:');
+eq('same, different case', api.sameStatus_('Handed Over', 'handed over'), true);
+eq('same, padded', api.sameStatus_(' Ordered ', 'Ordered'), true);
+eq('different', api.sameStatus_('Ordered', 'Pending'), false);
+eq('blank vs blank', api.sameStatus_('', ''), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- section reading --');
+api.CFG.projectGid = 'PROJ';
+eq('reads the section for our project',
+   api.sectionNameFor_({ memberships: [{ project: { gid: 'PROJ' }, section: { name: 'Ordered' } }] }),
+   'Ordered');
+eq('ignores sections from other projects',
+   api.sectionNameFor_({ memberships: [{ project: { gid: 'OTHER' }, section: { name: 'Ordered' } }] }),
+   '');
+eq('picks ours out of several',
+   api.sectionNameFor_({ memberships: [
+     { project: { gid: 'OTHER' }, section: { name: 'Nope' } },
+     { project: { gid: 'PROJ' }, section: { name: 'Rework' } },
+   ] }),
+   'Rework');
+eq('no memberships -> blank', api.sectionNameFor_({}), '');
+eq('membership without a section -> blank',
+   api.sectionNameFor_({ memberships: [{ project: { gid: 'PROJ' } }] }), '');
+
+// ---------------------------------------------------------------------------
+console.log('\n-- ticket body --');
 const row = {
-  prId: 'PR-2026-1524', requester: 'syed@origin.tech',
-  item: 'TATA Coffee Machine Consumables', team: 'Brewer Enterprise',
-  category: 'General & Administrative', urgency: 'Critical (Required within 24 hours)',
-  quantity: 'Milk (72 LTR) Sugar (5Kg)', vendor: 'Brewer Enterprise',
-  partNumber: 'INV 2923', price: '6,531', timestamp: '10/08/2026 16:15:25',
-  justification: 'Bought for office use', link: 'NA',
+  requester: 'harini@origin.tech',
+  item: 'DC motor for Operation Station Turntable POC',
+  quantity: '1', partNumber: '24V/12RPM',
+  productType: 'Electrical - OTS',
+  urgency: 'High (Needed within 2–3 day)',
+  vendor: '-', justification: 'Need urgently for POC of turntable',
+  link: 'https://thinkrobotics.com/products/37mm-encoder-dc-metal-gearmotors',
 };
-const notes = api.buildNotes_((k) => row[k] || '');
-console.log(notes.split('\n').map(l => '   | ' + l).join('\n'));
-const valueCols = notes.split('\n').filter(l => /^[A-Za-z].*?:\s{2,}\S/.test(l))
-  .map(l => l.match(/^(.*?:\s+)/)[1].length);
-eq('all 6 aligned label rows present', valueCols.length, 6);
+const route = api.routeFor_(g(row));
+const notes = api.buildNotes_(g(row), route);
+console.log(notes.split('\n').map((l) => '   | ' + l).join('\n'));
+
+const valueCols = notes.split('\n').filter((l) => /^[A-Za-z].*?:\s{2,}\S/.test(l))
+  .map((l) => l.match(/^(.*?:\s+)/)[1].length);
+eq('all 7 requested fields present', valueCols.length, 7);
 eq('values align in one column', new Set(valueCols).size, 1);
-eq('includes justification', notes.includes('Justification\n-------------\nBought for office use'), true);
-eq('drops link when NA', notes.includes('Link\n----'), false);
+['Requester', 'Item', 'Quantity', 'Part / model no.', 'Product type', 'Urgency', 'Preferred vendor']
+  .forEach((f) => eq(`contains ${f}`, notes.includes(f + ':'), true));
+eq('includes justification', notes.includes('Need urgently for POC of turntable'), true);
+eq('includes link', notes.includes('thinkrobotics.com'), true);
+eq('records the route', notes.includes('Routed to abish@origin.tech'), true);
+eq('tells people how to change status', notes.includes('Move this card between sections'), true);
 
-const sparse = api.buildNotes_((k) => (k === 'item' ? 'Widget' : ''));
-eq('omits blank rows', sparse.includes('Preferred vendor'), false);
-eq('survives all-empty row', sparse.includes('Created automatically'), true);
-eq('keeps a real link', api.buildNotes_((k) => (k === 'link' ? 'https://robu.in/x' : '')).includes('https://robu.in/x'), true);
+eq('drops link when NA', api.buildNotes_(g({ item: 'x', link: 'NA' }), route).includes('Link\n----'), false);
+eq('omits blank fields', api.buildNotes_(g({ item: 'x' }), route).includes('Preferred vendor'), false);
+eq('surfaces an unroutable owner',
+   api.buildNotes_(g({ item: 'x' }), { assign: 'z@origin.tech', label: 'l', warning: 'no such user' })
+     .includes('⚠ no such user'), true);
 
-console.log('\n-- custom fields --');
-eq('empty by default', Object.keys(api.buildCustomFields_((k)=>row[k]||'')).length, 0);
-api.CFG.customFieldGids.prId = '111'; api.CFG.customFieldGids.team = '222';
-eq('maps configured GIDs',
-   JSON.stringify(api.buildCustomFields_((k) => row[k] || '')),
-   JSON.stringify({'111':'PR-2026-1524','222':'Brewer Enterprise'}));
-api.CFG.customFieldGids.price = '333';
-eq('skips blank values', '333' in api.buildCustomFields_((k)=> k==='price' ? '' : (row[k]||'')), false);
-
-console.log('\n-- column resolution (real 31-column header row) --');
-const HDR = ['Timestamp','Email address','Item Name/ Description','Order Status','Quantity','Estimate','Part Number/ Model Number','Link','Justification for Purchase','Column 9','Final Approval','Urgency Level','Team','Preferred Vendor/ Source','PR_ID','Attachment','Product Main Category','Lead Time ','Price (INR)','Item Type','Lead time','Lead Time','Delivery Date','ETA','/.','Order ID','Utilized /Non - Utilized','Approval Date','Ordered Date','SCM Remark ','Projection Needed'];
+// ---------------------------------------------------------------------------
+console.log('\n-- column resolution --');
 function fakeSheet(headers) {
   const h = headers.slice();
+  const cells = {};
   return {
-    written: [],
     getLastColumn: () => h.length,
+    getLastRow: () => 1,
     getRange: (r, c, nr, nc) => ({
-      getValues: () => [h.slice(c - 1, c - 1 + (nc || 1))],
-      setValue: (v) => { h[c - 1] = v; },
+      getValues: () => (r === 1
+        ? [h.slice(c - 1, c - 1 + (nc || 1))]
+        : [[cells[`${r},${c}`] || '']]),
+      getValue: () => cells[`${r},${c}`] || '',
+      setValue: (v) => { if (r === 1) h[c - 1] = v; else cells[`${r},${c}`] = v; },
+      getA1Notation: () => String.fromCharCode(64 + c) + r,
     }),
     _headers: () => h,
   };
 }
-let s = fakeSheet(HDR);
+
+// The NEW form's likely header row: Product type replaces the old category cols.
+const NEW_HDR = ['Timestamp', 'Email address', 'Product type', 'Item Name/ Description',
+  'Quantity', 'Part Number/ Model Number', 'Link', 'Justification for Purchase',
+  'Lead approval', 'Urgency Level', 'Preferred Vendor/ Source', 'PR_ID', 'Price (INR)'];
+
+let s = fakeSheet(NEW_HDR);
 let cols = api.resolveColumns_(s);
-eq('finds Column 9 fallback at index 9', cols.approval, 9);
-eq('appends Asana Task column at 31', cols.taskUrl, 31);
-eq('header actually written', s._headers()[31], 'Asana Task');
-eq('maps PR_ID', cols.fields.prId, 14);
-eq('maps Price (INR)', cols.fields.price, 18);
-eq('dup Lead Time -> first wins', HDR.indexOf('Lead time'), 20);
+eq('finds Lead approval', cols.approval, 8);
+eq('maps Product type (routing key)', cols.fields.productType, 2);
+eq('maps Price (gate key)', cols.fields.price, 12);
+eq('maps requester', cols.fields.requester, 1);
+eq('appends Asana Task', cols.taskUrl, 13);
+eq('appends Asana Task GID', cols.taskGid, 14);
+eq('auto-creates the status column', cols.fields.status, 15);
+eq('status header written', s._headers()[15], 'Order Status');
+eq('GID header written', s._headers()[14], 'Asana Task GID');
+eq('absent optional column stays undefined', cols.fields.orderedDate, undefined);
 
-const renamed = HDR.slice(); renamed[9] = 'Lead approval';
-cols = api.resolveColumns_(fakeSheet(renamed));
-eq('finds "Lead approval" (the real J1 name)', cols.approval, 9);
+// Old sheet still resolves, via the fallback header names.
+const OLD_HDR = ['Timestamp', 'Email address', 'Item Name/ Description', 'Order Status', 'Quantity',
+  'Estimate', 'Part Number/ Model Number', 'Link', 'Justification for Purchase', 'Lead approval',
+  'Final Approval', 'Urgency Level', 'Team', 'Preferred Vendor/ Source', 'PR_ID', 'Attachment',
+  'Product Main Category', 'Lead Time ', 'Price (INR)', 'Item Type', 'Lead time', 'Lead Time',
+  'Delivery Date', 'ETA', '/.', 'Order ID', 'Utilized /Non - Utilized', 'Approval Date',
+  'Ordered Date', 'SCM Remark ', 'Projection Needed'];
+cols = api.resolveColumns_(fakeSheet(OLD_HDR));
+eq('old sheet: finds approval', cols.approval, 9);
+eq('old sheet: reuses existing Order Status', cols.fields.status, 3);
+eq('old sheet: productType falls back to Item Type', cols.fields.productType, 19);
+eq('old sheet: maps Ordered Date', cols.fields.orderedDate, 28);
 
-// Casing and stray spaces must not matter -- J1 is typed by hand.
-['Lead Approval', 'lead approval', 'LEAD APPROVAL', '  Lead approval  '].forEach((variant) => {
-  const h = HDR.slice(); h[9] = variant;
-  eq('case/space tolerant: ' + JSON.stringify(variant),
-     api.resolveColumns_(fakeSheet(h)).approval, 9);
-});
+// Header-driven, not position-driven.
+const moved = ['Lead approval'].concat(NEW_HDR.filter((_, i) => i !== 8));
+eq('follows the approval header when it moves', api.resolveColumns_(fakeSheet(moved)).approval, 0);
 
-// "Lead approval" must win even while the old placeholder still exists elsewhere.
-const both = HDR.slice(); both[9] = 'Lead approval'; both[10] = 'Column 9';
-eq('prefers Lead approval over a stray Column 9', api.resolveColumns_(fakeSheet(both)).approval, 9);
-
-const withTask = HDR.concat(['Asana Task']);
-cols = api.resolveColumns_(fakeSheet(withTask));
-eq('reuses existing Asana Task column', cols.taskUrl, 31);
-
-// Renamed AND moved, to prove the lookup is by name and not by position.
-const moved = ['Lead approval'].concat(HDR.filter((_, i) => i !== 9));
-eq('follows the header if the column moves', api.resolveColumns_(fakeSheet(moved)).approval, 0);
-
-// An unrecognised header must fail loudly, not silently read column J.
-const unknown = HDR.slice(); unknown[9] = 'Sign off';
+// Unrecognised approval header must fail loudly.
+const unknown = NEW_HDR.slice(); unknown[8] = 'Sign off';
 let threw = '';
 try { api.resolveColumns_(fakeSheet(unknown)); } catch (err) { threw = err.message; }
-eq('throws when no known header matches', threw.startsWith('Could not find the approval column'), true);
-eq('error names the expected headers', threw.includes('Lead approval'), true);
+eq('throws when no known approval header matches',
+   threw.startsWith('Could not find the approval column'), true);
 eq('error dumps the actual header row', threw.includes('Sign off'), true);
 
-console.log('\n-- routing --');
-const g = (o) => (k) => o[k] || '';
-const r1 = api.routeFor_(g({ itemType: 'Fabrication', category: 'Direct Product COGS' }));
-eq('Fabrication -> kiran', r1.assign, 'kiran@origin.tech');
-const r2 = api.routeFor_(g({ itemType: '', category: 'General & Administrative' }));
-eq('G&A -> syed', r2.assign, 'syed@origin.tech');
-const r3 = api.routeFor_(g({ itemType: '', category: 'Direct Product COGS' }));
-eq('COGS -> abish (default)', r3.assign, 'abish@origin.tech');
-const r4 = api.routeFor_(g({ itemType: '', category: 'R & D' }));
-eq('R&D -> abish (default)', r4.assign, 'abish@origin.tech');
-const r5 = api.routeFor_(g({ itemType: '', category: '' }));
-eq('all blank -> abish (default)', r5.assign, 'abish@origin.tech');
-
-// Precedence: Fabrication must beat G&A, per the stated rule order.
-const r6 = api.routeFor_(g({ itemType: 'Fabrication', category: 'General & Administrative' }));
-eq('Fabrication beats G&A', r6.assign, 'kiran@origin.tech');
-
-// Tolerances on hand-typed cells.
-eq('lowercase fabrication', api.routeFor_(g({ itemType: 'fabrication' })).assign, 'kiran@origin.tech');
-eq('fabrication with suffix', api.routeFor_(g({ itemType: 'Fabrication (sheet metal)' })).assign, 'kiran@origin.tech');
-eq('padded fabrication', api.routeFor_(g({ itemType: '  Fabrication  ' })).assign, 'kiran@origin.tech');
-eq('"General & Admin" short form', api.routeFor_(g({ category: 'General & Admin' })).assign, 'syed@origin.tech');
-eq('"general and administrative" lc', api.routeFor_(g({ category: 'general & administrative' })).assign, 'syed@origin.tech');
-// Must NOT match on a substring that merely contains the word.
-eq('"Not General" does not match', api.routeFor_(g({ category: 'Not General' })).assign, 'abish@origin.tech');
-eq('itemType "Off the shelf (OTS)" -> default', api.routeFor_(g({ itemType: 'Off the shelf (OTS)' })).assign, 'abish@origin.tech');
-
-// The routing decision is recorded in the ticket for auditability.
-const routed = api.buildNotes_(g({ item: 'Widget', requester: 'a@origin.tech' }), r1);
-eq('notes record the route', routed.includes('Routed to kiran@origin.tech'), true);
-eq('notes record the reason', routed.includes('Item Type = Fabrication'), true);
-const warned = api.buildNotes_(g({ item: 'Widget' }), { assign: 'x@origin.tech', label: 'l', warning: 'no such user' });
-eq('notes surface an unroutable owner', warned.includes('⚠ no such user'), true);
-
-// Distribution across the real 78 rows, as a sanity check on the rules.
-const REAL = [
-  ...Array(40).fill({ category: 'Direct Product COGS' }),
-  ...Array(22).fill({ category: 'R & D' }),
-  ...Array(12).fill({ category: 'General & Administrative' }),
-  ...Array(4).fill({ category: 'Field Operations' }),
-];
-const tally = {};
-REAL.forEach((row) => {
-  const who = api.routeFor_(g(row)).assign.split('@')[0];
-  tally[who] = (tally[who] || 0) + 1;
+// GID index -> row map, the sync's join key.
+const sheetWithGids = fakeSheet(NEW_HDR.concat(['Asana Task', 'Asana Task GID', 'Order Status']));
+sheetWithGids.getLastRow = () => 4;
+const gidCol = 15;
+[['1111', 2], ['2222', 3], ['', 4]].forEach(([gid, r]) => {
+  sheetWithGids.getRange(r, gidCol + 1).setValue(gid);
 });
-eq('78 rows accounted for', Object.values(tally).reduce((a, b) => a + b, 0), 78);
-eq('syed gets the 12 G&A rows', tally.syed, 12);
-eq('abish gets the other 66', tally.abish, 66);
-eq('kiran gets none (Item Type is empty on all 78)', tally.kiran, undefined);
+sheetWithGids.getRange = ((orig) => (r, c, nr, nc) => {
+  if (r === 2 && c === gidCol + 1 && nr === 3) {
+    return { getValues: () => [['1111'], ['2222'], ['']] };
+  }
+  return orig(r, c, nr, nc);
+})(sheetWithGids.getRange);
+const map = api.indexRowsByGid_(sheetWithGids, { taskGid: gidCol });
+eq('gid map: first row', map['1111'], 2);
+eq('gid map: second row', map['2222'], 3);
+eq('gid map: skips blanks', Object.keys(map).length, 2);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- custom fields --');
+eq('empty by default', Object.keys(api.buildCustomFields_(g(row))).length, 0);
+api.CFG.customFieldGids.productType = '111';
+api.CFG.customFieldGids.price = '222';
+eq('maps configured GIDs only',
+   JSON.stringify(api.buildCustomFields_(g(row))), JSON.stringify({ '111': 'Electrical - OTS' }));
+eq('skips a configured field with no value', '222' in api.buildCustomFields_(g(row)), false);
 
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);
