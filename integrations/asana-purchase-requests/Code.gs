@@ -40,9 +40,30 @@ const CFG = {
   // Created automatically if absent.
   taskUrlHeader: 'Asana Task',
 
-  // Asana user GID for the person who procures. Leave '' for unassigned.
-  // discover() prints the GID for every user in the workspace.
-  defaultAssigneeGid: '',
+  // Routing. First matching rule wins, so order is the precedence: a fabricated
+  // G&A item goes to Kiran, not Syed. Matching is case-insensitive on the start
+  // of the cell value, so "Fabrication (sheet metal)" still matches.
+  //
+  // Emails are resolved to Asana user GIDs at run time. Run verifyRouting()
+  // before go-live to confirm all three resolve.
+  routingRules: [
+    {
+      field: 'itemType',
+      startsWith: 'fabrication',
+      assign: 'kiran@origin.tech',
+      label: 'Item Type = Fabrication',
+    },
+    {
+      field: 'category',
+      startsWith: 'general',
+      assign: 'syed@origin.tech',
+      label: 'Product Main Category = General & Administrative',
+    },
+  ],
+  routingDefault: {
+    assign: 'abish@origin.tech',
+    label: 'default route (Electronics and everything else)',
+  },
 
   // Where integration failures are emailed. Leave '' to disable.
   errorNotifyEmail: '',
@@ -85,6 +106,7 @@ const COL = {
   prId: 'PR_ID',
   category: 'Product Main Category',
   price: 'Price (INR)',
+  itemType: 'Item Type',
 };
 
 // ---------------------------------------------------------------------------
@@ -176,16 +198,34 @@ function createAsanaTask_(values, cols) {
   const item = get('item') || '(no item description)';
   const name = prId ? prId + ' · ' + item : item;
 
+  const route = routeFor_(get);
+
+  // An unroutable owner must not lose the task: create it unassigned, say so in
+  // the description, and alert. Silently unassigned is how tickets go missing.
+  let assigneeGid = '';
+  if (route.assign) {
+    assigneeGid = lookupUserGid_(route.assign);
+    if (!assigneeGid) {
+      route.warning =
+        'Could not match ' + route.assign + ' to an Asana user in this workspace. ' +
+        'Assign this task by hand, then run verifyRouting().';
+      notifyFailure_(
+        'Purchase Request -> Asana: unroutable owner',
+        route.warning + '\n\nTask: ' + name
+      );
+    }
+  }
+
   const payload = {
     data: {
       name: name,
-      notes: buildNotes_(get),
+      notes: buildNotes_(get, route),
       projects: [CFG.projectGid],
       due_on: dueDate_(get('urgency')),
     },
   };
 
-  if (CFG.defaultAssigneeGid) payload.data.assignee = CFG.defaultAssigneeGid;
+  if (assigneeGid) payload.data.assignee = assigneeGid;
 
   const custom = buildCustomFields_(get);
   if (Object.keys(custom).length) payload.data.custom_fields = custom;
@@ -205,18 +245,19 @@ function createAsanaTask_(values, cols) {
   return task.permalink_url || (task.gid ? 'https://app.asana.com/0/0/' + task.gid : '');
 }
 
-function buildNotes_(get) {
+/**
+ * The seven requested fields, plus justification for context. Link gets its own
+ * block because some of these URLs run to several hundred characters and would
+ * wreck the aligned column.
+ */
+function buildNotes_(get, route) {
   const rows = [
-    ['PR ID', get('prId')],
-    ['Requested by', get('requester')],
-    ['Team', get('team')],
-    ['Category', get('category')],
-    ['Urgency', get('urgency')],
+    ['Requester', get('requester')],
+    ['Item', get('item')],
     ['Quantity', get('quantity')],
-    ['Preferred vendor', get('vendor')],
     ['Part / model no.', get('partNumber')],
-    ['Price (INR)', get('price')],
-    ['Submitted', get('timestamp')],
+    ['Urgency', get('urgency')],
+    ['Preferred vendor', get('vendor')],
   ].filter(function (r) { return r[1]; });
 
   const pad = Math.max.apply(null, rows.map(function (r) { return r[0].length; }));
@@ -230,8 +271,26 @@ function buildNotes_(get) {
   const link = get('link');
   if (link && link.toUpperCase() !== 'NA') out += '\n\nLink\n----\n' + link;
 
-  out += '\n\n---\nCreated automatically from the Purchase Request form on approval.';
+  out += '\n\n---';
+  if (route && route.warning) out += '\n⚠ ' + route.warning;
+  if (route && route.label) out += '\nRouted to ' + route.assign + ' — ' + route.label + '.';
+  out += '\nCreated automatically from the Purchase Request form on approval.';
   return out;
+}
+
+/**
+ * Applies CFG.routingRules in order, falling back to CFG.routingDefault.
+ * Returns { assign, label, warning? }.
+ */
+function routeFor_(get) {
+  for (let i = 0; i < CFG.routingRules.length; i++) {
+    const rule = CFG.routingRules[i];
+    const value = String(get(rule.field) || '').trim().toLowerCase();
+    if (value && value.indexOf(String(rule.startsWith).toLowerCase()) === 0) {
+      return { assign: rule.assign, label: rule.label };
+    }
+  }
+  return { assign: CFG.routingDefault.assign, label: CFG.routingDefault.label };
 }
 
 function buildCustomFields_(get) {
@@ -487,6 +546,41 @@ function discover() {
   } else {
     console.log('\n(set CFG.projectGid, then re-run to list its custom fields)');
   }
+}
+
+/**
+ * Confirms every routing target is a real Asana user in this workspace. Run this
+ * before go-live, and again whenever someone joins or leaves procurement --
+ * an email that does not resolve produces unassigned tasks.
+ */
+function verifyRouting() {
+  if (!CFG.workspaceGid) throw new Error('Set CFG.workspaceGid first.');
+
+  const targets = CFG.routingRules
+    .map(function (r) { return { email: r.assign, label: r.label }; })
+    .concat([{ email: CFG.routingDefault.assign, label: CFG.routingDefault.label }]);
+
+  let bad = 0;
+  targets.forEach(function (t) {
+    const gid = t.email ? lookupUserGid_(t.email) : '';
+    if (gid) {
+      console.log('OK    %s  ->  %s   (%s)', t.email, gid, t.label);
+    } else {
+      bad++;
+      console.log('FAIL  %s  ->  no Asana user in this workspace   (%s)', t.email, t.label);
+    }
+  });
+
+  if (bad) {
+    console.log(
+      '\n%s routing target(s) will produce UNASSIGNED tasks. Invite them to the ' +
+        'workspace, or change the address in CFG.routingRules.',
+      bad
+    );
+  } else {
+    console.log('\nAll routing targets resolve.');
+  }
+  return bad === 0;
 }
 
 /** Step 5. Installs the onEdit trigger, replacing any previous copy. */

@@ -86,10 +86,20 @@ Run `discover()` and read the execution log. It prints:
 
 - **Workspaces** — copy the GID into `CFG.workspaceGid`
 - **Projects** — copy the Procurement project's GID into `CFG.projectGid`
-- **Users** — copy the SCM owner's GID into `CFG.defaultAssigneeGid`
+- **Users** — for reference; routing resolves emails to GIDs automatically
 
-Fill those into the `CFG` block at the top of `Code.gs`, then run `discover()`
-again to list the custom fields on the project you just named.
+Fill the first two into the `CFG` block at the top of `Code.gs`, then run
+`discover()` again to list the custom fields on the project you just named.
+
+Then run **`verifyRouting()`**. It checks that all three procurement owners exist
+as Asana users in the workspace, because an address that does not resolve
+produces unassigned tasks:
+
+```
+OK    kiran@origin.tech  ->  1201234567890   (Item Type = Fabrication)
+OK    syed@origin.tech   ->  1201234567891   (Product Main Category = General & Administrative)
+OK    abish@origin.tech  ->  1201234567892   (default route)
+```
 
 ### Step 6: Set the notification address
 
@@ -123,17 +133,73 @@ To re-test the same row, clear its `Asana Task` cell and re-enter the approval.
 | Two people approving at once | Serialised by `LockService`, so no double-creation |
 | Asana call fails | `ERROR: …` written into the `Asana Task` cell, email sent, other rows unaffected |
 | Requester has no Asana account | Task still created; the follower step fails quietly |
+| Routed owner is not an Asana user | Task created unassigned, warning in the description, email sent |
 
 ### Task shape
 
 ```
-Title     PR-2026-1524 · TATA Coffee Machine Consumables
-Assignee  CFG.defaultAssigneeGid
+Title     PR-2026-1515 · DC motor for Operation Station Turntable POC
+Assignee  by routing rule -- see below
 Follower  requester, if their email matches an Asana user
 Due       approval date + urgency allowance
-Notes     PR ID, requester, team, category, urgency, quantity, vendor,
-          part number, price, submitted-at, justification, link
+Notes:
+  Requester:         harini@origin.tech
+  Item:              DC motor for Operation Station Turntable POC
+  Quantity:          1
+  Part / model no.:  24V/12RPM
+  Urgency:           High (Needed within 2-3 day)
+  Preferred vendor:  -
+
+  Justification
+  -------------
+  Need urgently for POC of turntable
+
+  Link
+  ----
+  https://thinkrobotics.com/products/37mm-encoder-dc-metal-gearmotors...
+
+  ---
+  Routed to abish@origin.tech - default route (Electronics and everything else).
+  Created automatically from the Purchase Request form on approval.
 ```
+
+`Link` sits in its own block rather than the aligned column because some of
+these URLs run to several hundred characters. `Justification` is included on top
+of the seven requested fields -- it is filled on 78 of 78 rows and is the only
+field that says *why* the item is needed. Drop the `justification` lines in
+`buildNotes_` if you want strictly the seven.
+
+The routing footer is there so a mis-assignment can be diagnosed from the ticket
+itself rather than by re-reading the sheet.
+
+### Routing
+
+Rules are applied in order, first match wins, from `CFG.routingRules`:
+
+| # | Condition | Owner |
+|---|---|---|
+| 1 | `Item Type` starts with `Fabrication` | kiran@origin.tech |
+| 2 | `Product Main Category` starts with `General` | syed@origin.tech |
+| 3 | everything else | abish@origin.tech |
+
+Order is the precedence: a fabricated G&A item goes to Kiran, not Syed. Matching
+is case-insensitive on the start of the value, so `Fabrication (sheet metal)`
+matches rule 1 and both `General & Administrative` and `General & Admin` match
+rule 2.
+
+> **Rule 1 currently matches nothing.** `Item Type` is blank on 76 of the 78
+> existing rows, and its only two values ever recorded are `TATA Brewer` and
+> `Off the shelf (OTS)` — `Fabrication` has never appeared. Until the form
+> captures it, Kiran receives no tickets and fabrication work routes to Abish by
+> default. Fixing this means adding `Item Type` as a required question on the
+> Google Form with a `Fabrication` option; no code change is needed once it is
+> populated.
+
+On the 78 existing rows the rules distribute as **Syed 12, Abish 66, Kiran 0**.
+
+If a routing address does not match an Asana user, the task is still created but
+left unassigned, with a warning in its description and an email to
+`CFG.errorNotifyEmail`.
 
 Due date allowances, from `CFG.dueDaysByUrgency`:
 
@@ -172,6 +238,9 @@ but they will show up in the tasks it creates:
 - **`Price (INR)` is filled on 1 of 78 rows.** Tasks will mostly have no cost.
   This is the single highest-value form change — without it there is no tiered
   approval, no budget control and no spend reporting.
+- **`Item Type` is filled on 2 of 78 rows.** This is the routing key for rule 1,
+  so Kiran gets nothing until it is captured on the form. See
+  [Routing](#routing).
 - **`Team` contains `Brewer Enterprise`** on one row, which is a vendor name in
   the team field.
 - **Three columns are named some case of `Lead Time`.** Header lookup takes the

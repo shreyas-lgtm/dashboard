@@ -10,7 +10,7 @@ global.CacheService = {}; global.MailApp = {}; global.LockService = {};
 const src = require('fs').readFileSync(__dirname + '/Code.gs', 'utf8');
 // new Function keeps the script's declarations out of this module's scope.
 const api = new Function(
-  src + '\nreturn { dueDate_, buildNotes_, buildCustomFields_, resolveColumns_, CFG };'
+  src + '\nreturn { dueDate_, buildNotes_, buildCustomFields_, resolveColumns_, routeFor_, CFG };'
 )();
 
 let fail = 0;
@@ -43,13 +43,13 @@ const notes = api.buildNotes_((k) => row[k] || '');
 console.log(notes.split('\n').map(l => '   | ' + l).join('\n'));
 const valueCols = notes.split('\n').filter(l => /^[A-Za-z].*?:\s{2,}\S/.test(l))
   .map(l => l.match(/^(.*?:\s+)/)[1].length);
-eq('all 10 label rows present', valueCols.length, 10);
+eq('all 6 aligned label rows present', valueCols.length, 6);
 eq('values align in one column', new Set(valueCols).size, 1);
 eq('includes justification', notes.includes('Justification\n-------------\nBought for office use'), true);
 eq('drops link when NA', notes.includes('Link\n----'), false);
 
 const sparse = api.buildNotes_((k) => (k === 'item' ? 'Widget' : ''));
-eq('omits blank rows', sparse.includes('Price'), false);
+eq('omits blank rows', sparse.includes('Preferred vendor'), false);
 eq('survives all-empty row', sparse.includes('Created automatically'), true);
 eq('keeps a real link', api.buildNotes_((k) => (k === 'link' ? 'https://robu.in/x' : '')).includes('https://robu.in/x'), true);
 
@@ -115,6 +115,57 @@ try { api.resolveColumns_(fakeSheet(unknown)); } catch (err) { threw = err.messa
 eq('throws when no known header matches', threw.startsWith('Could not find the approval column'), true);
 eq('error names the expected headers', threw.includes('Lead approval'), true);
 eq('error dumps the actual header row', threw.includes('Sign off'), true);
+
+console.log('\n-- routing --');
+const g = (o) => (k) => o[k] || '';
+const r1 = api.routeFor_(g({ itemType: 'Fabrication', category: 'Direct Product COGS' }));
+eq('Fabrication -> kiran', r1.assign, 'kiran@origin.tech');
+const r2 = api.routeFor_(g({ itemType: '', category: 'General & Administrative' }));
+eq('G&A -> syed', r2.assign, 'syed@origin.tech');
+const r3 = api.routeFor_(g({ itemType: '', category: 'Direct Product COGS' }));
+eq('COGS -> abish (default)', r3.assign, 'abish@origin.tech');
+const r4 = api.routeFor_(g({ itemType: '', category: 'R & D' }));
+eq('R&D -> abish (default)', r4.assign, 'abish@origin.tech');
+const r5 = api.routeFor_(g({ itemType: '', category: '' }));
+eq('all blank -> abish (default)', r5.assign, 'abish@origin.tech');
+
+// Precedence: Fabrication must beat G&A, per the stated rule order.
+const r6 = api.routeFor_(g({ itemType: 'Fabrication', category: 'General & Administrative' }));
+eq('Fabrication beats G&A', r6.assign, 'kiran@origin.tech');
+
+// Tolerances on hand-typed cells.
+eq('lowercase fabrication', api.routeFor_(g({ itemType: 'fabrication' })).assign, 'kiran@origin.tech');
+eq('fabrication with suffix', api.routeFor_(g({ itemType: 'Fabrication (sheet metal)' })).assign, 'kiran@origin.tech');
+eq('padded fabrication', api.routeFor_(g({ itemType: '  Fabrication  ' })).assign, 'kiran@origin.tech');
+eq('"General & Admin" short form', api.routeFor_(g({ category: 'General & Admin' })).assign, 'syed@origin.tech');
+eq('"general and administrative" lc', api.routeFor_(g({ category: 'general & administrative' })).assign, 'syed@origin.tech');
+// Must NOT match on a substring that merely contains the word.
+eq('"Not General" does not match', api.routeFor_(g({ category: 'Not General' })).assign, 'abish@origin.tech');
+eq('itemType "Off the shelf (OTS)" -> default', api.routeFor_(g({ itemType: 'Off the shelf (OTS)' })).assign, 'abish@origin.tech');
+
+// The routing decision is recorded in the ticket for auditability.
+const routed = api.buildNotes_(g({ item: 'Widget', requester: 'a@origin.tech' }), r1);
+eq('notes record the route', routed.includes('Routed to kiran@origin.tech'), true);
+eq('notes record the reason', routed.includes('Item Type = Fabrication'), true);
+const warned = api.buildNotes_(g({ item: 'Widget' }), { assign: 'x@origin.tech', label: 'l', warning: 'no such user' });
+eq('notes surface an unroutable owner', warned.includes('⚠ no such user'), true);
+
+// Distribution across the real 78 rows, as a sanity check on the rules.
+const REAL = [
+  ...Array(40).fill({ category: 'Direct Product COGS' }),
+  ...Array(22).fill({ category: 'R & D' }),
+  ...Array(12).fill({ category: 'General & Administrative' }),
+  ...Array(4).fill({ category: 'Field Operations' }),
+];
+const tally = {};
+REAL.forEach((row) => {
+  const who = api.routeFor_(g(row)).assign.split('@')[0];
+  tally[who] = (tally[who] || 0) + 1;
+});
+eq('78 rows accounted for', Object.values(tally).reduce((a, b) => a + b, 0), 78);
+eq('syed gets the 12 G&A rows', tally.syed, 12);
+eq('abish gets the other 66', tally.abish, 66);
+eq('kiran gets none (Item Type is empty on all 78)', tally.kiran, undefined);
 
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);
