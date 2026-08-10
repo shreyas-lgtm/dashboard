@@ -1,0 +1,734 @@
+<title>Procurement Intake — Process Proposal</title>
+<style>
+  /* ---- tokens: light is the base, both dark states re-declare ---- */
+  :root {
+    --ground:   #EFF2F3;
+    --surface:  #FFFFFF;
+    --surface-2:#E7ECED;
+    --ink:      #131E22;
+    --ink-muted:#5A6B71;
+    --ink-faint:#87989E;
+    --rule:     #CFD8DB;
+    --rule-firm:#AFBDC1;
+    --accent:   #125C6B;
+    --accent-ink:#0C4451;
+    --accent-wash:#DCE9EB;
+    --good:     #3F7A46;
+    --good-wash:#E0EBE1;
+    --warn:     #9A6510;
+    --warn-wash:#F3E8D4;
+    --crit:     #A83A2C;
+    --crit-wash:#F3E1DE;
+
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", "Roboto Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+    --measure: 68ch;
+    --pad: clamp(1.25rem, 4vw, 3rem);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:   #0E1518;
+      --surface:  #161F23;
+      --surface-2:#1D282D;
+      --ink:      #E4EAEC;
+      --ink-muted:#9BABB1;
+      --ink-faint:#74868C;
+      --rule:     #26343A;
+      --rule-firm:#3A4C53;
+      --accent:   #5FB9CB;
+      --accent-ink:#8FD2DF;
+      --accent-wash:#14323A;
+      --good:     #74BC7E;
+      --good-wash:#17301C;
+      --warn:     #D9A24A;
+      --warn-wash:#33260F;
+      --crit:     #E58675;
+      --crit-wash:#37201C;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:   #0E1518;
+    --surface:  #161F23;
+    --surface-2:#1D282D;
+    --ink:      #E4EAEC;
+    --ink-muted:#9BABB1;
+    --ink-faint:#74868C;
+    --rule:     #26343A;
+    --rule-firm:#3A4C53;
+    --accent:   #5FB9CB;
+    --accent-ink:#8FD2DF;
+    --accent-wash:#14323A;
+    --good:     #74BC7E;
+    --good-wash:#17301C;
+    --warn:     #D9A24A;
+    --warn-wash:#33260F;
+    --crit:     #E58675;
+    --crit-wash:#37201C;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--pad);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  /* ---- title block, like a drawing title block ---- */
+  .titleblock {
+    border: 1px solid var(--rule-firm);
+    background: var(--surface);
+  }
+  .titleblock__main { padding: clamp(1.5rem, 4vw, 2.5rem); }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin: 0 0 1rem;
+  }
+  h1 {
+    font-family: var(--font-mono);
+    font-size: clamp(1.6rem, 4.4vw, 2.5rem);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    text-wrap: balance;
+    margin: 0 0 0.75rem;
+  }
+  .standfirst {
+    font-size: clamp(1rem, 2.2vw, 1.12rem);
+    color: var(--ink-muted);
+    max-width: var(--measure);
+    margin: 0;
+  }
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    border-top: 1px solid var(--rule);
+  }
+  .meta > div {
+    padding: 0.85rem clamp(1.5rem, 4vw, 2.5rem);
+    border-right: 1px solid var(--rule);
+  }
+  .meta > div:last-child { border-right: 0; }
+  .meta dt {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-faint);
+    margin: 0 0 0.2rem;
+  }
+  .meta dd {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  /* ---- sections ---- */
+  section { display: flex; flex-direction: column; gap: 1.25rem; }
+  h2 {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0;
+    padding-bottom: 0.6rem;
+    border-bottom: 2px solid var(--ink);
+    display: flex;
+    gap: 0.9rem;
+    align-items: baseline;
+  }
+  h2 .num { color: var(--accent); }
+  h3 {
+    font-family: var(--font-sans);
+    font-size: 1.06rem;
+    font-weight: 650;
+    letter-spacing: -0.005em;
+    margin: 0 0 0.3rem;
+    text-wrap: balance;
+  }
+  p { margin: 0; max-width: var(--measure); }
+  .stack { display: flex; flex-direction: column; gap: 1rem; }
+  strong { font-weight: 650; }
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+    background: var(--surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 2px;
+  }
+
+  /* ---- verdict ---- */
+  .verdict {
+    border: 1px solid var(--accent);
+    border-left-width: 4px;
+    background: var(--accent-wash);
+    padding: clamp(1.1rem, 3vw, 1.6rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .verdict p { max-width: 74ch; }
+
+  /* ---- evidence tiles ---- */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+  .tile {
+    background: var(--surface);
+    padding: 1.1rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    border-top: 3px solid var(--rule-firm);
+  }
+  .tile--crit { border-top-color: var(--crit); }
+  .tile--warn { border-top-color: var(--warn); }
+  .tile--good { border-top-color: var(--good); }
+  .tile__fig {
+    font-family: var(--font-mono);
+    font-size: 1.85rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .tile--crit .tile__fig { color: var(--crit); }
+  .tile--warn .tile__fig { color: var(--warn); }
+  .tile--good .tile__fig { color: var(--good); }
+  .tile__label {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+  }
+  .tile__note { font-size: 0.86rem; color: var(--ink-muted); line-height: 1.45; }
+
+  /* ---- pipeline strip ---- */
+  .pipe-scroll { overflow-x: auto; padding-bottom: 0.4rem; }
+  .pipe {
+    display: flex;
+    min-width: 640px;
+    border: 1px solid var(--rule-firm);
+    background: var(--surface);
+  }
+  .pipe__step {
+    flex: 1;
+    padding: 0.8rem 0.9rem;
+    border-right: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .pipe__step:last-child { border-right: 0; }
+  .pipe__n {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+  }
+  .pipe__name { font-size: 0.88rem; font-weight: 650; line-height: 1.25; }
+  .sor {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.15rem 0.4rem;
+    align-self: flex-start;
+    border-radius: 2px;
+  }
+  .sor--asana { background: var(--accent-wash); color: var(--accent-ink); }
+  .sor--zoho  { background: var(--good-wash);  color: var(--good); }
+  .sor--sheet { background: var(--warn-wash);  color: var(--warn); }
+
+  /* ---- stage list ---- */
+  .stages { display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .stage {
+    background: var(--surface);
+    padding: 1.15rem clamp(1rem, 3vw, 1.5rem);
+    display: grid;
+    grid-template-columns: 3.2rem 1fr;
+    gap: 0 1rem;
+    align-items: start;
+  }
+  .stage__n {
+    font-family: var(--font-mono);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    padding-top: 0.05rem;
+  }
+  .stage__body { display: flex; flex-direction: column; gap: 0.55rem; min-width: 0; }
+  .stage__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.5rem 1.25rem;
+    margin-top: 0.15rem;
+  }
+  .fact { display: flex; flex-direction: column; gap: 0.1rem; }
+  .fact dt {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+  }
+  .fact dd { margin: 0; font-size: 0.87rem; color: var(--ink-muted); line-height: 1.45; }
+  .fact dd.is-ink { color: var(--ink); }
+
+  /* ---- tables ---- */
+  .t-scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 0.88rem; }
+  caption {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    padding: 0.7rem 0.9rem 0.5rem;
+  }
+  th, td { padding: 0.6rem 0.9rem; text-align: left; vertical-align: top; border-top: 1px solid var(--rule); }
+  thead th {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--ink-muted);
+    font-weight: 600;
+    border-top: 1px solid var(--rule-firm);
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.mono { font-family: var(--font-mono); font-size: 0.83rem; }
+  .drop { color: var(--crit); font-family: var(--font-mono); font-size: 0.8rem; }
+  .keep { color: var(--good); font-family: var(--font-mono); font-size: 0.8rem; }
+  .fix  { color: var(--warn); font-family: var(--font-mono); font-size: 0.8rem; }
+
+  /* ---- phase cards ---- */
+  .phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+  .phase {
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .phase--later { border-top-color: var(--rule-firm); }
+  .phase__tag {
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    color: var(--ink-faint);
+  }
+  ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  li { font-size: 0.9rem; color: var(--ink-muted); }
+  li strong { color: var(--ink); }
+
+  /* ---- decisions ---- */
+  .decisions { display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .decision {
+    background: var(--surface);
+    padding: 1rem clamp(1rem, 3vw, 1.4rem);
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    gap: 0 0.9rem;
+  }
+  .decision__n {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--accent);
+    padding-top: 0.22rem;
+  }
+  .decision p { font-size: 0.92rem; }
+  .decision__q { font-weight: 650; color: var(--ink); font-size: 0.95rem; margin-bottom: 0.15rem; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.25rem;
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+    max-width: var(--measure);
+  }
+  footer p { max-width: none; }
+
+  @media (max-width: 560px) {
+    .stage { grid-template-columns: 1fr; gap: 0.5rem; }
+    .meta > div { border-right: 0; border-bottom: 1px solid var(--rule); }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="titleblock">
+    <div class="titleblock__main">
+      <p class="eyebrow">Process proposal &middot; Supply chain &amp; procurement</p>
+      <h1>Turning purchase requests into Asana tickets</h1>
+      <p class="standfirst">The integration is straightforward. The process underneath it is what needs deciding first &mdash; because the approval gate we would trigger on is, today, mostly not being used.</p>
+    </div>
+    <dl class="meta">
+      <div><dt>Prepared for</dt><dd>Origin Tech &middot; SCM</dd></div>
+      <div><dt>Date</dt><dd>10 Aug 2026</dd></div>
+      <div><dt>Evidence base</dt><dd>78 form responses</dd></div>
+      <div><dt>Window</dt><dd>20 Jul – 10 Aug 2026</dd></div>
+    </dl>
+  </header>
+
+  <div class="verdict">
+    <h3>The short answer</h3>
+    <p>Yes &mdash; <em>Purchase Request form (Responses)</em> can create Asana tasks automatically, and the field mapping is clean. But you asked to fire on <code>Final Approval = Approved</code>, and only 18 of 78 requests (23%) have ever had that cell filled in. Meanwhile 49 requests reached <em>Ordered</em> or <em>Handed Over</em>. Build the trigger as specified today and Asana becomes a record of the quarter of your procurement that happens to get stamped.</p>
+    <p>So: fix the gate, then automate it. The good news is that the fix is small, and the data tells us exactly where to aim.</p>
+  </div>
+
+  <section>
+    <h2><span class="num">01</span> What the 78 responses show</h2>
+    <div class="tiles">
+      <div class="tile tile--crit">
+        <span class="tile__fig">23%</span>
+        <span class="tile__label">Requests with final approval</span>
+        <span class="tile__note">18 of 78. The remaining 60 have the cell blank &mdash; including 36 that were already ordered or handed over.</span>
+      </div>
+      <div class="tile tile--crit">
+        <span class="tile__fig">1 / 78</span>
+        <span class="tile__label">Requests with a price</span>
+        <span class="tile__note"><code>Price (INR)</code> is filled once; <code>Estimate</code> never. Nobody approving these can see what they cost.</span>
+      </div>
+      <div class="tile tile--warn">
+        <span class="tile__fig">1 / 27</span>
+        <span class="tile__label">"Critical" ever approved</span>
+        <span class="tile__note">27 requests claim <em>required within 24 hours</em>. One carries an approval stamp; the median unapproved one is 12 days old.</span>
+      </div>
+      <div class="tile tile--good">
+        <span class="tile__fig">0.4d</span>
+        <span class="tile__label">Median approval turnaround</span>
+        <span class="tile__note">When someone does approve, they are fast. The bottleneck is not reviewer speed &mdash; it is that the step gets skipped.</span>
+      </div>
+      <div class="tile tile--warn">
+        <span class="tile__fig">4 / 18</span>
+        <span class="tile__label">Approvals dated before request</span>
+        <span class="tile__note"><code>Approval Date</code> is being back-filled by hand, so it cannot be trusted as an audit trail or an SLA clock.</span>
+      </div>
+      <div class="tile tile--crit">
+        <span class="tile__fig">0%</span>
+        <span class="tile__label">Order ID / Delivery Date / ETA</span>
+        <span class="tile__note">The whole downstream tail of the sheet is empty. Fulfilment tracking is happening somewhere else, or nowhere.</span>
+      </div>
+    </div>
+    <div class="stack">
+      <p>Two patterns matter more than the individual numbers.</p>
+      <p><strong>Approval is not a gate, it is a formality applied afterwards.</strong> 24 requests are marked <em>Handed Over</em> &mdash; goods physically with the requester &mdash; with no approval recorded. Another 12 are <em>Ordered</em> the same way. Money is being committed and the sign-off is catching up later, or not at all. That is the actual risk in the current process, and it is invisible on the sheet because a blank cell looks like a pending item rather than a bypass.</p>
+      <p><strong>Urgency has inflated because it is free.</strong> A third of all requests are marked <em>Critical &mdash; required within 24 hours</em>. When everything is critical, the label stops routing anything, and the queue reverts to whoever shouts loudest. Note this is self-declared on a dropdown with no need-by date behind it and no cost attached.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span> The structural problem: three systems, no boundaries</h2>
+    <div class="stack">
+      <p>Before choosing an integration, it is worth naming why the sheet's tracking columns went dead. You currently have three systems that each believe they own a purchase request:</p>
+    </div>
+    <div class="t-scroll">
+      <table>
+        <caption>Current ownership overlap</caption>
+        <thead>
+          <tr><th>System</th><th>What it holds today</th><th>Reality check</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">Google Form + Sheet</td>
+            <td>Intake, plus an aspirational tail: approval, order ID, delivery date, ETA, SCM remark</td>
+            <td>Intake works &mdash; 100% fill on requester, vendor, justification. The tail is 0–23% filled.</td>
+          </tr>
+          <tr>
+            <td class="mono">Zoho Procurement</td>
+            <td>The real ledger: PRs, POs, vendors, receipts, bills, spend</td>
+            <td><code>Order ID</code> is blank on all 78 rows, so nothing links a request to its PO. The two systems do not know about each other.</td>
+          </tr>
+          <tr>
+            <td class="mono">Asana Starter</td>
+            <td>Nothing yet &mdash; 60 seats being rolled out via Addrs&nbsp;Labs</td>
+            <td>Risk: becomes a third place to retype the same request unless its job is defined narrowly.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="stack">
+      <p>The sheet's tail is empty because it duplicates fields Zoho already owns natively. People correctly declined to type delivery dates twice. Any new process should assign <strong>one system of record per stage</strong> and let the others read from it &mdash; which is the principle the proposal below is built on.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span> Proposed process</h2>
+    <div class="pipe-scroll">
+      <div class="pipe">
+        <div class="pipe__step"><span class="pipe__n">00</span><span class="pipe__name">Request</span><span class="sor sor--asana">Asana form</span></div>
+        <div class="pipe__step"><span class="pipe__n">01</span><span class="pipe__name">Triage &amp; cost</span><span class="sor sor--asana">Asana</span></div>
+        <div class="pipe__step"><span class="pipe__n">02</span><span class="pipe__name">Approve by value</span><span class="sor sor--asana">Asana</span></div>
+        <div class="pipe__step"><span class="pipe__n">03</span><span class="pipe__name">Source &amp; raise PO</span><span class="sor sor--zoho">Zoho</span></div>
+        <div class="pipe__step"><span class="pipe__n">04</span><span class="pipe__name">Receive &amp; hand over</span><span class="sor sor--zoho">Zoho</span></div>
+        <div class="pipe__step"><span class="pipe__n">05</span><span class="pipe__name">Report</span><span class="sor sor--sheet">Dashboard</span></div>
+      </div>
+    </div>
+
+    <div class="stages">
+      <div class="stage">
+        <span class="stage__n">00</span>
+        <div class="stage__body">
+          <h3>Request &mdash; with cost and need-by date made mandatory</h3>
+          <p>Two required-field changes carry most of the value in this whole proposal: an <strong>estimated cost</strong>, and a <strong>need-by date</strong> replacing the four-option urgency dropdown. Cost is what makes tiered approval possible; a date is falsifiable in a way that "Critical" is not.</p>
+          <dl class="stage__facts">
+            <div class="fact"><dt>Owner</dt><dd class="is-ink">Requester</dd></div>
+            <div class="fact"><dt>System of record</dt><dd class="is-ink">Asana form (or Google Form in Phase&nbsp;1)</dd></div>
+            <div class="fact"><dt>Exit condition</dt><dd>Item, qty, cost estimate, need-by date, justification, category all present</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="stage__n">01</span>
+        <div class="stage__body">
+          <h3>Triage &mdash; SCM confirms category and firms up cost</h3>
+          <p>A short SCM pass: is the category right, is there an existing vendor, is the estimate real? This is where a requester's guess becomes a number Finance can approve against. Requests under the auto-approve threshold skip straight past stage&nbsp;02.</p>
+          <dl class="stage__facts">
+            <div class="fact"><dt>Owner</dt><dd class="is-ink">SCM</dd></div>
+            <div class="fact"><dt>Target</dt><dd>Same business day</dd></div>
+            <div class="fact"><dt>Exit condition</dt><dd>Firm cost + vendor route, or returned to requester with a reason</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="stage__n">02</span>
+        <div class="stage__body">
+          <h3>Approve &mdash; tiered by value, with a real SLA</h3>
+          <p>The reason approval gets skipped today is that it costs the same effort for a ₹500 pack of ESD covers as for a ₹1.3&nbsp;lakh Graco assembly. Tier it, auto-approve the small stuff, and the remaining approvals become few enough that people actually do them. Thresholds below are a starting point to calibrate once cost capture exists &mdash; see the open decisions.</p>
+          <dl class="stage__facts">
+            <div class="fact"><dt>Owner</dt><dd class="is-ink">Tier-dependent</dd></div>
+            <div class="fact"><dt>Hard rule</dt><dd>No PO may be raised without a recorded approval &mdash; this is the bypass that needs closing</dd></div>
+            <div class="fact"><dt>Exit condition</dt><dd>Approved or rejected, timestamped by the system rather than typed by hand</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="stage__n">03</span>
+        <div class="stage__body">
+          <h3>Source and raise the PO &mdash; in Zoho, not the sheet</h3>
+          <p>Approved requests become a Zoho PR/PO. The PO number flows back to the ticket automatically, which is what <code>Order ID</code> was always meant to hold. Vendor, currency and spend stay in Zoho where the bills already live.</p>
+          <dl class="stage__facts">
+            <div class="fact"><dt>Owner</dt><dd class="is-ink">SCM</dd></div>
+            <div class="fact"><dt>System of record</dt><dd class="is-ink">Zoho Procurement</dd></div>
+            <div class="fact"><dt>Exit condition</dt><dd>PO issued; PO number visible on the ticket</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="stage__n">04</span>
+        <div class="stage__body">
+          <h3>Receive and hand over &mdash; closing the loop with the requester</h3>
+          <p>Zoho Purchase Receive records arrival; handover to the requester closes the ticket. Your existing <em>Utilized / Non-Utilized</em> column is a genuinely useful idea that deserves to survive as a post-handover check on whether the spend was warranted.</p>
+          <dl class="stage__facts">
+            <div class="fact"><dt>Owner</dt><dd class="is-ink">SCM → requester</dd></div>
+            <div class="fact"><dt>System of record</dt><dd class="is-ink">Zoho Procurement</dd></div>
+            <div class="fact"><dt>Exit condition</dt><dd>Received, handed over, requester confirms</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="stage">
+        <span class="stage__n">05</span>
+        <div class="stage__body">
+          <h3>Report &mdash; the dashboard you already have</h3>
+          <p>The Zoho pipeline dashboard in this repo already covers the back half: PRs awaiting approval, approved PRs with no PO, overdue POs, receipts pending bill. What it cannot show today is the front half, because intake lives in a spreadsheet it does not read. Closing that gap is the reporting win.</p>
+          <dl class="stage__facts">
+            <div class="fact"><dt>Owner</dt><dd class="is-ink">SCM / Finance</dd></div>
+            <div class="fact"><dt>Add</dt><dd>Cycle time per stage, approval-bypass count, urgency accuracy vs. need-by date</dd></div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span> Approval tiers</h2>
+    <div class="t-scroll">
+      <table>
+        <caption>Proposed thresholds &mdash; to calibrate once cost data exists</caption>
+        <thead>
+          <tr><th>Tier</th><th>Value (INR)</th><th>Approver</th><th>SLA</th><th>Expected share</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">T0</td>
+            <td class="num">&lt; 10,000</td>
+            <td>Auto-approved if the category has budget left; team lead notified</td>
+            <td class="num">Instant</td>
+            <td>Consumables &mdash; tape, ESD covers, pantry. Likely the bulk of your G&amp;A rows.</td>
+          </tr>
+          <tr>
+            <td class="mono">T1</td>
+            <td class="num">10,000 – 1,00,000</td>
+            <td>Team lead, then SCM</td>
+            <td class="num">1 business day</td>
+            <td>Most Mechanical and Embedded spares.</td>
+          </tr>
+          <tr>
+            <td class="mono">T2</td>
+            <td class="num">&gt; 1,00,000</td>
+            <td>Finance + founder</td>
+            <td class="num">2 business days</td>
+            <td>Capital items and large assemblies.</td>
+          </tr>
+          <tr>
+            <td class="mono">Rush</td>
+            <td class="num">Any</td>
+            <td>Same approver as the value tier</td>
+            <td class="num">Halved</td>
+            <td>Needs a need-by date inside 48h <em>and</em> a written reason. Rush count per team should be visible &mdash; that is what deflates the 35% "Critical" rate.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="stack">
+      <p>The point of T0 is not speed, it is protecting T2. Every trivial request routed through a human is attention spent not looking at the expensive ones.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span> How to sequence it</h2>
+    <div class="phases">
+      <div class="phase">
+        <span class="phase__tag">Phase 1 &middot; ~1 week</span>
+        <h3>Make the gate real, keep the Google Form</h3>
+        <ul>
+          <li>Add <strong>required cost estimate</strong> and <strong>need-by date</strong> to the form; retire the urgency dropdown.</li>
+          <li>Clean the sheet schema (see below) so the columns that matter are unambiguous.</li>
+          <li>Apps Script on the responses sheet: on <code>Final Approval = Approved</code>, create the Asana task and write its URL back to the row &mdash; <strong>exactly the trigger you chose</strong>.</li>
+          <li>Publish a weekly bypass report: anything <em>Ordered</em> or <em>Handed Over</em> without an approval. Visibility alone will move this number.</li>
+        </ul>
+      </div>
+      <div class="phase phase--later">
+        <span class="phase__tag">Phase 2 &middot; after tiers are agreed</span>
+        <h3>Move intake and approval into Asana</h3>
+        <ul>
+          <li>Native Asana form replaces the Google Form; tasks land in a Procurement project.</li>
+          <li>Approval happens on the ticket, so the timestamp is system-generated and the audit trail is real.</li>
+          <li>Sections mirror the stages; <code>PR_ID</code>, cost, team, category become custom fields.</li>
+          <li>The sheet becomes an archive, not a tracker.</li>
+        </ul>
+      </div>
+      <div class="phase phase--later">
+        <span class="phase__tag">Phase 3</span>
+        <h3>Link Asana to Zoho and close the reporting gap</h3>
+        <ul>
+          <li>Approved ticket creates the Zoho PR/PO; PO number flows back to the ticket.</li>
+          <li>Dashboard gains front-half metrics: intake volume, approval cycle time, bypass count.</li>
+          <li><code>Order ID</code> finally populates &mdash; automatically.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="stack">
+      <p>Worth saying plainly: Phase&nbsp;1 gives you the automation you asked for, but it leaves the bottleneck in place, because it triggers <em>after</em> the step that is being skipped. It is a reasonable place to start &mdash; it is cheap, reversible, and the bypass report it produces is the evidence you would want before committing to Phase&nbsp;2. Just don't expect the ticket count to look healthy until the gate is enforced.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">06</span> Form and sheet cleanup</h2>
+    <div class="t-scroll">
+      <table>
+        <caption>31 columns today &mdash; recommended disposition</caption>
+        <thead>
+          <tr><th>Column</th><th>Fill rate</th><th>Action</th><th>Why</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">Price (INR)</td><td class="num">1 / 78</td><td class="fix">MAKE REQUIRED</td><td>Without it there is no tiering, no budget control, no spend analysis.</td></tr>
+          <tr><td class="mono">Urgency Level</td><td class="num">78 / 78</td><td class="fix">REPLACE</td><td>Swap for a need-by date. 27 of 78 claim 24-hour criticality; the label no longer routes anything.</td></tr>
+          <tr><td class="mono">Final Approval</td><td class="num">18 / 78</td><td class="fix">ENFORCE</td><td>Becomes the automation trigger, so it has to be mandatory before a PO can be raised.</td></tr>
+          <tr><td class="mono">Approval Date</td><td class="num">18 / 78</td><td class="fix">AUTOMATE</td><td>4 of 18 predate the request. Should be system-stamped, never typed.</td></tr>
+          <tr><td class="mono">Lead Time / Lead time / Lead Time</td><td class="num">3 columns</td><td class="drop">DEDUPE</td><td>Three columns with the same name in different cases. Keep one.</td></tr>
+          <tr><td class="mono">Column 9 &nbsp;&middot;&nbsp; /.</td><td class="num">—</td><td class="drop">DELETE</td><td>Untitled leftovers.</td></tr>
+          <tr><td class="mono">Estimate</td><td class="num">0 / 78</td><td class="drop">DELETE</td><td>Never used and redundant against Price.</td></tr>
+          <tr><td class="mono">Item Type</td><td class="num">2 / 78</td><td class="drop">DELETE</td><td>Two entries, neither consistent with the other.</td></tr>
+          <tr><td class="mono">Order ID · Delivery Date · ETA</td><td class="num">0 / 78</td><td class="fix">MOVE TO ZOHO</td><td>Zoho owns these natively. Populate by integration, stop asking humans to double-enter.</td></tr>
+          <tr><td class="mono">Item Name · Qty · Justification · Vendor · Team · Category · PR_ID</td><td class="num">77–78 / 78</td><td class="keep">KEEP</td><td>Near-perfect fill. This is the part of the form that works &mdash; carry it into Asana unchanged.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">07</span> Decisions I need from you</h2>
+    <div class="decisions">
+      <div class="decision">
+        <span class="decision__n">01</span>
+        <div>
+          <p class="decision__q">Do the tier thresholds look right?</p>
+          <p>₹10k / ₹1&nbsp;lakh are my guesses, because there is no cost data to derive them from. If you can tell me roughly what monthly procurement spend runs at, I can set them so T2 catches the top decile rather than an arbitrary line.</p>
+        </div>
+      </div>
+      <div class="decision">
+        <span class="decision__n">02</span>
+        <div>
+          <p class="decision__q">Is Zoho Procurement actually in use for these requests?</p>
+          <p>The dashboard reads it, but nothing on the sheet references a Zoho PR or PO. If SCM is not raising POs in Zoho today, stages 03–04 are a bigger change than they look, and Asana may need to carry more of the workflow.</p>
+        </div>
+      </div>
+      <div class="decision">
+        <span class="decision__n">03</span>
+        <div>
+          <p class="decision__q">Who owns approval at each tier?</p>
+          <p>I have written "team lead", "SCM", "Finance + founder" as placeholders. Real names are needed before rules can route anything.</p>
+        </div>
+      </div>
+      <div class="decision">
+        <span class="decision__n">04</span>
+        <div>
+          <p class="decision__q">Confirm what Asana Starter can automate.</p>
+          <p>Starter's rule actions are more limited than the higher tiers. Worth a question to Addrs&nbsp;Labs on whether tiered approval routing is achievable in-product, or whether the logic has to live in the integration.</p>
+        </div>
+      </div>
+      <div class="decision">
+        <span class="decision__n">05</span>
+        <div>
+          <p class="decision__q">Enable the Asana connector for this session.</p>
+          <p>It is installed at your org but toggled off in this chat, so I cannot read your workspace or project IDs. With it on, I can build the integration against your real project instead of leaving GIDs as placeholders.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Figures come from all 78 data rows of the <em>Form responses&nbsp;1</em> tab of <em>Purchase Request form (Responses)</em>, read on 10 Aug 2026. Approval-latency and ageing figures derive from the sheet's own <code>Timestamp</code> and <code>Approval Date</code> columns, which are hand-entered and internally inconsistent in 4 of 18 cases &mdash; treat them as indicative of a pattern rather than precise measurements. Asana plan details come from the Addrs&nbsp;Labs proposal in your Drive; plan feature limits are not verified against Asana's current documentation.</p>
+  </footer>
+
+</div>
