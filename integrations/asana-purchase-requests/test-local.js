@@ -85,18 +85,36 @@ eq('maps PR_ID', cols.fields.prId, 14);
 eq('maps Price (INR)', cols.fields.price, 18);
 eq('dup Lead Time -> first wins', HDR.indexOf('Lead time'), 20);
 
-const renamed = HDR.slice(); renamed[9] = 'Approval Decision';
+const renamed = HDR.slice(); renamed[9] = 'Lead approval';
 cols = api.resolveColumns_(fakeSheet(renamed));
-eq('prefers Approval Decision once renamed', cols.approval, 9);
+eq('finds "Lead approval" (the real J1 name)', cols.approval, 9);
+
+// Casing and stray spaces must not matter -- J1 is typed by hand.
+['Lead Approval', 'lead approval', 'LEAD APPROVAL', '  Lead approval  '].forEach((variant) => {
+  const h = HDR.slice(); h[9] = variant;
+  eq('case/space tolerant: ' + JSON.stringify(variant),
+     api.resolveColumns_(fakeSheet(h)).approval, 9);
+});
+
+// "Lead approval" must win even while the old placeholder still exists elsewhere.
+const both = HDR.slice(); both[9] = 'Lead approval'; both[10] = 'Column 9';
+eq('prefers Lead approval over a stray Column 9', api.resolveColumns_(fakeSheet(both)).approval, 9);
 
 const withTask = HDR.concat(['Asana Task']);
 cols = api.resolveColumns_(fakeSheet(withTask));
 eq('reuses existing Asana Task column', cols.taskUrl, 31);
 
-// J1 renamed AND moved, to prove name-based lookup beats the index fallback
-const moved = ['Approval Decision'].concat(HDR.filter((_, i) => i !== 9));
-cols = api.resolveColumns_(fakeSheet(moved));
-eq('follows the header if the column moves', cols.approval, 0);
+// Renamed AND moved, to prove the lookup is by name and not by position.
+const moved = ['Lead approval'].concat(HDR.filter((_, i) => i !== 9));
+eq('follows the header if the column moves', api.resolveColumns_(fakeSheet(moved)).approval, 0);
+
+// An unrecognised header must fail loudly, not silently read column J.
+const unknown = HDR.slice(); unknown[9] = 'Sign off';
+let threw = '';
+try { api.resolveColumns_(fakeSheet(unknown)); } catch (err) { threw = err.message; }
+eq('throws when no known header matches', threw.startsWith('Could not find the approval column'), true);
+eq('error names the expected headers', threw.includes('Lead approval'), true);
+eq('error dumps the actual header row', threw.includes('Sign off'), true);
 
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);

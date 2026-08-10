@@ -27,11 +27,14 @@ const CFG = {
   // The tab that the Google Form writes into.
   sheetName: 'Form responses 1',
 
-  // Approval column, resolved by header name. 'Column 9' is the fallback for
-  // as long as J1 is still blank -- rename J1 to 'Approval Decision' and the
-  // primary name takes over with no code change.
-  approvalHeader: 'Approval Decision',
-  approvalHeaderFallback: 'Column 9',
+  // Accepted names for the approval column, highest priority first. Matching is
+  // case-insensitive and ignores surrounding spaces. 'Column 9' is kept only so
+  // the script still works if J1 is ever cleared again.
+  //
+  // If none of these match, the script fails loudly rather than guessing at a
+  // column position -- reading the wrong column would create tasks off the back
+  // of unrelated data.
+  approvalHeaders: ['Lead approval', 'Approval Decision', 'Column 9'],
   approvedValue: 'Approved',
 
   // Created automatically if absent.
@@ -101,7 +104,16 @@ function onApprovalEdit(e) {
   const sheet = e.range.getSheet();
   if (sheet.getName() !== CFG.sheetName) return;
 
-  const cols = resolveColumns_(sheet);
+  let cols;
+  try {
+    cols = resolveColumns_(sheet);
+  } catch (err) {
+    // A renamed or deleted header takes the whole integration down, so this must
+    // be loud. There is no row to mark, since we do not know which column to use.
+    notifyFailure_('Purchase Request -> Asana: cannot read the sheet headers', err.message);
+    throw err;
+  }
+
   const approvalCol = cols.approval + 1; // 1-based for Range comparisons
 
   // Did this edit touch the approval column at all?
@@ -327,8 +339,10 @@ function asanaFetch_(method, path, payload) {
 // ---------------------------------------------------------------------------
 
 /**
- * Maps header names to 0-based indices. First occurrence wins, which matters
- * because the sheet has three columns all named some case of "Lead Time".
+ * Maps header names to 0-based indices. Lookup is case-insensitive and ignores
+ * surrounding spaces; first occurrence wins, which matters because the sheet has
+ * three columns all named some case of "Lead Time".
+ *
  * Creates the task-URL column if it does not exist yet.
  */
 function resolveColumns_(sheet) {
@@ -337,18 +351,35 @@ function resolveColumns_(sheet) {
 
   const byName = {};
   headers.forEach(function (h, i) {
-    const key = String(h).trim();
+    const key = String(h).trim().toLowerCase();
     if (key && !(key in byName)) byName[key] = i;
   });
+  const find = function (name) {
+    return byName[String(name).trim().toLowerCase()];
+  };
 
-  let approval = byName[CFG.approvalHeader];
-  if (approval === undefined) approval = byName[CFG.approvalHeaderFallback];
-  if (approval === undefined) approval = 9; // column J
+  let approval;
+  for (let i = 0; i < CFG.approvalHeaders.length; i++) {
+    const idx = find(CFG.approvalHeaders[i]);
+    if (idx !== undefined) {
+      approval = idx;
+      break;
+    }
+  }
   if (approval === undefined) {
-    throw new Error('Could not locate the approval column.');
+    throw new Error(
+      'Could not find the approval column. Expected one of: "' +
+        CFG.approvalHeaders.join('", "') +
+        '". Row 1 currently reads: ' +
+        headers
+          .map(function (h) { return String(h).trim(); })
+          .filter(function (h) { return h; })
+          .join(' | ') +
+        '. Add the real header name to CFG.approvalHeaders.'
+    );
   }
 
-  let taskUrl = byName[CFG.taskUrlHeader];
+  let taskUrl = find(CFG.taskUrlHeader);
   if (taskUrl === undefined) {
     taskUrl = width; // append
     sheet.getRange(1, taskUrl + 1).setValue(CFG.taskUrlHeader);
@@ -356,7 +387,7 @@ function resolveColumns_(sheet) {
 
   const fields = {};
   Object.keys(COL).forEach(function (key) {
-    fields[key] = byName[COL[key]];
+    fields[key] = find(COL[key]);
   });
 
   return { approval: approval, taskUrl: taskUrl, fields: fields };
@@ -369,18 +400,21 @@ function handleRowError_(sheet, row, cols, err) {
     sheet.getRange(row, cols.taskUrl + 1).setValue(message);
   } catch (ignore) {}
 
-  if (CFG.errorNotifyEmail) {
-    try {
-      MailApp.sendEmail(
-        CFG.errorNotifyEmail,
-        'Purchase Request -> Asana failed (row ' + row + ')',
-        'Row ' + row + ' of "' + CFG.sheetName + '" could not be pushed to Asana.\n\n' +
-          err.message +
-          '\n\nThe row is marked in the "' + CFG.taskUrlHeader + '" column. Clear that ' +
-          'cell and re-enter the approval to retry.'
-      );
-    } catch (ignore) {}
-  }
+  notifyFailure_(
+    'Purchase Request -> Asana failed (row ' + row + ')',
+    'Row ' + row + ' of "' + CFG.sheetName + '" could not be pushed to Asana.\n\n' +
+      err.message +
+      '\n\nThe row is marked in the "' + CFG.taskUrlHeader + '" column. Clear that ' +
+      'cell and re-enter the approval to retry.'
+  );
+}
+
+/** Emails CFG.errorNotifyEmail, if one is configured. Never throws. */
+function notifyFailure_(subject, body) {
+  if (!CFG.errorNotifyEmail) return;
+  try {
+    MailApp.sendEmail(CFG.errorNotifyEmail, subject, body);
+  } catch (ignore) {}
 }
 
 // ---------------------------------------------------------------------------

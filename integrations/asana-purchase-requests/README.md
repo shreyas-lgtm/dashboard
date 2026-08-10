@@ -4,8 +4,7 @@ Creates an Asana task when the approval column on the purchase-request responses
 sheet is set to `Approved`.
 
 - **Sheet:** `Purchase Request form (Responses)`, tab `Form responses 1`
-- **Trigger column:** J — currently labelled `Column 9` because its header cell
-  is empty. See [Rename J1](#step-1-rename-j1) below.
+- **Trigger column:** J, headed `Lead approval`.
 - **Guard against duplicates:** the task URL is written into an `Asana Task`
   column; rows that already have one are skipped.
 
@@ -23,19 +22,25 @@ Asana API at all.
 
 ## Setup
 
-### Step 1: Rename J1
+### Step 1: Header on J1 — done
 
-Set cell **J1** to `Approval Decision`.
+J1 reads `Lead approval`, and `CFG.approvalHeaders` is set to match.
 
-Do this before anything else. `Column 9` is not a real header — it is the
-placeholder Sheets displays for a blank header cell, so any script keyed to that
-name breaks silently the moment someone tidies the cell up. The script accepts
-either name, so renaming is safe to do at any point, but doing it first means you
-never depend on the fallback.
+If you ever rename it again, add the new name to the **front** of that list:
+
+```js
+approvalHeaders: ['Lead approval', 'Approval Decision', 'Column 9'],
+```
+
+Matching ignores case and surrounding spaces, and the column is found by name
+rather than by position — so moving it is safe too. If none of the listed names
+are present the script stops with an error naming what it expected and dumping
+the actual header row; it will not fall back to guessing a column position,
+because reading the wrong column would create tasks from unrelated data.
 
 While you are in there, consider deleting column K (`Final Approval`). It only
 ever contains `Approved`, 18 times, and every one of those rows is already
-approved in column J. Two approval columns is how J lost its header.
+approved in column J. Two approval columns is how J ended up unlabelled.
 
 ### Step 2: Create the Apps Script project
 
@@ -186,6 +191,7 @@ but they will show up in the tasks it creates:
 | `Asana 404` on `/tasks` | `CFG.projectGid` wrong — re-run `discover()` |
 | `Asana 400 … custom_fields` | A GID in `customFieldGids` is not on this project, or a dropdown has no matching option for the sheet's value |
 | Nothing happens on approval | Trigger not installed (`setupTrigger()`), or the tab is not named `Form responses 1` |
+| `Could not find the approval column` | J1 was renamed — add the new name to the front of `CFG.approvalHeaders`. The error message lists the current headers. |
 | Works from the editor, not on edit | Simple instead of installable trigger — `setupTrigger()` creates the right kind |
 
 Execution logs are under **Executions** in the Apps Script editor; failed
