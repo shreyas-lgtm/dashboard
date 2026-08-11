@@ -502,5 +502,36 @@ eq('a past-the-line rejection escalates by email',
 eq('the comment names which column was changed',
    src.includes("approval.source === 'final' ? 'Final Approval' : 'Lead Approval'"), true);
 
+// ---------------------------------------------------------------------------
+console.log('\n-- Final Approval is optional: it usually is not filled --');
+// Lead Approval is always filled; Final Approval only sometimes. So a blank,
+// missing or junk Final Approval must never block or alter anything.
+const WITH_FINAL = { approval: 9, finalApproval: 10 };
+const NO_FINAL_COL = { approval: 9 };
+const mkRow = (lead, fin) => { const v = []; v[9] = lead; v[10] = fin; return v; };
+
+['Approved', 'Rejected', 'Re-verify'].forEach((lead) => {
+  const blank = api.effectiveDecision_(mkRow(lead, ''), WITH_FINAL);
+  eq(`blank final: lead ${lead.padEnd(10)} still governs`, blank.decision, lead);
+  eq(`  ...no cascade write`, blank.cascade, false);
+
+  const absent = api.effectiveDecision_(mkRow(lead, undefined), NO_FINAL_COL);
+  eq(`no final column: lead ${lead.padEnd(10)} still governs`, absent.decision, lead);
+});
+
+// Values that are neither Approved nor Rejected must not hijack the decision.
+['   ', '-', 'N/A', 'Pending', 'TBD', '0'].forEach((junk) => {
+  const d = api.effectiveDecision_(mkRow('Approved', junk), WITH_FINAL);
+  eq(`junk final ${JSON.stringify(junk).padEnd(11)} -> lead governs`, d.decision, 'Approved');
+  eq(`  ...source stays lead`, d.source, 'lead');
+});
+
+eq('Final Approval is never a required column',
+   api.REQUIRED_FIELDS.includes('finalApproval'), false);
+let noFinalErr = '';
+try { api.assertRequiredFields_({ fields: { status: 3, price: 12, productType: 2, item: 4 } }); }
+catch (e) { noFinalErr = e.message; }
+eq('an unmapped Final Approval does not throw', noFinalErr, '');
+
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);
