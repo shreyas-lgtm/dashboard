@@ -435,7 +435,7 @@
           <li>Cannot see status: no Asana seat, and the sheet holds everyone's requests and prices.</li>
           <li>Hears from the system <strong>only</strong> on Rejected, Re-verify, or Rework.</li>
           <li>Learns the item arrived by <strong>physically receiving it</strong>.</li>
-          <li>No way to cancel or amend a submitted request.</li>
+          <li>Can amend by editing their form response — the card follows. Still no way to cancel.</li>
         </ul>
       </div>
       <div class="persona">
@@ -480,8 +480,8 @@
           </tr>
           <tr>
             <td>Requester edits their form response after approval</td>
-            <td>The card keeps the old spec</td>
-            <td><strong>Silently</strong></td>
+            <td>Card name and description are refreshed to the new version</td>
+            <td>Comment on the card &mdash; plus an email escalation if it was already Ordered</td>
           </tr>
           <tr>
             <td>Someone deletes a sheet row</td>
@@ -523,14 +523,16 @@
     </div>
     <div class="callout callout--warn">
       <h3>The three silent ones matter most</h3>
-      <p>A pasted approval, an edited form response, and a deleted row all produce a sheet that looks correct and an Asana board that quietly disagrees with it. None of them alerts anybody. Over two months at ~19 tickets a week, expect a handful — worth a weekly eyeball comparing row count against card count.</p>
+      <p>A pasted approval and a deleted row both produce a sheet that looks correct and an Asana board that quietly disagrees with it, and neither alerts anybody. Over two months at ~19 tickets a week, expect a handful — worth a weekly eyeball comparing row count against card count.</p>
+      <p>The third of this group, an edited form response, <strong>is now handled</strong>: Google re-fires the submit trigger on an edit, so the card is refreshed and commented, and escalated by email if the item was already ordered. Turning off <em>Allow response editing</em> in the form removes the situation altogether.</p>
     </div>
   </section>
 
   <section>
     <h2><span class="num">05</span> What has never been tested</h2>
     <div class="stack">
-      <p>229 assertions cover the logic that can be checked offline: routing across all six <code>Product type</code> options, the price gate, the approval override matrix, section reading, comment formatting, and column resolution against both the old and the expected new header rows.</p>
+      <p>244 assertions cover the logic that can be checked offline: routing across all six <code>Product type</code> options, the price gate, the approval override matrix, section reading, comment formatting, and column resolution against both the old and the expected new header rows.</p>
+      <p>One behaviour rests on documented Google semantics rather than observation: that editing a form response re-fires <code>onFormSubmit</code>. Verify it once by editing a test response and watching for the comment on the card.</p>
       <p><strong>Not one Asana API call has ever run.</strong> The connector is disabled in the session this was built in, so the payload shapes for task creation, section moves, comments and pagination are written from the API documentation and have never met a real workspace. That is the single largest remaining risk, and it is resolved by walking one ticket end to end.</p>
     </div>
     <div class="callout callout--crit">

@@ -174,6 +174,28 @@ A decision changed after the ticket exists is handled, in both directions.
 Pending with a comment, so it is never stranded in Cancelled with nothing to
 signal that it is live again.
 
+### The requester edits their response after approval
+
+Google fires the form-submit trigger **again** when a requester edits a response,
+and the row is updated in place — so a row that already carries a `PR_ID` is, by
+definition, an edit rather than a new request. That is the whole detection
+mechanism; no extra state is needed.
+
+| Card state | What happens |
+|---|---|
+| No card yet (not approved) | Nothing — the card created later uses the new values anyway |
+| Pending / Quotation Awaited / Rework / Cancelled | Card name and description refreshed, comment posted noting the edit |
+| **Ordered / Handed Over** | Card refreshed **and** escalated: a comment warns that the order was placed against the earlier spec, and `errorNotifyEmail` is alerted |
+
+Asana keeps the previous description in the task's own activity history, so
+overwriting loses nothing.
+
+**Prevention is cheaper.** Google Forms has *Settings → Responses → Allow response
+editing*, off by default. If you leave it off, this situation cannot arise and the
+detection above never fires. Turn it on only if you want requesters fixing their
+own typos rather than going through Rework — which is a reasonable trade, and now
+a safe one.
+
 ### Late rejection, after the money is spent
 
 Because Final Approval is often filled well after Lead Approval, a `Rejected` can
@@ -348,12 +370,13 @@ approvals would look pushed when they were not.
 
 ```js
 seedPrIdCounter(1527) // continue the old form's numbering
-setupTrigger()        // PR_ID on submit, + Asana task on approval
+setupTrigger()        // PR_ID + edited responses, and Asana task on approval
 setupSyncTrigger(10)  // Asana -> sheet, every 10 minutes
 ```
 
-`setupTrigger()` installs two triggers: `onFormSubmitAssignPrId` and
-`onApprovalEdit`.
+`setupTrigger()` installs `onFormSubmitHandler` and `onApprovalEdit`, removing any
+previous copies — including one installed under the older
+`onFormSubmitAssignPrId` name.
 
 Each replaces any previous copy of itself rather than stacking duplicates.
 
@@ -393,6 +416,7 @@ To re-test a row, clear its `Asana Task` cell and re-enter the approval.
 | Comment edited or deleted in Asana | Mirror is rebuilt, so the sheet corrects itself |
 | Comment typed into the sheet | Not pushed to Asana, and overwritten on the next poll |
 | Form submitted | PR_ID assigned from the counter; never overwritten if already present |
+| Response edited by the requester | Card name and description refreshed; escalated if already Ordered |
 | Ticket reassigned in Asana | Left alone — the sync never writes assignees |
 | Task created by hand in Asana | Ignored by the sync; it has no GID in the sheet |
 | Routed owner is not an Asana user | Task created unassigned, warning in the description, email sent |

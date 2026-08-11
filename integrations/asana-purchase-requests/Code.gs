@@ -210,13 +210,21 @@ function cellText_(value) {
 // ---------------------------------------------------------------------------
 
 /**
- * Installable onFormSubmit handler. Writes the next PR_ID into the new row.
+ * Installable onFormSubmit handler. Does two jobs, because Google fires this
+ * trigger both for a new response and for a response the requester later edits.
  *
- * A stored counter rather than a formula, because this sheet gets sorted and
- * rows get deleted -- both of which silently renumber a formula. An issued
- * PR_ID must never change.
+ *   New response  -> assign the next PR_ID
+ *   Edited response -> push the revised details onto the existing Asana card
+ *
+ * A row that already carries a PR_ID is by definition not new. That is the whole
+ * detection mechanism: an edited response updates its row in place, so the
+ * PR_ID is still sitting there from the first submission.
+ *
+ * A stored counter rather than a formula, because this sheet gets sorted and rows
+ * get deleted -- both of which silently renumber a formula. An issued PR_ID must
+ * never change.
  */
-function onFormSubmitAssignPrId(e) {
+function onFormSubmitHandler(e) {
   if (!e || !e.range) return;
 
   const sheet = e.range.getSheet();
@@ -236,9 +244,92 @@ function onFormSubmitAssignPrId(e) {
   }
 
   const cell = sheet.getRange(row, idx + 1);
-  if (cellText_(cell.getValue())) return; // already has one; never overwrite
+  if (!cellText_(cell.getValue())) {
+    cell.setValue(nextPrId_()); // a genuinely new request
+    return;
+  }
 
-  cell.setValue(nextPrId_());
+  // Already has a PR_ID, so this is an edit of an existing response.
+  try {
+    handleEditedResponse_(sheet, row, cols);
+  } catch (err) {
+    console.error('Could not apply edited response on row ' + row + ': ' + err.message);
+    notifyFailure_(
+      'Purchase Request: edited response could not be applied',
+      'Row ' + row + ' of "' + CFG.sheetName + '" was edited by the requester, but the ' +
+        'Asana card could not be updated.\n\n' + err.message
+    );
+  }
+}
+
+/** Kept so that re-running setupTrigger() removes a trigger installed under the old name. */
+function onFormSubmitAssignPrId(e) {
+  onFormSubmitHandler(e);
+}
+
+/**
+ * The requester changed their request after submitting it. Push the new details
+ * onto the card so procurement is not working from a stale spec.
+ */
+function handleEditedResponse_(sheet, row, cols) {
+  const values = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const gid = cellText_(values[cols.taskGid]);
+
+  const status = cols.fields.status === undefined
+    ? ''
+    : cellText_(values[cols.fields.status]);
+
+  const action = editedResponseAction_(status, !!gid);
+  if (action === 'none') return; // not approved yet: the eventual card picks up the new values
+
+  const get = function (key) {
+    const idx = cols.fields[key];
+    return idx === undefined ? '' : cellText_(values[idx]);
+  };
+
+  const prId = get('prId');
+  const item = get('item') || '(no item description)';
+  const route = routeFor_(get);
+
+  // Refresh name and description. Asana keeps the previous version in the task's
+  // own activity history, so nothing is lost by overwriting.
+  asanaFetch_('PUT', '/tasks/' + gid, {
+    data: {
+      name: prId ? prId + ' · ' + item : item,
+      notes: buildNotes_(get, route),
+    },
+  });
+
+  if (action === 'escalate') {
+    addComment_(gid,
+      '⚠ The requester edited this request AFTER it reached "' + status + '". The ' +
+      'details above are the new version.\n\nThe order was placed against the ' +
+      'earlier specification -- check whether it still matches what is needed.');
+    notifyFailure_(
+      'Purchase request edited after it was ' + status,
+      'Row ' + row + ' of "' + CFG.sheetName + '" (' + (prId || item) + ') was edited by ' +
+        'the requester after reaching "' + status + '".\n\nThe Asana card description has ' +
+        'been refreshed, but the order was placed against the earlier spec and needs a ' +
+        'human check.'
+    );
+    return;
+  }
+
+  addComment_(gid,
+    'The requester edited this request after it was created. The details above have ' +
+    'been updated to the new version.');
+}
+
+/**
+ * What to do about an edited response.
+ *
+ *   none     -- no card yet, so nothing to correct
+ *   update   -- refresh the card and note the change
+ *   escalate -- refresh it, but the order is already placed, so alert a human
+ */
+function editedResponseAction_(status, hasTask) {
+  if (!hasTask) return 'none';
+  return isPastPointOfNoReturn_(status) ? 'escalate' : 'update';
 }
 
 /**
@@ -1393,13 +1484,13 @@ function setupTrigger() {
   }
 
   const ss = SpreadsheetApp.getActive();
-  const handlers = ['onApprovalEdit', 'onFormSubmitAssignPrId'];
+  const handlers = ['onApprovalEdit', 'onFormSubmitHandler', 'onFormSubmitAssignPrId'];
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (handlers.indexOf(t.getHandlerFunction()) !== -1) ScriptApp.deleteTrigger(t);
   });
 
   ScriptApp.newTrigger('onApprovalEdit').forSpreadsheet(ss).onEdit().create();
-  ScriptApp.newTrigger('onFormSubmitAssignPrId').forSpreadsheet(ss).onFormSubmit().create();
+  ScriptApp.newTrigger('onFormSubmitHandler').forSpreadsheet(ss).onFormSubmit().create();
 
   console.log('Installed onEdit + onFormSubmit triggers on "%s".', ss.getName());
   console.log(

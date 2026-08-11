@@ -28,7 +28,7 @@ const api = new Function(
     routeFor_, needsPrice_, sameStatus_, sectionNameFor_, indexRowsByGid_,
     isKnownStatus_, assertRequiredFields_, cellText_, formatComments_, shortStamp_,
     REQUIRED_FIELDS, AUTO_CREATE, isDecision_, REQUESTER_EMAILS, effectiveDecision_,
-    isPastPointOfNoReturn_, CFG, COL };`
+    isPastPointOfNoReturn_, editedResponseAction_, CFG, COL };`
 )();
 
 // Snapshot before any test mutates CFG.
@@ -532,6 +532,38 @@ let noFinalErr = '';
 try { api.assertRequiredFields_({ fields: { status: 3, price: 12, productType: 2, item: 4 } }); }
 catch (e) { noFinalErr = e.message; }
 eq('an unmapped Final Approval does not throw', noFinalErr, '');
+
+// ---------------------------------------------------------------------------
+console.log('\n-- requester edits their response after submitting --');
+// Google fires onFormSubmit again when a response is edited, and the row is
+// updated in place -- so a row that already has a PR_ID is by definition an edit.
+eq('no card yet -> nothing to correct', api.editedResponseAction_('', false), 'none');
+eq('no card, any status -> none', api.editedResponseAction_('Pending', false), 'none');
+
+eq('Pending -> refresh the card', api.editedResponseAction_('Pending', true), 'update');
+eq('Quotation Awaited -> refresh', api.editedResponseAction_('Quotation Awaited', true), 'update');
+eq('Rework -> refresh', api.editedResponseAction_('Rework', true), 'update');
+eq('Cancelled -> refresh', api.editedResponseAction_('Cancelled', true), 'update');
+
+// Past Ordered the money is committed, so a silent refresh is not enough.
+eq('Ordered -> escalate', api.editedResponseAction_('Ordered', true), 'escalate');
+eq('Handed Over -> escalate', api.editedResponseAction_('Handed Over', true), 'escalate');
+eq('  ...case-insensitively', api.editedResponseAction_('ordered', true), 'escalate');
+
+console.log('   wiring:');
+eq('detection is "PR_ID already present"',
+   /if \(!cellText_\(cell\.getValue\(\)\)\)[\s\S]{0,200}nextPrId_\(\)/.test(src), true);
+eq('the edit path updates the task via PUT',
+   /asanaFetch_\('PUT', '\/tasks\/' \+ gid/.test(src), true);
+eq('an escalation also emails',
+   /action === 'escalate'[\s\S]{0,600}notifyFailure_/.test(src), true);
+eq('old trigger name still resolves, so setupTrigger can clean it up',
+   src.includes('function onFormSubmitAssignPrId(e)') &&
+   src.includes("'onFormSubmitAssignPrId'"), true);
+eq('the new handler is what gets installed',
+   src.includes("newTrigger('onFormSubmitHandler')"), true);
+eq('a failure to apply an edit is reported, not swallowed',
+   /handleEditedResponse_\(sheet, row, cols\);[\s\S]{0,300}notifyFailure_/.test(src), true);
 
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);
