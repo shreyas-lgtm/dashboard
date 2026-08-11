@@ -1,0 +1,576 @@
+<title>Purchase Requests — The Flow As Deployed</title>
+<style>
+  :root {
+    --ground:   #EFF2F3;
+    --surface:  #FFFFFF;
+    --surface-2:#E7ECED;
+    --ink:      #131E22;
+    --ink-muted:#5A6B71;
+    --ink-faint:#87989E;
+    --rule:     #CFD8DB;
+    --rule-firm:#AFBDC1;
+    --accent:   #125C6B;
+    --accent-ink:#0C4451;
+    --accent-wash:#DCE9EB;
+    --good:     #3F7A46;
+    --good-wash:#E0EBE1;
+    --warn:     #9A6510;
+    --warn-wash:#F3E8D4;
+    --crit:     #A83A2C;
+    --crit-wash:#F3E1DE;
+
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", "Roboto Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+    --measure: 68ch;
+    --pad: clamp(1.25rem, 4vw, 3rem);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0E1518; --surface:#161F23; --surface-2:#1D282D;
+      --ink:#E4EAEC; --ink-muted:#9BABB1; --ink-faint:#74868C;
+      --rule:#26343A; --rule-firm:#3A4C53;
+      --accent:#5FB9CB; --accent-ink:#8FD2DF; --accent-wash:#14323A;
+      --good:#74BC7E; --good-wash:#17301C;
+      --warn:#D9A24A; --warn-wash:#33260F;
+      --crit:#E58675; --crit-wash:#37201C;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0E1518; --surface:#161F23; --surface-2:#1D282D;
+    --ink:#E4EAEC; --ink-muted:#9BABB1; --ink-faint:#74868C;
+    --rule:#26343A; --rule-firm:#3A4C53;
+    --accent:#5FB9CB; --accent-ink:#8FD2DF; --accent-wash:#14323A;
+    --good:#74BC7E; --good-wash:#17301C;
+    --warn:#D9A24A; --warn-wash:#33260F;
+    --crit:#E58675; --crit-wash:#37201C;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--pad);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  .titleblock { border: 1px solid var(--rule-firm); background: var(--surface); }
+  .titleblock__main { padding: clamp(1.5rem, 4vw, 2.5rem); }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--accent); margin: 0 0 1rem;
+  }
+  h1 {
+    font-family: var(--font-mono); font-size: clamp(1.6rem, 4.4vw, 2.5rem);
+    font-weight: 600; letter-spacing: -0.015em; line-height: 1.15;
+    text-wrap: balance; margin: 0 0 0.75rem;
+  }
+  .standfirst {
+    font-size: clamp(1rem, 2.2vw, 1.12rem); color: var(--ink-muted);
+    max-width: var(--measure); margin: 0;
+  }
+  .meta {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    border-top: 1px solid var(--rule);
+  }
+  .meta > div { padding: 0.85rem clamp(1.5rem, 4vw, 2.5rem); border-right: 1px solid var(--rule); }
+  .meta > div:last-child { border-right: 0; }
+  .meta dt {
+    font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--ink-faint); margin: 0 0 0.2rem;
+  }
+  .meta dd { font-family: var(--font-mono); font-size: 0.85rem; margin: 0; }
+
+  section { display: flex; flex-direction: column; gap: 1.25rem; }
+  h2 {
+    font-family: var(--font-mono); font-size: 0.78rem; text-transform: uppercase;
+    letter-spacing: 0.16em; font-weight: 600; margin: 0; padding-bottom: 0.6rem;
+    border-bottom: 2px solid var(--ink); display: flex; gap: 0.9rem; align-items: baseline;
+  }
+  h2 .num { color: var(--accent); }
+  h3 {
+    font-size: 1.06rem; font-weight: 650; letter-spacing: -0.005em;
+    margin: 0 0 0.3rem; text-wrap: balance;
+  }
+  p { margin: 0; max-width: var(--measure); }
+  .stack { display: flex; flex-direction: column; gap: 1rem; }
+  code {
+    font-family: var(--font-mono); font-size: 0.86em; background: var(--surface-2);
+    padding: 0.1em 0.35em; border-radius: 2px;
+  }
+
+  figure { margin: 0; }
+  figure svg { max-width: 100%; height: auto; display: block; }
+  .fig-scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); padding: 1.25rem; }
+  figcaption {
+    font-size: 0.86rem; color: var(--ink-muted); margin-top: 0.85rem;
+    max-width: var(--measure);
+  }
+
+  .callout {
+    border: 1px solid var(--accent); border-left-width: 4px; background: var(--accent-wash);
+    padding: clamp(1.1rem, 3vw, 1.6rem); display: flex; flex-direction: column; gap: 0.6rem;
+  }
+  .callout p { max-width: 74ch; }
+  .callout--warn { border-color: var(--warn); background: var(--warn-wash); }
+  .callout--crit { border-color: var(--crit); background: var(--crit-wash); }
+
+  .steps { display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .step {
+    background: var(--surface); padding: 1.15rem clamp(1rem, 3vw, 1.5rem);
+    display: grid; grid-template-columns: 3.2rem 1fr; gap: 0 1rem; align-items: start;
+  }
+  .step__n {
+    font-family: var(--font-mono); font-size: 1.15rem; font-weight: 600;
+    color: var(--accent); font-variant-numeric: tabular-nums; padding-top: 0.05rem;
+  }
+  .step__body { display: flex; flex-direction: column; gap: 0.55rem; min-width: 0; }
+  .step__facts {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.5rem 1.25rem; margin-top: 0.15rem;
+  }
+  .fact { display: flex; flex-direction: column; gap: 0.1rem; }
+  .fact dt {
+    font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--ink-faint);
+  }
+  .fact dd { margin: 0; font-size: 0.87rem; color: var(--ink-muted); line-height: 1.45; }
+  .fact dd.is-ink { color: var(--ink); }
+
+  .t-scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 0.88rem; }
+  caption {
+    text-align: left; font-family: var(--font-mono); font-size: 0.66rem;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint);
+    padding: 0.7rem 0.9rem 0.5rem;
+  }
+  th, td { padding: 0.6rem 0.9rem; text-align: left; vertical-align: top; border-top: 1px solid var(--rule); }
+  thead th {
+    font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase;
+    letter-spacing: 0.09em; color: var(--ink-muted); font-weight: 600;
+    border-top: 1px solid var(--rule-firm); background: var(--surface-2); white-space: nowrap;
+  }
+  td.mono { font-family: var(--font-mono); font-size: 0.83rem; }
+  td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tag {
+    font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase;
+    letter-spacing: 0.08em; padding: 0.15rem 0.4rem; border-radius: 2px; white-space: nowrap;
+  }
+  .tag--sheet { background: var(--warn-wash); color: var(--warn); }
+  .tag--asana { background: var(--accent-wash); color: var(--accent-ink); }
+  .tag--email { background: var(--good-wash); color: var(--good); }
+  .tag--none  { background: var(--surface-2); color: var(--ink-faint); }
+
+  .personas { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1rem; }
+  .persona {
+    border: 1px solid var(--rule); border-top: 3px solid var(--accent);
+    background: var(--surface); padding: 1.15rem; display: flex; flex-direction: column; gap: 0.55rem;
+  }
+  .persona__who {
+    font-family: var(--font-mono); font-size: 0.64rem; text-transform: uppercase;
+    letter-spacing: 0.11em; color: var(--ink-faint);
+  }
+  ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  li { font-size: 0.9rem; color: var(--ink-muted); }
+  li strong { color: var(--ink); }
+
+  footer {
+    border-top: 1px solid var(--rule); padding-top: 1.25rem;
+    font-size: 0.82rem; color: var(--ink-faint); max-width: var(--measure);
+  }
+  footer p { max-width: none; }
+
+  @media (max-width: 560px) {
+    .step { grid-template-columns: 1fr; gap: 0.5rem; }
+    .meta > div { border-right: 0; border-bottom: 1px solid var(--rule); }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="titleblock">
+    <div class="titleblock__main">
+      <p class="eyebrow">Operational reference &middot; Purchase requests</p>
+      <h1>The flow as deployed</h1>
+      <p class="standfirst">What actually happens, step by step, including the latencies people will notice and the failures that stay silent. Written from the code, not from the plan.</p>
+    </div>
+    <dl class="meta">
+      <div><dt>Lifespan</dt><dd>~2 months, then ERP</dd></div>
+      <div><dt>Asana users</dt><dd>3 (procurement)</dd></div>
+      <div><dt>Sync interval</dt><dd>10 minutes</dd></div>
+      <div><dt>Expected volume</dt><dd>~19 tickets/week</dd></div>
+    </dl>
+  </header>
+
+  <div class="callout">
+    <h3>The one-sentence version</h3>
+    <p>A requester files a Google Form and chases their own lead; the lead's dropdown on the sheet creates an Asana card routed to one of three procurement people; procurement drags that card across a board and the sheet follows within ten minutes — except that the card cannot pass <strong>Ordered</strong> until a price has been typed into the sheet.</p>
+  </div>
+
+  <section>
+    <h2><span class="num">01</span> The mechanism</h2>
+    <div class="fig-scroll">
+      <figure>
+        <svg viewBox="0 0 940 400" role="img" aria-label="Flow from Google Form through the responses sheet to an Asana board and back. The form assigns a PR ID on submit. The lead's approval dropdown triggers task creation in Asana. A ten-minute poll writes board section and comments back to the sheet, and bounces price-gated moves.">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+            <marker id="ar-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#125C6B"/>
+            </marker>
+          </defs>
+
+          <!-- lanes -->
+          <text x="8" y="26" font-family="ui-monospace, monospace" font-size="11" fill="currentColor" opacity="0.55">REQUESTER</text>
+          <text x="8" y="132" font-family="ui-monospace, monospace" font-size="11" fill="currentColor" opacity="0.55">SHEET</text>
+          <text x="8" y="268" font-family="ui-monospace, monospace" font-size="11" fill="currentColor" opacity="0.55">ASANA</text>
+          <line x1="0" y1="40" x2="940" y2="40" stroke="currentColor" opacity="0.12"/>
+          <line x1="0" y1="146" x2="940" y2="146" stroke="currentColor" opacity="0.12"/>
+          <line x1="0" y1="282" x2="940" y2="282" stroke="currentColor" opacity="0.12"/>
+
+          <!-- requester -->
+          <rect x="100" y="52" width="150" height="46" fill="none" stroke="currentColor"/>
+          <text x="175" y="72" text-anchor="middle" font-size="12" fill="currentColor">Google Form</text>
+          <text x="175" y="88" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.6">submits request</text>
+
+          <rect x="300" y="52" width="150" height="46" fill="none" stroke="currentColor" stroke-dasharray="4 3"/>
+          <text x="375" y="72" text-anchor="middle" font-size="12" fill="currentColor">chases lead</text>
+          <text x="375" y="88" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.6">in person / chat</text>
+
+          <!-- sheet row -->
+          <rect x="100" y="158" width="150" height="46" fill="none" stroke="currentColor"/>
+          <text x="175" y="178" text-anchor="middle" font-size="12" fill="currentColor">PR_ID assigned</text>
+          <text x="175" y="194" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.6">counter, on submit</text>
+
+          <rect x="300" y="158" width="150" height="46" fill="none" stroke="#125C6B" stroke-width="2"/>
+          <text x="375" y="178" text-anchor="middle" font-size="12" fill="currentColor">Lead Approval</text>
+          <text x="375" y="194" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.6">dropdown, by hand</text>
+
+          <rect x="640" y="158" width="150" height="46" fill="none" stroke="#125C6B" stroke-width="2"/>
+          <text x="715" y="178" text-anchor="middle" font-size="12" fill="currentColor">Price (INR)</text>
+          <text x="715" y="194" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.6">typed by procurement</text>
+
+          <rect x="840" y="158" width="92" height="46" fill="none" stroke="currentColor"/>
+          <text x="886" y="178" text-anchor="middle" font-size="12" fill="currentColor">Status</text>
+          <text x="886" y="194" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.6">+ comments</text>
+
+          <!-- asana board -->
+          <rect x="100" y="296" width="128" height="44" fill="none" stroke="currentColor"/>
+          <text x="164" y="323" text-anchor="middle" font-size="12" fill="currentColor">Pending</text>
+
+          <rect x="248" y="296" width="152" height="44" fill="none" stroke="currentColor"/>
+          <text x="324" y="317" text-anchor="middle" font-size="12" fill="currentColor">Quotation</text>
+          <text x="324" y="332" text-anchor="middle" font-size="12" fill="currentColor">Awaited</text>
+
+          <rect x="420" y="296" width="120" height="44" fill="none" stroke="currentColor"/>
+          <text x="480" y="323" text-anchor="middle" font-size="12" fill="currentColor">Ordered</text>
+
+          <rect x="560" y="296" width="140" height="44" fill="none" stroke="currentColor"/>
+          <text x="630" y="323" text-anchor="middle" font-size="12" fill="currentColor">Handed Over</text>
+
+          <rect x="720" y="296" width="100" height="44" fill="none" stroke="currentColor" opacity="0.6"/>
+          <text x="770" y="323" text-anchor="middle" font-size="12" fill="currentColor" opacity="0.75">Rework</text>
+
+          <rect x="838" y="296" width="94" height="44" fill="none" stroke="currentColor" opacity="0.6"/>
+          <text x="885" y="323" text-anchor="middle" font-size="12" fill="currentColor" opacity="0.75">Cancelled</text>
+
+          <!-- arrows: form -> sheet -->
+          <line x1="175" y1="98" x2="175" y2="156" stroke="currentColor" marker-end="url(#ar)"/>
+          <text x="183" y="126" font-size="11" fill="currentColor" opacity="0.7">row + PR_ID, seconds</text>
+
+          <!-- requester chases -->
+          <line x1="250" y1="75" x2="298" y2="75" stroke="currentColor" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+          <line x1="375" y1="98" x2="375" y2="156" stroke="currentColor" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+          <text x="383" y="126" font-size="11" fill="currentColor" opacity="0.7">lead sets dropdown</text>
+
+          <!-- approval -> asana pending -->
+          <path d="M 340 204 L 340 250 L 164 250 L 164 294" fill="none" stroke="#125C6B" stroke-width="2" marker-end="url(#ar-a)"/>
+          <text x="176" y="243" font-size="11" fill="#125C6B" font-weight="600">creates card, routed, seconds</text>
+
+          <!-- board progression -->
+          <line x1="228" y1="318" x2="246" y2="318" stroke="currentColor" marker-end="url(#ar)"/>
+          <line x1="400" y1="318" x2="418" y2="318" stroke="currentColor" marker-end="url(#ar)"/>
+          <line x1="540" y1="318" x2="558" y2="318" stroke="currentColor" marker-end="url(#ar)"/>
+
+          <!-- price gate -->
+          <path d="M 715 204 L 715 262 L 480 262 L 480 294" fill="none" stroke="#125C6B" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#ar-a)"/>
+          <text x="492" y="256" font-size="11" fill="#125C6B" font-weight="600">gate: no price, card bounces back</text>
+
+          <!-- sync back -->
+          <path d="M 886 296 L 886 206" fill="none" stroke="currentColor" marker-end="url(#ar)"/>
+          <text x="700" y="228" font-size="11" fill="currentColor" opacity="0.7">poll every 10 min &rarr;</text>
+
+          <!-- rework email -->
+          <path d="M 770 296 L 770 372 L 375 372 L 375 100" fill="none" stroke="currentColor" opacity="0.55" stroke-dasharray="3 3"/>
+          <text x="420" y="388" font-size="11" fill="currentColor" opacity="0.65">Rework / Rejected / Re-verify &rarr; email to requester</text>
+        </svg>
+        <figcaption><strong>Solid lines are automatic; dashed lines need a human.</strong> Note that the two dashed human steps — the requester chasing their lead, and procurement typing the price into the sheet — are the only two places the whole flow can stall, and neither is visible on the Asana board.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span> Step by step, with real latencies</h2>
+    <div class="steps">
+
+      <div class="step">
+        <span class="step__n">00</span>
+        <div class="step__body">
+          <h3>Requester submits the Google Form</h3>
+          <p>Within a second or two a script assigns the next <code>PR_ID</code> from a counter — <code>PR-2026-1528</code>, continuing the old form's sequence. Nothing else happens, and <strong>the requester receives no confirmation</strong>, so they do not learn their own PR ID unless they open the sheet.</p>
+          <dl class="step__facts">
+            <div class="fact"><dt>Who acts</dt><dd class="is-ink">Requester</dd></div>
+            <div class="fact"><dt>Latency</dt><dd>Seconds</dd></div>
+            <div class="fact"><dt>Requester sees</dt><dd><span class="tag tag--none">nothing</span></dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step__n">01</span>
+        <div class="step__body">
+          <h3>Requester chases their lead; the lead sets the dropdown</h3>
+          <p>No notification goes to anyone. The lead opens the sheet, finds the row, and picks <code>Approved</code>, <code>Rejected</code> or <code>Re-verify</code>. <strong>This is the step with no clock on it</strong> — on the old form, 10 requests marked "Critical — within 24 hours" sat undecided for a median of 11 days.</p>
+          <p>Occasionally someone senior fills <code>Final Approval</code> instead. That outranks the lead's cell and is written back into it. It is usually blank, and blank changes nothing.</p>
+          <dl class="step__facts">
+            <div class="fact"><dt>Who acts</dt><dd class="is-ink">Team lead, chased by requester</dd></div>
+            <div class="fact"><dt>Latency</dt><dd>Hours to weeks — unmeasured</dd></div>
+            <div class="fact"><dt>Requester sees</dt><dd><span class="tag tag--email">email</span> only on Rejected / Re-verify</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step__n">02</span>
+        <div class="step__body">
+          <h3>The card appears in Asana, already assigned</h3>
+          <p>Seconds after the dropdown changes, a card lands in <strong>Pending</strong>, routed by <code>Product type</code>: Mechanical to Kiran, Electrical to Abish, Office supplies to Syed, anything else to Abish. The description carries requester, item, quantity, part number, product type, urgency, preferred vendor, justification and link. The task URL and GID are written back to the sheet row.</p>
+          <dl class="step__facts">
+            <div class="fact"><dt>Who acts</dt><dd class="is-ink">Nobody — automatic</dd></div>
+            <div class="fact"><dt>Latency</dt><dd>Seconds</dd></div>
+            <div class="fact"><dt>Procurement sees</dt><dd><span class="tag tag--asana">Asana notification</span> as assignee</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step__n">03</span>
+        <div class="step__body">
+          <h3>Procurement drags the card to Quotation Awaited</h3>
+          <p>Up to ten minutes later the sheet's <code>Order Status</code> reads <em>Quotation Awaited</em>. Any comments they left on the card are mirrored into the sheet at the same time.</p>
+          <dl class="step__facts">
+            <div class="fact"><dt>Who acts</dt><dd class="is-ink">Kiran / Abish / Syed</dd></div>
+            <div class="fact"><dt>Latency to sheet</dt><dd>Up to 10 minutes</dd></div>
+            <div class="fact"><dt>Requester sees</dt><dd><span class="tag tag--none">nothing</span></dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step__n">04</span>
+        <div class="step__body">
+          <h3>The quotation arrives — and procurement leaves Asana</h3>
+          <p>This is the awkward step. The price is <strong>only</strong> entered in the responses sheet, so whoever owns the ticket has to open the sheet, find the row for that PR ID, and type the number. Vendor comparison happens off-system entirely.</p>
+          <dl class="step__facts">
+            <div class="fact"><dt>Who acts</dt><dd class="is-ink">Procurement, in the sheet</dd></div>
+            <div class="fact"><dt>Friction</dt><dd>The only forced context switch in the flow</dd></div>
+            <div class="fact"><dt>If skipped</dt><dd>The card cannot pass Ordered</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step__n">05</span>
+        <div class="step__body">
+          <h3>Ordered — or bounced back</h3>
+          <p>On the next poll, if a price exists the sheet records <em>Ordered</em>. If it does not, <strong>the card is dragged back to where it came from</strong> and a comment explains why. Asana cannot block a drag, only react to one, so the card visibly sits in the wrong column for up to ten minutes first.</p>
+          <p><code>Ordered Date</code> is stamped only if the sheet happens to have that column; it is not created automatically.</p>
+          <dl class="step__facts">
+            <div class="fact"><dt>Who acts</dt><dd class="is-ink">Procurement drags; script judges</dd></div>
+            <div class="fact"><dt>Latency</dt><dd>Up to 10 minutes either way</dd></div>
+            <div class="fact"><dt>Visible oddity</dt><dd>The card snaps backwards on its own</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step__n">06</span>
+        <div class="step__body">
+          <h3>Handed Over, Rework, or Cancelled</h3>
+          <p><em>Handed Over</em> is also price-gated. <em>Rework</em> emails the requester to recheck the request — the only status change they hear about. <em>Cancelled</em> is where a rejected request lands, unless it had already reached Ordered or Handed Over, in which case the card is deliberately left alone and a human is alerted instead.</p>
+          <dl class="step__facts">
+            <div class="fact"><dt>Who acts</dt><dd class="is-ink">Procurement</dd></div>
+            <div class="fact"><dt>Requester sees</dt><dd><span class="tag tag--email">email</span> on Rework only</dd></div>
+            <div class="fact"><dt>Receipt confirmed?</dt><dd>No — procurement's word is the record</dd></div>
+          </dl>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span> What each person actually experiences</h2>
+    <div class="personas">
+      <div class="persona">
+        <span class="persona__who">Requester</span>
+        <h3>Files it, then chases</h3>
+        <ul>
+          <li>Submits the form. <strong>No confirmation, no PR ID.</strong></li>
+          <li>Must find and chase their own lead — nothing prompts the lead.</li>
+          <li>Cannot see status: no Asana seat, and the sheet holds everyone's requests and prices.</li>
+          <li>Hears from the system <strong>only</strong> on Rejected, Re-verify, or Rework.</li>
+          <li>Learns the item arrived by <strong>physically receiving it</strong>.</li>
+          <li>No way to cancel or amend a submitted request.</li>
+        </ul>
+      </div>
+      <div class="persona">
+        <span class="persona__who">Team lead</span>
+        <h3>Two clicks, if they remember</h3>
+        <ul>
+          <li>Nothing tells them a request is waiting.</li>
+          <li>Opens the sheet, finds the row, picks a dropdown value.</li>
+          <li>Approving is instant and needs no follow-up.</li>
+          <li><strong>Approves without knowing the cost</strong> — price arrives later, from the quotation.</li>
+          <li>Can reverse a decision later; the card follows.</li>
+        </ul>
+      </div>
+      <div class="persona">
+        <span class="persona__who">Procurement (×3)</span>
+        <h3>Lives on the board, visits the sheet</h3>
+        <ul>
+          <li>Cards arrive pre-assigned and pre-filled; no triage needed.</li>
+          <li>Works by dragging; can reassign to each other freely and it sticks.</li>
+          <li><strong>Must switch to the sheet to enter each price.</strong></li>
+          <li>Sees nothing before approval, so cannot plan for long-lead items.</li>
+          <li>Nowhere structured to record PO number, chosen vendor, or delivery date.</li>
+          <li>Due dates come from urgency, not lead time — so most cards look overdue immediately.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span> Failure modes, and how loud they are</h2>
+    <div class="t-scroll">
+      <table>
+        <caption>What goes wrong in practice</caption>
+        <thead>
+          <tr><th>Situation</th><th>What happens</th><th>How you find out</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Approval pasted, filled by formula, or bulk-imported</td>
+            <td>No ticket is created at all</td>
+            <td><strong>Silently.</strong> <code>onEdit</code> only fires on a human typing in a cell</td>
+          </tr>
+          <tr>
+            <td>Requester edits their form response after approval</td>
+            <td>The card keeps the old spec</td>
+            <td><strong>Silently</strong></td>
+          </tr>
+          <tr>
+            <td>Someone deletes a sheet row</td>
+            <td>The Asana card is orphaned and stops syncing</td>
+            <td><strong>Silently</strong></td>
+          </tr>
+          <tr>
+            <td>Someone edits <code>Order Status</code> in the sheet</td>
+            <td>Overwritten on the next poll — the board wins</td>
+            <td><strong>Silently.</strong> Intended, but surprising</td>
+          </tr>
+          <tr>
+            <td>Someone adds a board column, e.g. "On Hold"</td>
+            <td>Cards there are ignored, not synced</td>
+            <td>Email alert, once per sync</td>
+          </tr>
+          <tr>
+            <td><code>price</code> or <code>productType</code> header unmapped</td>
+            <td>Everything stops</td>
+            <td>Hard error naming the column</td>
+          </tr>
+          <tr>
+            <td>A procurement owner is not an Asana member</td>
+            <td>Card created unassigned</td>
+            <td>Warning in the description + email</td>
+          </tr>
+          <tr>
+            <td>Rejection arrives after the item was ordered</td>
+            <td>Card deliberately not cancelled</td>
+            <td>Comment + email escalation</td>
+          </tr>
+          <tr>
+            <td>The person who installed the triggers leaves or revokes access</td>
+            <td>Both halves stop</td>
+            <td><strong>Silently</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout--warn">
+      <h3>The three silent ones matter most</h3>
+      <p>A pasted approval, an edited form response, and a deleted row all produce a sheet that looks correct and an Asana board that quietly disagrees with it. None of them alerts anybody. Over two months at ~19 tickets a week, expect a handful — worth a weekly eyeball comparing row count against card count.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span> What has never been tested</h2>
+    <div class="stack">
+      <p>229 assertions cover the logic that can be checked offline: routing across all six <code>Product type</code> options, the price gate, the approval override matrix, section reading, comment formatting, and column resolution against both the old and the expected new header rows.</p>
+      <p><strong>Not one Asana API call has ever run.</strong> The connector is disabled in the session this was built in, so the payload shapes for task creation, section moves, comments and pagination are written from the API documentation and have never met a real workspace. That is the single largest remaining risk, and it is resolved by walking one ticket end to end.</p>
+    </div>
+    <div class="callout callout--crit">
+      <h3>Before trusting it, do this once</h3>
+      <ul>
+        <li><code>testConnection()</code> &rarr; token valid</li>
+        <li><code>checkSheetMapping()</code> &rarr; every field resolves, especially <code>price</code> and <code>productType</code></li>
+        <li><code>ensureSections()</code> &rarr; six board columns exist</li>
+        <li><code>verifyRouting()</code> &rarr; all three owners resolve to Asana users</li>
+        <li><code>seedPrIdCounter(1527)</code> &rarr; numbering continues rather than restarting</li>
+        <li>Submit a real request, approve it, drag it to Ordered <em>without</em> a price, confirm it bounces, add the price, confirm it sticks</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">06</span> Known and accepted</h2>
+    <div class="stack">
+      <p>These were raised, discussed, and deliberately left alone for a two-month bridge — recorded so nobody rediscovers them as bugs:</p>
+    </div>
+    <div class="t-scroll">
+      <table>
+        <caption>Decided against, not overlooked</caption>
+        <thead><tr><th>Gap</th><th>Reasoning</th></tr></thead>
+        <tbody>
+          <tr><td>Nobody approves the <em>spend</em>; approval happens before the price exists</td><td>Accepted</td></tr>
+          <tr><td>No record of who approved</td><td>Sheet edit history covers it</td></tr>
+          <tr><td>Lead is not notified when a request is waiting</td><td>Requester chases instead</td></tr>
+          <tr><td>Requester never confirms receipt</td><td>Handed Over is sufficient</td></tr>
+          <tr><td>Multi-vendor quote comparison</td><td>Done off-sheet</td></tr>
+          <tr><td>Zoho Procurement linkage</td><td>Not involved</td></tr>
+          <tr><td>Sheet access control</td><td>Not everyone gets edit access</td></tr>
+          <tr><td>Partial delivery, vendor batching, duplicate detection</td><td>ERP's job</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>Written from <code>integrations/asana-purchase-requests/Code.gs</code> as committed, not from the design discussion — where the two differ, the code is what is described here. Volume and latency figures assume ~19 tickets a week and a ten-minute poll. Historical figures (10 undecided criticals at a median 11 days, price filled on 1 of 78 rows) come from the old form's 78 responses, read on 10 Aug 2026.</p>
+  </footer>
+
+</div>
