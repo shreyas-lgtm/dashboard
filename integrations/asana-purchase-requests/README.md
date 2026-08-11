@@ -120,9 +120,10 @@ would otherwise write that string straight into `Order Status`.
 
 ## Approval
 
-Two columns, with **Final Approval outranking Lead Approval**. Once Final
-Approval is decided, Lead Approval is set to match automatically — so a senior
-can approve directly without waiting for the team lead.
+**Lead Approval is always filled; Final Approval only sometimes.** So Lead
+Approval is the normal gate, and Final Approval is an occasional higher authority
+that outranks it — once Final Approval is decided, Lead Approval is set to match
+automatically. A blank Final Approval changes nothing.
 
 | Lead Approval | Final Approval | Governs | Lead cell rewritten |
 |---|---|---|---|
@@ -168,10 +169,30 @@ runs the same logic.
 
 ### Revised decisions
 
-A lead changing their mind after the ticket exists is handled, in both
-directions. `Approved → Rejected` cancels the card. `Rejected → Approved` brings
-it back to Pending with a comment, so it is never stranded in Cancelled with
-nothing to signal that it is live again.
+A decision changed after the ticket exists is handled, in both directions.
+`Approved → Rejected` cancels the card. `Rejected → Approved` brings it back to
+Pending with a comment, so it is never stranded in Cancelled with nothing to
+signal that it is live again.
+
+### Late rejection, after the money is spent
+
+Because Final Approval is often filled well after Lead Approval, a `Rejected` can
+land on a request that has already been **Ordered** or **Handed Over**. Cancelling
+then would be wrong — the order is placed, or the item is already with the
+requester.
+
+So for any status in `CFG.pointOfNoReturn` the card is **left exactly where it
+is**, and instead:
+
+- a comment is posted saying it was rejected but not cancelled, and why
+- `CFG.errorNotifyEmail` is alerted, because someone has to decide whether the
+  order can be returned or cancelled with the vendor
+
+`Re-verify` behaves the same way past that line: sending an already-ordered item
+back to Rework would misrepresent it as pending.
+
+Comments name which column was changed — `Lead Approval` or `Final Approval` — so
+it is clear where a late reversal came from.
 
 ### Requester emails
 

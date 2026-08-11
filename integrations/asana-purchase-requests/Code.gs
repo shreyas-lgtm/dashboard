@@ -72,9 +72,15 @@ const CFG = {
   ],
   initialStatus: 'Pending',
 
-  // Where a ticket goes when the lead changes their decision after it exists.
+  // Where a ticket goes when a decision is revised after it exists.
   rejectedStatus: 'Cancelled',
   reverifyStatus: 'Rework',
+
+  // Statuses past which a late rejection cannot simply cancel the request --
+  // money is committed or the goods are already with the requester. Final
+  // Approval is often filled well after Lead Approval, so this is reachable.
+  // The card is left where it is and flagged for a human instead.
+  pointOfNoReturn: ['Ordered', 'Handed Over'],
 
   // Moving a task into one of these without a price is reverted.
   priceRequiredFor: ['Ordered', 'Handed Over'],
@@ -372,21 +378,57 @@ function processRow_(sheet, row, cols) {
 
   if (isDecision_(decision, 'reject')) {
     notifyRequester_('rejected', values, cols);
-    if (hasTask) {
-      moveTaskToStatus_(sheet, row, cols, gid, CFG.rejectedStatus,
-        'Lead Approval was changed to "Rejected" on the responses sheet, so this ' +
-        'request is cancelled. Do not order it.');
+    if (!hasTask) return null;
+
+    const current = cols.fields.status === undefined
+      ? ''
+      : cellText_(values[cols.fields.status]);
+    const which = approval.source === 'final' ? 'Final Approval' : 'Lead Approval';
+
+    // Past Ordered the request cannot just be cancelled -- money is committed or
+    // the goods are already delivered. Leave the card alone and escalate.
+    if (isPastPointOfNoReturn_(current)) {
+      addComment_(gid,
+        '⚠ ' + which + ' was changed to "Rejected", but this request is already at "' +
+        current + '".\n\nIt has NOT been cancelled automatically, because the order ' +
+        'is placed or the item is already with the requester. Decide by hand ' +
+        'whether it can be returned or cancelled with the vendor.');
+      notifyFailure_(
+        'Purchase Request rejected after it was already ' + current,
+        which + ' was set to "Rejected" on a request already at "' + current + '".\n\n' +
+          'Row ' + row + ' of "' + CFG.sheetName + '". The Asana card was left as is ' +
+          'and needs a human decision on returning or cancelling with the vendor.'
+      );
+      return null;
     }
+
+    moveTaskToStatus_(sheet, row, cols, gid, CFG.rejectedStatus,
+      which + ' was changed to "Rejected" on the responses sheet, so this request ' +
+      'is cancelled. Do not order it.');
     return null;
   }
 
   if (isDecision_(decision, 'reverify')) {
     notifyRequester_('reverify', values, cols);
-    if (hasTask) {
-      moveTaskToStatus_(sheet, row, cols, gid, CFG.reverifyStatus,
-        'Lead Approval was changed to "Re-verify" on the responses sheet. The ' +
-        'requester has been asked to confirm the details; hold until they reply.');
+    if (!hasTask) return null;
+
+    const current = cols.fields.status === undefined
+      ? ''
+      : cellText_(values[cols.fields.status]);
+
+    // Sending an already-ordered item back to Rework would misrepresent it as
+    // pending when it is not.
+    if (isPastPointOfNoReturn_(current)) {
+      addComment_(gid,
+        '⚠ Approval was changed to "Re-verify", but this request is already at "' +
+        current + '", so it has been left where it is. The requester has been asked ' +
+        'to confirm the details.');
+      return null;
     }
+
+    moveTaskToStatus_(sheet, row, cols, gid, CFG.reverifyStatus,
+      'Approval was changed to "Re-verify" on the responses sheet. The requester ' +
+      'has been asked to confirm the details; hold until they reply.');
     return null;
   }
 
@@ -742,6 +784,12 @@ function syncStatusesFromAsana() {
   } finally {
     lock.releaseLock();
   }
+}
+
+/** True when the request has progressed too far to be cancelled automatically. */
+function isPastPointOfNoReturn_(status) {
+  const s = cellText_(status).toLowerCase();
+  return CFG.pointOfNoReturn.some(function (v) { return v.toLowerCase() === s; });
 }
 
 /** True when the name matches one of the configured statuses. */

@@ -28,7 +28,7 @@ const api = new Function(
     routeFor_, needsPrice_, sameStatus_, sectionNameFor_, indexRowsByGid_,
     isKnownStatus_, assertRequiredFields_, cellText_, formatComments_, shortStamp_,
     REQUIRED_FIELDS, AUTO_CREATE, isDecision_, REQUESTER_EMAILS, effectiveDecision_,
-    CFG, COL };`
+    isPastPointOfNoReturn_, CFG, COL };`
 )();
 
 // Snapshot before any test mutates CFG.
@@ -470,6 +470,37 @@ const viaFinal = api.buildNotes_(g({ item: 'Widget' }), route, { source: 'final'
 eq('notes mention Final Approval', viaFinal.includes('Approved via Final Approval'), true);
 const viaLead = api.buildNotes_(g({ item: 'Widget' }), route, { source: 'lead' });
 eq('normal approval says nothing extra', viaLead.includes('Approved via Final Approval'), false);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- late rejection: point of no return --');
+// Final Approval is often filled well after Lead Approval, so a rejection can
+// land on a request that has already been ordered or delivered.
+eq('Ordered is past the point of no return', api.isPastPointOfNoReturn_('Ordered'), true);
+eq('Handed Over is past it', api.isPastPointOfNoReturn_('Handed Over'), true);
+eq('  ...case-insensitively', api.isPastPointOfNoReturn_('handed over'), true);
+eq('Pending is not', api.isPastPointOfNoReturn_('Pending'), false);
+eq('Quotation Awaited is not', api.isPastPointOfNoReturn_('Quotation Awaited'), false);
+eq('Rework is not', api.isPastPointOfNoReturn_('Rework'), false);
+eq('Cancelled is not', api.isPastPointOfNoReturn_('Cancelled'), false);
+eq('blank is not', api.isPastPointOfNoReturn_(''), false);
+
+// The gate and the point of no return happen to coincide today, but they are
+// separate concepts -- assert they are configured separately, not aliased.
+eq('pointOfNoReturn is its own config key',
+   Array.isArray(api.CFG.pointOfNoReturn) && api.CFG.pointOfNoReturn !== api.CFG.priceRequiredFor,
+   true);
+eq('every pointOfNoReturn entry is a real status',
+   api.CFG.pointOfNoReturn.every((s) => api.isKnownStatus_(s)), true);
+
+console.log('   the reject path checks it before cancelling:');
+eq('reject branch consults isPastPointOfNoReturn_',
+   /isDecision_\(decision, 'reject'\)[\s\S]{0,900}isPastPointOfNoReturn_\(current\)/.test(src), true);
+eq('reverify branch consults it too',
+   /isDecision_\(decision, 'reverify'\)[\s\S]{0,900}isPastPointOfNoReturn_\(current\)/.test(src), true);
+eq('a past-the-line rejection escalates by email',
+   /isPastPointOfNoReturn_\(current\)[\s\S]{0,700}notifyFailure_/.test(src), true);
+eq('the comment names which column was changed',
+   src.includes("approval.source === 'final' ? 'Final Approval' : 'Lead Approval'"), true);
 
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);
