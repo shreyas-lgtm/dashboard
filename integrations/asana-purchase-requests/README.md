@@ -20,8 +20,11 @@ The five statuses are board columns, created by `ensureSections()`:
 
 ```
 Pending → Quotation Awaited → Ordered → Handed Over
-                                  ↖ Rework ↙
+              ↕                                      
+           Rework                     Cancelled
 ```
+
+`Cancelled` and `Rework` are not price-gated; `Ordered` and `Handed Over` are.
 
 People change status by dragging a card. The sheet follows within ten minutes.
 
@@ -112,6 +115,45 @@ sheet an `Asana Comments` column is created.
 A section whose name is not in `CFG.statuses` is **ignored**, never written to the
 sheet, and reported by email once per sync. Someone adding an "On Hold" column
 would otherwise write that string straight into `Order Status`.
+
+---
+
+## The Lead Approval dropdown
+
+The requester chases their own lead, who sets **Lead Approval** on the sheet. All
+three dropdown values are acted on:
+
+| Decision | No ticket yet | Ticket already exists |
+|---|---|---|
+| `Approved` | Ticket created, routed, placed in Pending | Nothing — unless it was Cancelled, in which case it returns to Pending |
+| `Rejected` | Requester emailed | Card moved to **Cancelled**, comment posted, requester emailed |
+| `Re-verify` | Requester emailed | Card moved to **Rework**, comment posted, requester emailed |
+
+Anything else, including blank, is ignored.
+
+Matching is exact rather than prefix-based here — unlike routing — because
+`Rejected` and `Re-verify` both begin with "Re".
+
+### Revised decisions
+
+A lead changing their mind after the ticket exists is handled, in both
+directions. `Approved → Rejected` cancels the card. `Rejected → Approved` brings
+it back to Pending with a comment, so it is never stranded in Cancelled with
+nothing to signal that it is live again.
+
+### Requester emails
+
+Requesters have no Asana seat, so they are emailed only when **they** need to act:
+
+| Trigger | Why |
+|---|---|
+| `Rejected` | Otherwise a rejection is silent and they wait indefinitely |
+| `Re-verify` | Their lead wants something confirmed before approving |
+| Card moved to Rework | Procurement needs the request corrected |
+
+`Approved`, `Ordered` and `Handed Over` are deliberately silent — the requester is
+already chasing the approval, and they learn about delivery by receiving the item.
+Add an entry to `REQUESTER_EMAILS` and a call site if that changes.
 
 ---
 
@@ -283,7 +325,9 @@ To re-test a row, clear its `Asana Task` cell and re-enter the approval.
 | Situation | What happens |
 |---|---|
 | Approval column set to `Approved` | Task created, routed, placed in Pending; URL + GID written back |
-| Approval set to `Rejected` | Nothing |
+| Approval set to `Rejected` | Requester emailed; existing card moved to Cancelled |
+| Approval set to `Re-verify` | Requester emailed; existing card moved to Rework |
+| Approval flipped back to `Approved` | A Cancelled card returns to Pending |
 | Approval edited to `Approved` twice | Second edit skipped; the existing URL is the guard |
 | Rows approved by fill-down or paste | Every touched row processed, not just the first |
 | Two people approving at once | Serialised by `LockService`, so no double-creation |
@@ -371,7 +415,9 @@ backfillApproved(10)   // oldest 10 approved rows without a task
 ```
 
 It sleeps between calls to stay inside Asana's rate limit and skips anything that
-already has a URL, so re-running is safe.
+already has a URL, so re-running is safe. It also processes **only `Approved`
+rows** — handing the whole sheet to the row processor would fire rejection and
+re-verify emails at requesters over historical decisions.
 
 ---
 

@@ -27,7 +27,7 @@ const api = new Function(
   src + `\nreturn { dueDate_, buildNotes_, buildCustomFields_, resolveColumns_,
     routeFor_, needsPrice_, sameStatus_, sectionNameFor_, indexRowsByGid_,
     isKnownStatus_, assertRequiredFields_, cellText_, formatComments_, shortStamp_,
-    REQUIRED_FIELDS, AUTO_CREATE, CFG, COL };`
+    REQUIRED_FIELDS, AUTO_CREATE, isDecision_, REQUESTER_EMAILS, CFG, COL };`
 )();
 
 // Snapshot before any test mutates CFG.
@@ -299,7 +299,7 @@ eq('REQUIRED_FIELDS covers price + productType',
 console.log('\n-- Asana holds no price field --');
 eq('price is not an Asana custom field', ORIGINAL_CUSTOM_FIELD_KEYS.includes('price'), false);
 eq('requester is not added as a follower', src.includes('addFollowerByEmail_'), false);
-eq('rework notifies the requester by email', src.includes('notifyRequesterOfRework_'), true);
+eq('rework notifies the requester by email', src.includes("notifyRequester_('rework'"), true);
 
 // ---------------------------------------------------------------------------
 console.log('\n-- PR_ID format --');
@@ -355,6 +355,57 @@ eq('stories filter keeps comment_added subtype',
 eq('comments column is auto-created', api.AUTO_CREATE.includes('comments'), true);
 eq('comments sync is one-way (no push to Asana)',
    src.includes('syncCommentsForRow_') && !src.includes('pushCommentToAsana'), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- Lead Approval dropdown: all three values --');
+eq('"Approved" is approve', api.isDecision_('Approved', 'approve'), true);
+eq('"Rejected" is reject', api.isDecision_('Rejected', 'reject'), true);
+eq('"Re-verify" is reverify', api.isDecision_('Re-verify', 'reverify'), true);
+
+console.log('   values are mutually exclusive:');
+[['Approved', 'approve'], ['Rejected', 'reject'], ['Re-verify', 'reverify']].forEach(([val, key]) => {
+  ['approve', 'reject', 'reverify'].forEach((k) => {
+    eq(`${val.padEnd(10)} vs ${k.padEnd(8)}`, api.isDecision_(val, k), k === key);
+  });
+});
+
+console.log('   tolerances and non-matches:');
+eq('lowercase re-verify', api.isDecision_('re-verify', 'reverify'), true);
+eq('padded approved', api.isDecision_('  Approved  ', 'approve'), true);
+eq('blank matches nothing', api.isDecision_('', 'approve'), false);
+// "Re-verify" must not be mistaken for "Rejected" -- both begin with R, and the
+// decision check is exact rather than prefix-based unlike routing.
+eq('Re-verify is not Rejected', api.isDecision_('Re-verify', 'reject'), false);
+eq('"Approve" (no d) matches nothing', api.isDecision_('Approve', 'approve'), false);
+eq('"Yes" matches nothing', api.isDecision_('Yes', 'approve'), false);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- Cancelled status --');
+eq('Cancelled is a known status', api.isKnownStatus_('Cancelled'), true);
+eq('Cancelled is NOT price-gated', api.needsPrice_('Cancelled'), false);
+eq('Rejected routes to Cancelled', api.CFG.rejectedStatus, 'Cancelled');
+eq('Re-verify routes to Rework', api.CFG.reverifyStatus, 'Rework');
+eq('both revision targets are real statuses',
+   api.isKnownStatus_(api.CFG.rejectedStatus) && api.isKnownStatus_(api.CFG.reverifyStatus), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- requester emails --');
+['rework', 'reverify', 'rejected'].forEach((k) => {
+  const t = api.REQUESTER_EMAILS[k];
+  eq(`${k}: template exists`, !!t, true);
+  eq(`${k}: subject carries the label`, t.subject.includes('{label}'), true);
+  eq(`${k}: body is non-trivial`, t.body.length > 80, true);
+});
+// Approved / Ordered / Handed Over are deliberately silent.
+['approved', 'ordered', 'handedover'].forEach((k) =>
+  eq(`no email template for "${k}"`, k in api.REQUESTER_EMAILS, false));
+eq('rejection tells them how to reverse it',
+   api.REQUESTER_EMAILS.rejected.body.includes('change the decision'), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- backfill safety --');
+eq('backfill filters to Approved before processing',
+   /isDecision_\(decisions\[row - 2\]\[0\], 'approve'\)/.test(src), true);
 
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);

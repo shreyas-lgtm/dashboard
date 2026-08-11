@@ -38,8 +38,14 @@ const CFG = {
   //
   // If none match, the script fails loudly rather than guessing at a column
   // position -- reading the wrong column would create tasks off unrelated data.
-  approvalHeaders: ['Lead approval', 'Approval Decision', 'Column 9'],
-  approvedValue: 'Approved',
+  approvalHeaders: ['Lead Approval', 'Lead approval', 'Approval Decision', 'Column 9'],
+
+  // The three values on the Lead Approval dropdown. Anything else is ignored.
+  decisions: {
+    approve: 'Approved',
+    reject: 'Rejected',
+    reverify: 'Re-verify',
+  },
 
   // Written back to the sheet. Created automatically if absent.
   taskUrlHeader: 'Asana Task',
@@ -48,8 +54,19 @@ const CFG = {
   // ---- Status -------------------------------------------------------------
   // These become the board sections, in this order. ensureSections() creates
   // any that are missing.
-  statuses: ['Pending', 'Quotation Awaited', 'Ordered', 'Handed Over', 'Rework'],
+  statuses: [
+    'Pending',
+    'Quotation Awaited',
+    'Ordered',
+    'Handed Over',
+    'Rework',
+    'Cancelled',
+  ],
   initialStatus: 'Pending',
+
+  // Where a ticket goes when the lead changes their decision after it exists.
+  rejectedStatus: 'Cancelled',
+  reverifyStatus: 'Rework',
 
   // Moving a task into one of these without a price is reverted.
   priceRequiredFor: ['Ordered', 'Handed Over'],
@@ -292,30 +309,109 @@ function onApprovalEdit(e) {
 }
 
 /**
- * Creates the Asana task for one row, if it is approved and has no task yet.
- * Returns the task URL, or null when the row was skipped.
+ * Acts on the Lead Approval decision for one row.
+ *
+ *   Approved   -> create the ticket (or reinstate one previously cancelled)
+ *   Rejected   -> cancel the ticket if it exists, and tell the requester
+ *   Re-verify  -> send the ticket back to Rework, and tell the requester
+ *
+ * Any other value, including blank, is ignored. Returns the task URL when one was
+ * created, otherwise null.
  */
 function processRow_(sheet, row, cols) {
   const values = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const decision = cellText_(values[cols.approval]);
+  if (!decision) return null;
 
-  const decision = String(values[cols.approval] || '').trim();
-  if (decision.toLowerCase() !== CFG.approvedValue.toLowerCase()) return null;
+  const url = cellText_(values[cols.taskUrl]);
+  const gid = cellText_(values[cols.taskGid]);
+  const hasTask = !!gid && url.indexOf('ERROR') !== 0;
 
-  // Idempotency guard: a URL already present means this row is done.
-  const existing = String(values[cols.taskUrl] || '').trim();
-  if (existing && existing.indexOf('ERROR') !== 0) return null;
+  if (isDecision_(decision, 'approve')) {
+    // Idempotency guard: a task already present means this row is done, except
+    // that a previously cancelled ticket has to come back to life.
+    if (hasTask) {
+      reinstateIfCancelled_(sheet, row, cols, gid);
+      return null;
+    }
 
-  const task = createAsanaTask_(values, cols);
+    const task = createAsanaTask_(values, cols);
+    sheet.getRange(row, cols.taskUrl + 1).setValue(task.url);
+    sheet.getRange(row, cols.taskGid + 1).setValue(task.gid);
 
-  sheet.getRange(row, cols.taskUrl + 1).setValue(task.url);
-  sheet.getRange(row, cols.taskGid + 1).setValue(task.gid);
-
-  // Seed the status so the sheet and the board agree from the outset.
-  if (cols.fields.status !== undefined && !String(values[cols.fields.status] || '').trim()) {
-    sheet.getRange(row, cols.fields.status + 1).setValue(CFG.initialStatus);
+    // Seed the status so the sheet and the board agree from the outset.
+    if (cols.fields.status !== undefined && !cellText_(values[cols.fields.status])) {
+      sheet.getRange(row, cols.fields.status + 1).setValue(CFG.initialStatus);
+    }
+    return task.url;
   }
 
-  return task.url;
+  if (isDecision_(decision, 'reject')) {
+    notifyRequester_('rejected', values, cols);
+    if (hasTask) {
+      moveTaskToStatus_(sheet, row, cols, gid, CFG.rejectedStatus,
+        'Lead Approval was changed to "Rejected" on the responses sheet, so this ' +
+        'request is cancelled. Do not order it.');
+    }
+    return null;
+  }
+
+  if (isDecision_(decision, 'reverify')) {
+    notifyRequester_('reverify', values, cols);
+    if (hasTask) {
+      moveTaskToStatus_(sheet, row, cols, gid, CFG.reverifyStatus,
+        'Lead Approval was changed to "Re-verify" on the responses sheet. The ' +
+        'requester has been asked to confirm the details; hold until they reply.');
+    }
+    return null;
+  }
+
+  return null;
+}
+
+/** True when a cell value matches one of CFG.decisions. */
+function isDecision_(value, key) {
+  return cellText_(value).toLowerCase() === String(CFG.decisions[key]).trim().toLowerCase();
+}
+
+/**
+ * Moves an existing task to a named status, updates the sheet, and comments.
+ * Used when the lead revises a decision after the ticket already exists.
+ */
+function moveTaskToStatus_(sheet, row, cols, taskGid, status, comment) {
+  try {
+    const sections = sectionsByName_();
+    const sectionGid = sections[String(status).toLowerCase()];
+    if (sectionGid) {
+      asanaFetch_('POST', '/sections/' + sectionGid + '/addTask', { data: { task: taskGid } });
+    } else {
+      console.warn('No "' + status + '" section on the board; run ensureSections().');
+    }
+    if (comment) addComment_(taskGid, comment);
+
+    if (cols.fields.status !== undefined) {
+      sheet.getRange(row, cols.fields.status + 1).setValue(status);
+    }
+  } catch (err) {
+    console.error('Could not move task ' + taskGid + ' to ' + status + ': ' + err.message);
+    throw err;
+  }
+}
+
+/**
+ * Brings a cancelled ticket back to Pending when the lead re-approves. Without
+ * this, flipping Rejected -> Approved would leave the card stranded in Cancelled
+ * with nothing to signal that it is live again.
+ */
+function reinstateIfCancelled_(sheet, row, cols, taskGid) {
+  const current = cols.fields.status === undefined
+    ? ''
+    : cellText_(sheet.getRange(row, cols.fields.status + 1).getValue());
+
+  if (!sameStatus_(current, CFG.rejectedStatus)) return;
+
+  moveTaskToStatus_(sheet, row, cols, taskGid, CFG.initialStatus,
+    'Lead Approval was set back to "Approved", so this request is live again.');
 }
 
 function createAsanaTask_(values, cols) {
@@ -374,7 +470,7 @@ function createAsanaTask_(values, cols) {
 
   // Requesters are deliberately NOT added as followers. Asana is the procurement
   // team's board; requesters never get a seat, and are reached by email instead
-  // (see notifyRequesterOfRework_).
+  // (see notifyRequester_).
 
   return {
     gid: task.gid,
@@ -552,7 +648,7 @@ function syncStatusesFromAsana() {
       // Rework means the requester has to recheck the request -- and requesters
       // are not in Asana, so email is the only way to reach them.
       if (sameStatus_(asanaStatus, 'Rework')) {
-        notifyRequesterOfRework_(values, cols);
+        notifyRequester_('rework', values, cols);
       }
 
       synced++;
@@ -843,30 +939,60 @@ function asanaFetchAll_(path) {
 }
 
 /**
- * Emails the requester that their request needs rechecking.
+ * Emails the requester when something needs them to act.
  *
- * Requesters have no Asana access by design, so a card moved to Rework would
- * otherwise be invisible to the one person who has to act on it.
+ * Requesters have no Asana access by design, so anything that requires them
+ * would otherwise be invisible to the one person who can resolve it.
+ *
+ * Only states that need requester action are notified. Approved, Ordered and
+ * Handed Over are deliberately silent -- the requester is already chasing
+ * approval, and they find out about delivery by receiving the thing.
  */
-function notifyRequesterOfRework_(values, cols) {
+const REQUESTER_EMAILS = {
+  rework: {
+    subject: 'Action needed: purchase request {label} sent back for rechecking',
+    body:
+      'Procurement has moved your purchase request to Rework, which means it needs ' +
+      'another look from you.\n\nUsually this means something is unclear, ' +
+      'unavailable, or needs a different specification. Please check the details ' +
+      'and reply to procurement with the correction.',
+  },
+  reverify: {
+    subject: 'Action needed: purchase request {label} needs re-verification',
+    body:
+      'Your lead has marked this request "Re-verify" rather than approving it, so ' +
+      'they want something confirmed before it goes ahead.\n\nPlease check with ' +
+      'your lead, update the details if needed, and ask them to set Lead Approval ' +
+      'once they are satisfied. Nothing will be ordered until then.',
+  },
+  rejected: {
+    subject: 'Purchase request {label} was not approved',
+    body:
+      'Your lead has marked this request "Rejected", so it will not be ordered.\n\n' +
+      'If you think it should go ahead, speak to your lead -- if they change the ' +
+      'decision on the sheet, the request picks up again automatically.',
+  },
+};
+
+function notifyRequester_(kind, values, cols) {
+  const template = REQUESTER_EMAILS[kind];
+  if (!template) return;
+
   const email = cellText_(values[cols.fields.requester]);
   if (!email || email.indexOf('@') === -1) return;
 
   const prId = cols.fields.prId === undefined ? '' : cellText_(values[cols.fields.prId]);
-  const item = cellText_(values[cols.fields.item]);
-  const label = prId ? prId + ' (' + item + ')' : item;
+  const item = cols.fields.item === undefined ? '' : cellText_(values[cols.fields.item]);
+  const label = prId ? prId + ' (' + item + ')' : item || '(unnamed request)';
+
+  const detail =
+    (prId ? 'PR ID: ' + prId + '\n' : '') + (item ? 'Item:  ' + item + '\n' : '');
 
   try {
     MailApp.sendEmail(
       email,
-      'Action needed: purchase request ' + label + ' sent back for rechecking',
-      'Procurement has moved your purchase request to Rework, which means it needs ' +
-        'another look from you.\n\n' +
-        (prId ? 'PR ID: ' + prId + '\n' : '') +
-        (item ? 'Item:  ' + item + '\n' : '') +
-        '\nUsually this means something is unclear, unavailable, or needs a different ' +
-        'specification. Please check the details and reply to procurement with the ' +
-        'correction.\n'
+      template.subject.replace('{label}', label),
+      template.body + '\n\n' + detail
     );
   } catch (err) {
     console.warn('Could not email requester ' + email + ': ' + err.message);
@@ -1190,7 +1316,12 @@ function backfillApproved(limit) {
   const lastRow = sheet.getLastRow();
   let created = 0;
 
+  // Only Approved rows. Handing the whole sheet to processRow_ would fire
+  // rejection and re-verify emails at requesters over historical decisions.
+  const decisions = sheet.getRange(2, cols.approval + 1, lastRow - 1, 1).getValues();
+
   for (let row = 2; row <= lastRow && created < max; row++) {
+    if (!isDecision_(decisions[row - 2][0], 'approve')) continue;
     try {
       const url = processRow_(sheet, row, cols);
       if (url) {
