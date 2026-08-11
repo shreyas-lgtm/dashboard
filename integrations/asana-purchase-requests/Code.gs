@@ -205,6 +205,15 @@ function cellText_(value) {
   return String(value).trim();
 }
 
+/**
+ * A price counts as recorded only if it contains a digit. The old sheet is full
+ * of "NA", "ns" and "-" placeholders, and a formula error like "#N/A" is also
+ * text -- none of those may satisfy the gate. "0", "6,531" and "₹6,531" all do.
+ */
+function hasValidPrice_(value) {
+  return /\d/.test(cellText_(value));
+}
+
 // ---------------------------------------------------------------------------
 // PR_ID, assigned on submission
 // ---------------------------------------------------------------------------
@@ -446,19 +455,32 @@ function processRow_(sheet, row, cols) {
 
   const url = cellText_(values[cols.taskUrl]);
   const gid = cellText_(values[cols.taskGid]);
-  const hasTask = !!gid && url.indexOf('ERROR') !== 0;
+
+  // Two guards, deliberately different. A card EXISTS if either write-back
+  // landed -- a crash between writing the URL and writing the GID must not let
+  // a re-approval mint a duplicate card. But a card can only be ACTED on
+  // (moved, commented, reinstated) when the GID survived.
+  const hasCard = (!!url && url.indexOf('ERROR') !== 0) || !!gid;
+  const actionable = !!gid;
 
   if (isDecision_(decision, 'approve')) {
-    // Idempotency guard: a task already present means this row is done, except
+    // Idempotency guard: a card already present means this row is done, except
     // that a previously cancelled ticket has to come back to life.
-    if (hasTask) {
-      reinstateIfCancelled_(sheet, row, cols, gid);
+    if (hasCard) {
+      if (actionable) {
+        reinstateIfCancelled_(sheet, row, cols, gid);
+      } else {
+        console.warn('Row ' + row + ' has a task URL but no GID; card exists but cannot be updated.');
+      }
       return null;
     }
 
     const task = createAsanaTask_(values, cols, approval);
-    sheet.getRange(row, cols.taskUrl + 1).setValue(task.url);
+    // GID first: it is the sync key and the actionability guard, so if only one
+    // of these writes survives a crash, it should be the one that still lets
+    // every later operation find the card.
     sheet.getRange(row, cols.taskGid + 1).setValue(task.gid);
+    sheet.getRange(row, cols.taskUrl + 1).setValue(task.url);
 
     // Seed the status so the sheet and the board agree from the outset.
     if (cols.fields.status !== undefined && !cellText_(values[cols.fields.status])) {
@@ -469,7 +491,7 @@ function processRow_(sheet, row, cols) {
 
   if (isDecision_(decision, 'reject')) {
     notifyRequester_('rejected', values, cols);
-    if (!hasTask) return null;
+    if (!actionable) return null;
 
     const current = cols.fields.status === undefined
       ? ''
@@ -501,7 +523,7 @@ function processRow_(sheet, row, cols) {
 
   if (isDecision_(decision, 'reverify')) {
     notifyRequester_('reverify', values, cols);
-    if (!hasTask) return null;
+    if (!actionable) return null;
 
     const current = cols.fields.status === undefined
       ? ''
@@ -806,6 +828,17 @@ function syncStatusesFromAsana() {
       const row = rowByGid[task.gid];
       if (!row) return; // a task created by hand in Asana; nothing to sync to
 
+      // The index was built at the start of this run, and fetching every task
+      // from Asana takes real time -- someone sorting the sheet mid-run would
+      // shift every row under us. Re-check that this row still belongs to this
+      // task before writing anything to it; a mismatch is picked up cleanly on
+      // the next poll, after the index is rebuilt.
+      const liveGid = cellText_(sheet.getRange(row, cols.taskGid + 1).getValue());
+      if (liveGid !== task.gid) {
+        console.warn('Row %s no longer holds task %s (sheet re-sorted mid-sync); skipping.', row, task.gid);
+        return;
+      }
+
       // Comments first: they are worth syncing even when the status has not moved.
       if (CFG.syncComments && cols.fields.comments !== undefined) {
         const changed = !cutoff || !task.modified_at || task.modified_at > cutoff;
@@ -829,8 +862,8 @@ function syncStatusesFromAsana() {
       if (sameStatus_(asanaStatus, sheetStatus)) return;
 
       // Price is only ever entered in the responses sheet, never in Asana.
-      const price = cellText_(values[cols.fields.price]);
-      if (needsPrice_(asanaStatus) && !price) {
+      // hasValidPrice_ rejects "NA"-style placeholders, not just blanks.
+      if (needsPrice_(asanaStatus) && !hasValidPrice_(values[cols.fields.price])) {
         revertStatus_(task, sheetStatus, sections, asanaStatus);
         blocked++;
         return;
@@ -947,9 +980,9 @@ function revertStatus_(task, sheetStatus, sections, attempted) {
 
   addComment_(
     task.gid,
-    'This cannot go to "' + attempted + '" until the price is recorded on this ' +
-      'request\'s row in the responses sheet. Add the price against this PR ID, ' +
-      'and the status will sync.\n\n' +
+    'This cannot go to "' + attempted + '" until a price -- an actual number, ' +
+      'not "NA" -- is recorded on this request\'s row in the responses sheet. ' +
+      'Add the price against this PR ID, and the status will sync.\n\n' +
       '(Left where it is: the sheet has no recorded status to move it back to.)'
   );
 }
@@ -1129,7 +1162,8 @@ function asanaFetchAll_(path) {
 
   do {
     const sep = path.indexOf('?') === -1 ? '?' : '&';
-    const url = path + sep + 'limit=100' + (offset ? '&offset=' + offset : '');
+    // The offset is an opaque token and may contain URL-significant characters.
+    const url = path + sep + 'limit=100' + (offset ? '&offset=' + encodeURIComponent(offset) : '');
     const res = asanaFetch_('GET', url);
     (res.data || []).forEach(function (d) { out.push(d); });
     offset = res.next_page && res.next_page.offset ? res.next_page.offset : '';

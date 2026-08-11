@@ -46,7 +46,9 @@ poll sees no difference and says nothing further.
 
 **Price is only ever entered in the responses sheet**, never in Asana. A card
 cannot leave Quotation Awaited for Ordered until a price exists on that PR ID's
-row. This is the one place procurement has to touch the sheet rather than the
+row — and it must contain at least one digit. `NA`, `-`, `TBD` and formula
+errors like `#N/A` do not count; the old sheet's placeholder habits would
+otherwise let cards through the gate with no price at all. `0` does count. This is the one place procurement has to touch the sheet rather than the
 board; everything else is done by dragging cards.
 
 If the sheet has no recorded status to move the card back to, the sync comments
@@ -530,7 +532,7 @@ through Step 7.
 | Comments never appear | `CFG.syncComments` is false, or the task has only system events |
 | Comments stopped updating | A failed run leaves `LAST_SYNC_AT` behind; check **Executions** |
 | `These required columns are not mapped` | `price`, `productType` or `item` header not found — run `checkSheetMapping()` |
-| Everything bounces out of Ordered | No price on the row, or `price` is unmapped |
+| Everything bounces out of Ordered | No price on the row, the cell has no digits (`NA`, `-`), or `price` is unmapped |
 | PR_IDs restart from 1 | Counter never seeded — run `seedPrIdCounter(1527)` |
 | PR_ID blank on a new row | `onFormSubmitAssignPrId` not installed, or no PR_ID column |
 | Cards land outside any section | `ensureSections()` not run, so `Pending` does not exist |

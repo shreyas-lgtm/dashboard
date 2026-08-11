@@ -28,7 +28,7 @@ const api = new Function(
     routeFor_, needsPrice_, sameStatus_, sectionNameFor_, indexRowsByGid_,
     isKnownStatus_, assertRequiredFields_, cellText_, formatComments_, shortStamp_,
     REQUIRED_FIELDS, AUTO_CREATE, isDecision_, REQUESTER_EMAILS, effectiveDecision_,
-    isPastPointOfNoReturn_, editedResponseAction_, CFG, COL };`
+    isPastPointOfNoReturn_, editedResponseAction_, hasValidPrice_, CFG, COL };`
 )();
 
 // Snapshot before any test mutates CFG.
@@ -564,6 +564,48 @@ eq('the new handler is what gets installed',
    src.includes("newTrigger('onFormSubmitHandler')"), true);
 eq('a failure to apply an edit is reported, not swallowed',
    /handleEditedResponse_\(sheet, row, cols\);[\s\S]{0,300}notifyFailure_/.test(src), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- price validity: "NA" is not a price --');
+// The old sheet is full of placeholder habits; only something with a digit
+// satisfies the gate.
+[['6531', true], [6531, true], [0, true], ['0', true], ['6,531', true],
+ ['₹6,531', true], ['INR 6531', true], ['~1200', true],
+ ['', false], ['   ', false], ['NA', false], ['na', false], ['ns', false],
+ ['-', false], ['#N/A', false], ['#REF!', false], ['TBD', false],
+ ['pending', false], [null, false], [undefined, false]].forEach(([v, want]) => {
+  eq(`hasValidPrice_(${JSON.stringify(v)}) = ${want}`, api.hasValidPrice_(v), want);
+});
+eq('the sync gate uses hasValidPrice_, not mere non-emptiness',
+   /needsPrice_\(asanaStatus\) && !hasValidPrice_\(/.test(src), true);
+eq('revert comment warns against "NA"', src.includes('not ' + String.fromCharCode(39) + String.fromCharCode(39)) ? false : src.includes('"NA"'), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- partial write-back cannot duplicate a card --');
+// If the URL write survives a crash but the GID write does not, the row still
+// counts as having a card (no duplicate), while card actions require the GID.
+eq('existence guard accepts URL or GID',
+   src.includes("const hasCard = (!!url && url.indexOf('ERROR') !== 0) || !!gid;"), true);
+eq('action guard requires the GID', src.includes('const actionable = !!gid;'), true);
+eq('approve branch checks hasCard', /if \(isDecision_\(decision, 'approve'\)\) \{[\s\S]{0,200}if \(hasCard\)/.test(src), true);
+eq('reject branch requires actionable', /'reject'\)\) \{[\s\S]{0,120}if \(!actionable\) return null;/.test(src), true);
+eq('reverify branch requires actionable', /'reverify'\)\) \{[\s\S]{0,120}if \(!actionable\) return null;/.test(src), true);
+// The GID is the sync key, so if only one write survives it must be that one.
+const gidWrite = src.indexOf('cols.taskGid + 1).setValue(task.gid)');
+const urlWrite = src.indexOf('cols.taskUrl + 1).setValue(task.url)');
+eq('GID is written before URL', gidWrite > -1 && urlWrite > -1 && gidWrite < urlWrite, true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- mid-sync sort cannot write to the wrong row --');
+eq('sync re-checks the GID cell before writing',
+   /const liveGid = cellText_\(sheet\.getRange\(row, cols\.taskGid \+ 1\)\.getValue\(\)\);[\s\S]{0,120}liveGid !== task\.gid/.test(src), true);
+eq('the recheck happens before the comment sync',
+   src.indexOf('liveGid !== task.gid') < src.indexOf('syncCommentsForRow_(sheet, row'), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- pagination offset is URL-encoded --');
+eq('offset passes through encodeURIComponent',
+   src.includes("encodeURIComponent(offset)"), true);
 
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);
