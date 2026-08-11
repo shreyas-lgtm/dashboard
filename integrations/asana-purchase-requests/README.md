@@ -118,7 +118,36 @@ would otherwise write that string straight into `Order Status`.
 
 ---
 
-## The Lead Approval dropdown
+## Approval
+
+Two columns, with **Final Approval outranking Lead Approval**. Once Final
+Approval is decided, Lead Approval is set to match automatically — so a senior
+can approve directly without waiting for the team lead.
+
+| Lead Approval | Final Approval | Governs | Lead cell rewritten |
+|---|---|---|---|
+| *(blank)* | `Approved` | **Approved** | yes → `Approved` |
+| `Re-verify` | `Approved` | **Approved** | yes → `Approved` |
+| `Rejected` | `Approved` | **Approved** | yes → `Approved` |
+| `Approved` | `Rejected` | **Rejected** | yes → `Rejected` |
+| `Approved` | `Approved` | Approved | no — already agrees |
+| anything | *(blank or unrecognised)* | the Lead Approval value | no |
+
+A **final rejection outranks a lead approval too**. Without that, a request the
+senior overruled would still be ordered — so the override works in both
+directions. Only `Approved` and `Rejected` cascade; `Re-verify` in the Final
+Approval column is ignored.
+
+The cascade is written back to the Lead Approval cell so the sheet stays
+self-consistent and anything filtering on that column keeps working. A script
+write does not re-fire `onEdit`, so there is no loop. Tickets created this way
+say so in their description: *"Approved via Final Approval; Lead Approval was set
+to match."*
+
+Set `CFG.finalApprovalOverrides = false` to disable, and the mechanism is skipped
+entirely if the sheet has no Final Approval column.
+
+### The Lead Approval dropdown
 
 The requester chases their own lead, who sets **Lead Approval** on the sheet. All
 three dropdown values are acted on:
@@ -133,6 +162,9 @@ Anything else, including blank, is ignored.
 
 Matching is exact rather than prefix-based here — unlike routing — because
 `Rejected` and `Re-verify` both begin with "Re".
+
+Either column starts this off: an edit to Lead Approval **or** Final Approval
+runs the same logic.
 
 ### Revised decisions
 
@@ -219,7 +251,8 @@ After the new form exists and has at least one response, run
 **`checkSheetMapping()`**:
 
 ```
-Approval column:  I
+Lead Approval:    I
+Final Approval:   J
 Task URL column:  N
 Task GID column:  O
 

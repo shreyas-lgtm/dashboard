@@ -27,7 +27,8 @@ const api = new Function(
   src + `\nreturn { dueDate_, buildNotes_, buildCustomFields_, resolveColumns_,
     routeFor_, needsPrice_, sameStatus_, sectionNameFor_, indexRowsByGid_,
     isKnownStatus_, assertRequiredFields_, cellText_, formatComments_, shortStamp_,
-    REQUIRED_FIELDS, AUTO_CREATE, isDecision_, REQUESTER_EMAILS, CFG, COL };`
+    REQUIRED_FIELDS, AUTO_CREATE, isDecision_, REQUESTER_EMAILS, effectiveDecision_,
+    CFG, COL };`
 )();
 
 // Snapshot before any test mutates CFG.
@@ -188,6 +189,7 @@ const NEW_HDR = ['Timestamp', 'Email address', 'Product type', 'Item Name/ Descr
 let s = fakeSheet(NEW_HDR);
 let cols = api.resolveColumns_(s);
 eq('finds Lead approval', cols.approval, 8);
+eq('new sheet has no Final Approval column', cols.finalApproval, undefined);
 eq('maps Product type (routing key)', cols.fields.productType, 2);
 eq('maps Price (gate key)', cols.fields.price, 12);
 eq('maps requester', cols.fields.requester, 1);
@@ -209,6 +211,7 @@ const OLD_HDR = ['Timestamp', 'Email address', 'Item Name/ Description', 'Order 
   'Ordered Date', 'SCM Remark ', 'Projection Needed'];
 cols = api.resolveColumns_(fakeSheet(OLD_HDR));
 eq('old sheet: finds approval', cols.approval, 9);
+eq('old sheet: finds Final Approval', cols.finalApproval, 10);
 eq('old sheet: reuses existing Order Status', cols.fields.status, 3);
 eq('old sheet: productType falls back to Item Type', cols.fields.productType, 19);
 eq('old sheet: maps Ordered Date', cols.fields.orderedDate, 28);
@@ -405,7 +408,68 @@ eq('rejection tells them how to reverse it',
 // ---------------------------------------------------------------------------
 console.log('\n-- backfill safety --');
 eq('backfill filters to Approved before processing',
-   /isDecision_\(decisions\[row - 2\]\[0\], 'approve'\)/.test(src), true);
+   /if \(!approvedRow\(row\)\) continue;/.test(src), true);
+eq('backfill honours the Final Approval override too',
+   /effectiveDecision_\(grid\[row - 2\], cols\)/.test(src), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- Final Approval outranks Lead Approval --');
+// Column indices for a sheet with both approval columns.
+const AC = { approval: 9, finalApproval: 10 };
+const rowWith = (lead, final) => { const v = []; v[9] = lead; v[10] = final; return v; };
+const dec = (lead, final) => api.effectiveDecision_(rowWith(lead, final), AC);
+
+// The stated rule: Final Approval done -> Lead Approval automatically approved.
+let d = dec('', 'Approved');
+eq('blank lead + final Approved -> Approved', d.decision, 'Approved');
+eq('  ...sourced from final', d.source, 'final');
+eq('  ...cascades into the lead cell', d.cascade, true);
+
+d = dec('Re-verify', 'Approved');
+eq('lead Re-verify is overridden by final Approved', d.decision, 'Approved');
+eq('  ...cascades', d.cascade, true);
+
+d = dec('Rejected', 'Approved');
+eq('lead Rejected is overridden by final Approved', d.decision, 'Approved');
+
+// A final rejection must outrank a lead approval, or an overruled request ships.
+d = dec('Approved', 'Rejected');
+eq('lead Approved + final Rejected -> Rejected', d.decision, 'Rejected');
+eq('  ...sourced from final', d.source, 'final');
+
+// Already in agreement: no pointless write back to the sheet.
+d = dec('Approved', 'Approved');
+eq('both Approved -> no cascade write', d.cascade, false);
+eq('  ...still Approved', d.decision, 'Approved');
+
+// Final Approval blank or unrecognised: the lead governs.
+d = dec('Approved', '');
+eq('blank final -> lead governs', d.decision, 'Approved');
+eq('  ...source is lead', d.source, 'lead');
+eq('  ...no cascade', d.cascade, false);
+d = dec('Re-verify', '');
+eq('lead Re-verify survives a blank final', d.decision, 'Re-verify');
+d = dec('Re-verify', 'Something else');
+eq('unrecognised final value -> lead governs', d.decision, 'Re-verify');
+// Re-verify in the final column does NOT cascade -- only Approved and Rejected.
+d = dec('Approved', 'Re-verify');
+eq('final Re-verify does not override', d.decision, 'Approved');
+eq('  ...source stays lead', d.source, 'lead');
+
+console.log('   feature is optional:');
+d = api.effectiveDecision_(rowWith('Approved', 'Rejected'), { approval: 9 });
+eq('no Final Approval column -> lead governs', d.decision, 'Approved');
+eq('  ...no cascade', d.cascade, false);
+api.CFG.finalApprovalOverrides = false;
+d = dec('Approved', 'Rejected');
+eq('overrides disabled -> lead governs', d.decision, 'Approved');
+api.CFG.finalApprovalOverrides = true;
+
+console.log('   ticket records the override:');
+const viaFinal = api.buildNotes_(g({ item: 'Widget' }), route, { source: 'final' });
+eq('notes mention Final Approval', viaFinal.includes('Approved via Final Approval'), true);
+const viaLead = api.buildNotes_(g({ item: 'Widget' }), route, { source: 'lead' });
+eq('normal approval says nothing extra', viaLead.includes('Approved via Final Approval'), false);
 
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);

@@ -47,6 +47,14 @@ const CFG = {
     reverify: 'Re-verify',
   },
 
+  // Final Approval outranks Lead Approval: once it is decided, Lead Approval is
+  // set to match automatically. This lets a senior approve directly without the
+  // team lead having got to it.
+  //
+  // Optional -- if the sheet has no such column the whole mechanism is skipped.
+  finalApprovalHeaders: ['Final Approval'],
+  finalApprovalOverrides: true,
+
   // Written back to the sheet. Created automatically if absent.
   taskUrlHeader: 'Asana Task',
   taskGidHeader: 'Asana Task GID', // the sync key; do not delete or reorder
@@ -285,8 +293,14 @@ function onApprovalEdit(e) {
     throw err;
   }
 
-  const approvalCol = cols.approval + 1; // 1-based, to compare against the Range
-  if (approvalCol < e.range.getColumn() || approvalCol > e.range.getLastColumn()) return;
+  // Either approval column can start this off, since Final Approval cascades
+  // into Lead Approval.
+  const firstCol = e.range.getColumn();
+  const lastCol = e.range.getLastColumn();
+  const touched = function (idx) {
+    return idx !== undefined && idx + 1 >= firstCol && idx + 1 <= lastCol;
+  };
+  if (!touched(cols.approval) && !touched(cols.finalApproval)) return;
 
   const firstRow = Math.max(e.range.getRow(), 2); // never the header
   const lastRow = e.range.getLastRow();
@@ -320,8 +334,18 @@ function onApprovalEdit(e) {
  */
 function processRow_(sheet, row, cols) {
   const values = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const decision = cellText_(values[cols.approval]);
+
+  const approval = effectiveDecision_(values, cols);
+  const decision = approval.decision;
   if (!decision) return null;
+
+  // Write the cascade back so the sheet is self-consistent and anything
+  // filtering on Lead Approval keeps working. A script write does not re-fire
+  // onEdit, so there is no loop.
+  if (approval.cascade) {
+    sheet.getRange(row, cols.approval + 1).setValue(decision);
+    values[cols.approval] = decision;
+  }
 
   const url = cellText_(values[cols.taskUrl]);
   const gid = cellText_(values[cols.taskGid]);
@@ -335,7 +359,7 @@ function processRow_(sheet, row, cols) {
       return null;
     }
 
-    const task = createAsanaTask_(values, cols);
+    const task = createAsanaTask_(values, cols, approval);
     sheet.getRange(row, cols.taskUrl + 1).setValue(task.url);
     sheet.getRange(row, cols.taskGid + 1).setValue(task.gid);
 
@@ -372,6 +396,40 @@ function processRow_(sheet, row, cols) {
 /** True when a cell value matches one of CFG.decisions. */
 function isDecision_(value, key) {
   return cellText_(value).toLowerCase() === String(CFG.decisions[key]).trim().toLowerCase();
+}
+
+/**
+ * Resolves the decision that actually governs a row.
+ *
+ * Final Approval outranks Lead Approval: once Final Approval is decided, Lead
+ * Approval is treated as matching it and gets written to match. So a senior can
+ * approve directly and the request proceeds without the team lead acting.
+ *
+ * Returns { decision, source: 'lead' | 'final', cascade: boolean }.
+ */
+function effectiveDecision_(values, cols) {
+  const lead = cellText_(values[cols.approval]);
+
+  if (!CFG.finalApprovalOverrides || cols.finalApproval === undefined) {
+    return { decision: lead, source: 'lead', cascade: false };
+  }
+
+  const final = cellText_(values[cols.finalApproval]);
+  if (!final) return { decision: lead, source: 'lead', cascade: false };
+
+  // Only Approved and Rejected cascade. A final rejection has to outrank a lead
+  // approval too, otherwise an overruled request would still get ordered.
+  let resolved = '';
+  if (isDecision_(final, 'approve')) resolved = CFG.decisions.approve;
+  else if (isDecision_(final, 'reject')) resolved = CFG.decisions.reject;
+
+  if (!resolved) return { decision: lead, source: 'lead', cascade: false };
+
+  return {
+    decision: resolved,
+    source: 'final',
+    cascade: !sameStatus_(lead, resolved), // only write when it differs
+  };
 }
 
 /**
@@ -414,7 +472,7 @@ function reinstateIfCancelled_(sheet, row, cols, taskGid) {
     'Lead Approval was set back to "Approved", so this request is live again.');
 }
 
-function createAsanaTask_(values, cols) {
+function createAsanaTask_(values, cols, approval) {
   const get = function (key) {
     const idx = cols.fields[key];
     return idx === undefined ? '' : String(values[idx] === null ? '' : values[idx]).trim();
@@ -445,7 +503,7 @@ function createAsanaTask_(values, cols) {
   const payload = {
     data: {
       name: name,
-      notes: buildNotes_(get, route),
+      notes: buildNotes_(get, route, approval),
       projects: [CFG.projectGid],
       due_on: dueDate_(get('urgency')),
     },
@@ -483,7 +541,7 @@ function createAsanaTask_(values, cols) {
  * block because some of these URLs run to several hundred characters and would
  * wreck the aligned column.
  */
-function buildNotes_(get, route) {
+function buildNotes_(get, route, approval) {
   const rows = [
     ['Requester', get('requester')],
     ['Item', get('item')],
@@ -506,6 +564,9 @@ function buildNotes_(get, route) {
   if (link && link.toUpperCase() !== 'NA') out += '\n\nLink\n----\n' + link;
 
   out += '\n\n---';
+  if (approval && approval.source === 'final') {
+    out += '\nApproved via Final Approval; Lead Approval was set to match.';
+  }
   if (route && route.warning) out += '\n⚠ ' + route.warning;
   if (route && route.label) out += '\nRouted to ' + route.assign + ' — ' + route.label + '.';
   out += '\nMove this card between sections to update its status; the sheet follows.';
@@ -1061,6 +1122,9 @@ function resolveColumns_(sheet) {
     );
   }
 
+  // Optional: absent means the Final Approval override is simply skipped.
+  const finalApproval = findAny(CFG.finalApprovalHeaders);
+
   // Appended in a fixed order so the GID column lands in the same place whether
   // one or both are missing.
   let nextCol = width;
@@ -1084,7 +1148,13 @@ function resolveColumns_(sheet) {
     fields[key] = idx;
   });
 
-  return { approval: approval, taskUrl: taskUrl, taskGid: taskGid, fields: fields };
+  return {
+    approval: approval,
+    finalApproval: finalApproval,
+    taskUrl: taskUrl,
+    taskGid: taskGid,
+    fields: fields,
+  };
 }
 
 function handleRowError_(sheet, row, cols, err) {
@@ -1231,7 +1301,9 @@ function checkSheetMapping() {
     return i === undefined ? '--' : sheet.getRange(1, i + 1).getA1Notation().replace(/\d+/, '');
   };
 
-  console.log('Approval column:  %s', letter(cols.approval));
+  console.log('Lead Approval:    %s', letter(cols.approval));
+  console.log('Final Approval:   %s%s', letter(cols.finalApproval),
+    cols.finalApproval === undefined ? '  (absent -- override disabled)' : '');
   console.log('Task URL column:  %s', letter(cols.taskUrl));
   console.log('Task GID column:  %s', letter(cols.taskGid));
   console.log('\nField mapping:');
@@ -1318,10 +1390,14 @@ function backfillApproved(limit) {
 
   // Only Approved rows. Handing the whole sheet to processRow_ would fire
   // rejection and re-verify emails at requesters over historical decisions.
-  const decisions = sheet.getRange(2, cols.approval + 1, lastRow - 1, 1).getValues();
+  const grid = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  const approvedRow = function (row) {
+    const d = effectiveDecision_(grid[row - 2], cols);
+    return isDecision_(d.decision, 'approve');
+  };
 
   for (let row = 2; row <= lastRow && created < max; row++) {
-    if (!isDecision_(decisions[row - 2][0], 'approve')) continue;
+    if (!approvedRow(row)) continue;
     try {
       const url = processRow_(sheet, row, cols);
       if (url) {
