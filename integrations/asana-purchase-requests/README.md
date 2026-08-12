@@ -288,6 +288,14 @@ sequence continues from the old form rather than restarting.
 
 ### Step 1: Build the new form, then map the columns
 
+A fresh responses sheet has only the form's own columns. Run
+**`setupApprovalColumns()`** once to add the manual ones: it inserts
+`Lead Approval` right after `Product type` and `Final Approval` next to it —
+both with their dropdowns, invalid input rejected — and appends `PR_ID` at the
+end. Approvals go in the middle deliberately: on the old sheet the approval
+column at position 10 was filled 77% of the time, the price column at position
+19 just 1%. People do not scroll.
+
 The script finds columns by **header name**, not position, and each field has a
 list of candidate names in `COL` — the new form's headers first, the old form's
 kept as fallbacks.

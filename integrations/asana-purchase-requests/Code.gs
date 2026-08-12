@@ -1508,6 +1508,81 @@ function checkSheetMapping() {
 }
 
 /**
+ * Creates the sheet's manual columns in sensible positions:
+ *
+ *   Lead Approval   -- inserted right AFTER "Product type", with the dropdown
+ *   Final Approval  -- inserted right after Lead Approval, with its dropdown
+ *   PR_ID           -- appended at the far right
+ *
+ * Position matters for the approvals: on the old sheet, the approval column at
+ * position 10 was filled 77% of the time while the price column at position 19
+ * was filled 1% -- people do not scroll. PR_ID is script-written, so the end is
+ * fine for it.
+ *
+ * Idempotent: anything that already exists is left exactly where it is, though
+ * the dropdown validation is (re)applied to the approval columns either way.
+ * Form-question bindings follow their columns, so inserting is safe.
+ */
+function setupApprovalColumns() {
+  const sheet = SpreadsheetApp.getActive().getSheetByName(CFG.sheetName);
+  if (!sheet) throw new Error('No sheet named "' + CFG.sheetName + '".');
+
+  const headersNow = function () {
+    return sheet
+      .getRange(1, 1, 1, sheet.getLastColumn())
+      .getValues()[0]
+      .map(function (h) { return String(h).trim().toLowerCase(); });
+  };
+  // 1-based column number; 0 = absent.
+  const col = function (name) {
+    return headersNow().indexOf(String(name).trim().toLowerCase()) + 1;
+  };
+
+  // Lead Approval, right after the routing key so the lead sees request and
+  // decision side by side.
+  if (!col('Lead Approval')) {
+    const anchor = col('Product type') || col('Email address') || 1;
+    sheet.insertColumnAfter(anchor);
+    sheet.getRange(1, anchor + 1).setValue('Lead Approval');
+    console.log('Inserted "Lead Approval" after column %s.', anchor);
+  } else {
+    console.log('"Lead Approval" already exists; left in place.');
+  }
+
+  if (!col('Final Approval')) {
+    sheet.insertColumnAfter(col('Lead Approval'));
+    sheet.getRange(1, col('Lead Approval') + 1).setValue('Final Approval');
+    console.log('Inserted "Final Approval" after Lead Approval.');
+  } else {
+    console.log('"Final Approval" already exists; left in place.');
+  }
+
+  if (!col('PR_ID')) {
+    sheet.getRange(1, sheet.getLastColumn() + 1).setValue('PR_ID');
+    console.log('Appended "PR_ID" at the end.');
+  } else {
+    console.log('"PR_ID" already exists; left in place.');
+  }
+
+  // Dropdowns. setAllowInvalid(false) rejects typed variants outright -- an
+  // "Aproved" typo in a cell would otherwise silently create no ticket.
+  const applyDropdown = function (header, values) {
+    const c = col(header);
+    if (!c) return;
+    const rule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(values, true)
+      .setAllowInvalid(false)
+      .build();
+    sheet.getRange(2, c, sheet.getMaxRows() - 1, 1).setDataValidation(rule);
+    console.log('Dropdown applied to "%s": %s', header, values.join(' / '));
+  };
+  applyDropdown('Lead Approval', [CFG.decisions.approve, CFG.decisions.reject, CFG.decisions.reverify]);
+  applyDropdown('Final Approval', [CFG.decisions.approve, CFG.decisions.reject]);
+
+  console.log('\nDone. Run checkSheetMapping() to confirm everything resolves.');
+}
+
+/**
  * Installs both sheet-side triggers, replacing any previous copies:
  *   onFormSubmitAssignPrId -- assigns the PR_ID on submission
  *   onApprovalEdit         -- creates the Asana task on approval
