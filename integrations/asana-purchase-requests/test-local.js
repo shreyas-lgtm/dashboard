@@ -451,10 +451,18 @@ d = dec('Re-verify', '');
 eq('lead Re-verify survives a blank final', d.decision, 'Re-verify');
 d = dec('Re-verify', 'Something else');
 eq('unrecognised final value -> lead governs', d.decision, 'Re-verify');
-// Re-verify in the final column does NOT cascade -- only Approved and Rejected.
+// All three decisions cascade, Re-verify included.
 d = dec('Approved', 'Re-verify');
-eq('final Re-verify does not override', d.decision, 'Approved');
-eq('  ...source stays lead', d.source, 'lead');
+eq('final Re-verify overrides too', d.decision, 'Re-verify');
+eq('  ...sourced from final', d.source, 'final');
+eq('  ...cascades into the lead cell', d.cascade, true);
+d = dec('Re-verify', 'Re-verify');
+eq('both Re-verify -> no pointless write', d.cascade, false);
+// The reverse direction must not exist: nothing ever writes Final Approval.
+eq('vice versa never happens: no write into the Final Approval column',
+   src.includes('cols.finalApproval + 1).setValue'), false);
+eq('the cascade writes the LEAD cell only',
+   src.includes('sheet.getRange(row, cols.approval + 1).setValue(decision)'), true);
 
 console.log('   feature is optional:');
 d = api.effectiveDecision_(rowWith('Approved', 'Rejected'), { approval: 9 });

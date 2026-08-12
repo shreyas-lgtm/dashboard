@@ -133,13 +133,15 @@ automatically. A blank Final Approval changes nothing.
 | `Re-verify` | `Approved` | **Approved** | yes → `Approved` |
 | `Rejected` | `Approved` | **Approved** | yes → `Approved` |
 | `Approved` | `Rejected` | **Rejected** | yes → `Rejected` |
+| `Approved` | `Re-verify` | **Re-verify** | yes → `Re-verify` |
 | `Approved` | `Approved` | Approved | no — already agrees |
 | anything | *(blank or unrecognised)* | the Lead Approval value | no |
 
 A **final rejection outranks a lead approval too**. Without that, a request the
 senior overruled would still be ordered — so the override works in both
-directions. Only `Approved` and `Rejected` cascade; `Re-verify` in the Final
-Approval column is ignored.
+directions. All three decisions cascade: a filled Final Approval *is* the
+decision, and Lead Approval is rewritten to match. The reverse never happens —
+Lead Approval is never written into Final Approval.
 
 The cascade is written back to the Lead Approval cell so the sheet stays
 self-consistent and anything filtering on that column keeps working. A script

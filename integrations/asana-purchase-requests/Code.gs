@@ -572,11 +572,13 @@ function effectiveDecision_(values, cols) {
   const final = cellText_(values[cols.finalApproval]);
   if (!final) return { decision: lead, source: 'lead', cascade: false };
 
-  // Only Approved and Rejected cascade. A final rejection has to outrank a lead
-  // approval too, otherwise an overruled request would still get ordered.
+  // All three decisions cascade: a filled Final Approval IS the decision, and
+  // Lead Approval is rewritten to match it. The reverse never happens -- Lead
+  // Approval is never written into Final Approval.
   let resolved = '';
   if (isDecision_(final, 'approve')) resolved = CFG.decisions.approve;
   else if (isDecision_(final, 'reject')) resolved = CFG.decisions.reject;
+  else if (isDecision_(final, 'reverify')) resolved = CFG.decisions.reverify;
 
   if (!resolved) return { decision: lead, source: 'lead', cascade: false };
 
@@ -1577,7 +1579,7 @@ function setupApprovalColumns() {
     console.log('Dropdown applied to "%s": %s', header, values.join(' / '));
   };
   applyDropdown('Lead Approval', [CFG.decisions.approve, CFG.decisions.reject, CFG.decisions.reverify]);
-  applyDropdown('Final Approval', [CFG.decisions.approve, CFG.decisions.reject]);
+  applyDropdown('Final Approval', [CFG.decisions.approve, CFG.decisions.reject, CFG.decisions.reverify]);
 
   console.log('\nDone. Run checkSheetMapping() to confirm everything resolves.');
 }
