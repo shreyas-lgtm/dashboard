@@ -653,5 +653,32 @@ console.log('\n-- one bad task cannot abort the sync --');
 eq('each task syncs inside its own try/catch',
    /try \{\s*syncOneTask_\(task\);\s*\} catch/.test(src), true);
 
+// ---------------------------------------------------------------------------
+console.log('\n-- two-way Order Status (sheet edits move the card) --');
+eq('onEdit reacts to the status column',
+   src.includes('const statusTouched = cols.fields.status !== undefined && touched(cols.fields.status);'), true);
+eq('status edits route to handleStatusEdit_',
+   src.includes('if (statusTouched) handleStatusEdit_(sheet, row, cols);'), true);
+eq('the sheet path enforces the same price gate',
+   /handleStatusEdit_[\s\S]{0,1200}needsPrice_\(wanted\) && !hasValidPrice_/.test(src), true);
+eq('a gated sheet edit is restored from the board, not guessed',
+   /needsPrice_\(wanted\)[\s\S]{0,200}restoreStatusFromBoard_/.test(src), true);
+eq('status before approval is cleared',
+   /if \(!gid\) \{\s*sheet\.getRange\(row, cols\.fields\.status \+ 1\)\.setValue\(''\);/.test(src), true);
+eq('unknown status restored from the board',
+   /!isKnownStatus_\(wanted\)[\s\S]{0,120}restoreStatusFromBoard_/.test(src), true);
+eq('sheet-driven Rework also emails the requester',
+   /handleStatusEdit_[\s\S]{0,2200}notifyRequester_\('rework'/.test(src), true);
+eq('restore reads the live board section',
+   src.includes("'/tasks/' + gid + '?opt_fields=memberships.project.gid,memberships.section.name'"), true);
+
+console.log('\n-- setupApprovalColumns also owns status + date columns --');
+eq('Order Status gets a dropdown of all statuses',
+   src.includes("applyDropdown('Order Status', CFG.statuses);"), true);
+eq('date columns are created by the script',
+   src.includes("['Ordered Date', 'Handed Over Date'].forEach"), true);
+eq('a fresh Order Status lands next to the approvals',
+   /col\('Order Status'\)[\s\S]{0,300}col\('Final Approval'\) \|\| col\('Lead Approval'\)/.test(src), true);
+
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);

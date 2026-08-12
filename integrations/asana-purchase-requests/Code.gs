@@ -406,11 +406,16 @@ function onApprovalEdit(e) {
   const touched = function (idx) {
     return idx !== undefined && idx + 1 >= firstCol && idx + 1 <= lastCol;
   };
-  if (!touched(cols.approval) && !touched(cols.finalApproval)) return;
+
+
+  const approvalTouched = touched(cols.approval) || touched(cols.finalApproval);
+  const statusTouched = cols.fields.status !== undefined && touched(cols.fields.status);
 
   // Direction of the edit decides whether Final Approval overrides: it wins
   // when IT was the column edited (a paste spanning both counts as final).
   const finalEdited = touched(cols.finalApproval);
+
+  if (!approvalTouched && !statusTouched) return;
 
   const firstRow = Math.max(e.range.getRow(), 2); // never the header
   const lastRow = e.range.getLastRow();
@@ -422,7 +427,8 @@ function onApprovalEdit(e) {
   try {
     for (let row = firstRow; row <= lastRow; row++) {
       try {
-        processRow_(sheet, row, cols, finalEdited);
+        if (approvalTouched) processRow_(sheet, row, cols, finalEdited);
+        if (statusTouched) handleStatusEdit_(sheet, row, cols);
       } catch (err) {
         handleRowError_(sheet, row, cols, err);
       }
@@ -557,6 +563,75 @@ function processRow_(sheet, row, cols, finalEdited) {
   }
 
   return null;
+}
+
+/**
+ * The sheet's Order Status was edited by hand. Move the Asana card to match --
+ * the same price gate applies as when dragging on the board.
+ *
+ * This makes status two-way: procurement is already in the sheet to type the
+ * price, so setting "Ordered" in the same visit beats switching back to Asana
+ * to drag the card.
+ */
+function handleStatusEdit_(sheet, row, cols) {
+  const values = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const wanted = cellText_(values[cols.fields.status]);
+  if (!wanted) return; // cleared by hand; the next poll restores it from the board
+
+  const gid = cellText_(values[cols.taskGid]);
+
+  // No card yet: a status before approval is meaningless, so clear it.
+  if (!gid) {
+    sheet.getRange(row, cols.fields.status + 1).setValue('');
+    return;
+  }
+
+  // Typos and unknown statuses: put back whatever the board actually says.
+  if (!isKnownStatus_(wanted)) {
+    restoreStatusFromBoard_(sheet, row, cols, gid);
+    return;
+  }
+
+  // The same price gate as the board direction.
+  if (needsPrice_(wanted) && !hasValidPrice_(values[cols.fields.price])) {
+    restoreStatusFromBoard_(sheet, row, cols, gid);
+    addComment_(gid,
+      'The sheet tried to set this to "' + wanted + '", but a price -- an actual ' +
+      'number, not "NA" -- has to be recorded on the row first. Status left unchanged.');
+    return;
+  }
+
+  const sections = sectionsByName_();
+  const sectionGid = sections[wanted.toLowerCase()];
+  if (!sectionGid) {
+    console.warn('No "' + wanted + '" section on the board; run ensureSections().');
+    restoreStatusFromBoard_(sheet, row, cols, gid);
+    return;
+  }
+
+  asanaFetch_('POST', '/sections/' + sectionGid + '/addTask', { data: { task: gid } });
+  stampStatusDate_(sheet, row, cols, wanted);
+
+  // Same as the board direction: Rework means the requester must act.
+  if (sameStatus_(wanted, 'Rework')) {
+    notifyRequester_('rework', values, cols);
+  }
+}
+
+/** Writes the board's actual section back into the status cell. */
+function restoreStatusFromBoard_(sheet, row, cols, gid) {
+  try {
+    const res = asanaFetch_(
+      'GET',
+      '/tasks/' + gid + '?opt_fields=memberships.project.gid,memberships.section.name'
+    );
+    const actual = sectionNameFor_(res.data || {});
+    sheet
+      .getRange(row, cols.fields.status + 1)
+      .setValue(isKnownStatus_(actual) ? actual : '');
+  } catch (err) {
+    console.warn('Could not restore status for task ' + gid + ': ' + err.message);
+  }
 }
 
 /** True when a cell value matches one of CFG.decisions. */
@@ -1597,6 +1672,34 @@ function setupApprovalColumns() {
     console.log('"PR_ID" already exists; left in place.');
   }
 
+  // Order Status is two-way editable, so it deserves a visible spot: created
+  // next to the approvals. If it already exists (auto-created at the far right
+  // by an earlier run), it is left alone -- drag the column wherever you like,
+  // everything is found by header name.
+  if (!col('Order Status')) {
+    const after = col('Final Approval') || col('Lead Approval');
+    if (after) {
+      sheet.insertColumnAfter(after);
+      sheet.getRange(1, after + 1).setValue('Order Status');
+      console.log('Inserted "Order Status" after column %s.', after);
+    } else {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue('Order Status');
+      console.log('Appended "Order Status" at the end.');
+    }
+  } else {
+    console.log('"Order Status" already exists; left in place (drag it wherever you like).');
+  }
+
+  // The date stamps, appended at the end -- script-written, nobody types here.
+  ['Ordered Date', 'Handed Over Date'].forEach(function (header) {
+    if (!col(header)) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(header);
+      console.log('Appended "%s" at the end.', header);
+    } else {
+      console.log('"%s" already exists; left in place.', header);
+    }
+  });
+
   // Dropdowns. setAllowInvalid(false) rejects typed variants outright -- an
   // "Aproved" typo in a cell would otherwise silently create no ticket.
   const applyDropdown = function (header, values) {
@@ -1611,6 +1714,7 @@ function setupApprovalColumns() {
   };
   applyDropdown('Lead Approval', [CFG.decisions.approve, CFG.decisions.reject, CFG.decisions.reverify]);
   applyDropdown('Final Approval', [CFG.decisions.approve, CFG.decisions.reject, CFG.decisions.reverify]);
+  applyDropdown('Order Status', CFG.statuses);
 
   console.log('\nDone. Run checkSheetMapping() to confirm everything resolves.');
 }

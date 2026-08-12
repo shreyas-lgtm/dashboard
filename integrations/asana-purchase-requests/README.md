@@ -26,7 +26,15 @@ Pending → Quotation Awaited → Ordered → Handed Over
 
 `Cancelled` and `Rework` are not price-gated; `Ordered` and `Handed Over` are.
 
-People change status by dragging a card. The sheet follows within ten minutes.
+Status is **two-way**: drag a card on the board and the sheet follows within
+ten minutes, or pick a status from the sheet's `Order Status` dropdown and the
+card moves within seconds. Both directions enforce the same price gate. The
+board remains the source of truth when the two disagree — a sheet value that
+does not correspond to a real move (a typo, an unknown status, a gated change
+without a price) is restored from the board's actual section.
+
+A status typed before a request is approved is cleared: there is no card yet
+for it to describe.
 
 ### The price gate
 
