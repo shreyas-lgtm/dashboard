@@ -1519,9 +1519,9 @@ function checkSheetMapping() {
     const idx = cols.fields[key];
     if (idx === undefined) missing.push(key);
     console.log(
-      '  %s  %-16s %s',
+      '  %s  %s %s',
       idx === undefined ? 'MISSING' : 'col ' + letter(idx).padEnd(3),
-      key,
+      key.padEnd(16),
       idx === undefined ? '(tried: ' + COL[key].join(' | ') + ')' : ''
     );
   });
