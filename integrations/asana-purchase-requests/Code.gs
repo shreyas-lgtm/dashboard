@@ -178,7 +178,12 @@ const COL = {
   urgency: ['Urgency Level', 'Urgency'],
   vendor: ['Preferred Vendor/ Source', 'Preferred Vendor/Source', 'Preferred Vendor', 'Vendor'],
   prId: ['PR_ID', 'PR ID'],
-  price: ['Price (INR)', 'Price', 'Final Price', 'Price INR'],
+  // The gate's price: procurement's final quotation price, entered by hand.
+  // 'Final Price' is listed first so it wins even if the form also has a
+  // column named 'Price (INR)' -- that one is the requester's estimate.
+  price: ['Final Price (INR)', 'Final Price', 'Price (INR)', 'Price', 'Price INR'],
+  // The requester's estimate from the form. Shown on the ticket, never gates.
+  estimatedPrice: ['Estimated Price (INR)', 'Estimated Price', 'Budget (INR)', 'Budget'],
   // The routing key on the new form.
   productType: ['Product type', 'Product Type', 'Item Type', 'Product Main Category'],
   // Status, synced back from Asana. Auto-created if missing.
@@ -803,6 +808,7 @@ function buildNotes_(get, route, approval) {
     ['Product type', get('productType')],
     ['Urgency', get('urgency')],
     ['Preferred vendor', get('vendor')],
+    ['Estimated price (INR)', get('estimatedPrice')],
   ].filter(function (r) { return r[1]; });
 
   const pad = Math.max.apply(null, rows.map(function (r) { return r[0].length; }));
@@ -1688,6 +1694,23 @@ function setupApprovalColumns() {
     }
   } else {
     console.log('"Order Status" already exists; left in place (drag it wherever you like).');
+  }
+
+  // Procurement's price, next to Order Status so both live in their zone.
+  // Distinct from the form's own price question, which is the requester's
+  // estimate: the gate reads THIS column only.
+  if (!col('Final Price')) {
+    const anchor = col('Order Status');
+    if (anchor) {
+      sheet.insertColumnAfter(anchor);
+      sheet.getRange(1, anchor + 1).setValue('Final Price');
+      console.log('Inserted "Final Price" after Order Status.');
+    } else {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue('Final Price');
+      console.log('Appended "Final Price" at the end.');
+    }
+  } else {
+    console.log('"Final Price" already exists; left in place.');
   }
 
   // The date stamps, appended at the end -- script-written, nobody types here.

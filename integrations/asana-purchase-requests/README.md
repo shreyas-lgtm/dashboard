@@ -52,7 +52,14 @@ it with `setupSyncTrigger(5)` if that feels too loose.
 No revert loop is possible: after the move, Asana matches the sheet, so the next
 poll sees no difference and says nothing further.
 
-**Price is only ever entered in the responses sheet**, never in Asana. A card
+**Two prices exist and only one gates.** The form's own price question is the
+requester's *estimate* — it rides along on the ticket as context and never
+gates anything. The gate reads the **`Final Price`** column, which procurement
+fills by hand from the actual quotation. Rename the form question to
+"Estimated Price (INR)" so the two are unambiguous; even unrenamed, `Final
+Price` wins the lookup.
+
+**The final price is only ever entered in the responses sheet**, never in Asana. A card
 cannot leave Quotation Awaited for Ordered until a price exists on that PR ID's
 row — and it must contain at least one digit. `NA`, `-`, `TBD` and formula
 errors like `#N/A` do not count; the old sheet's placeholder habits would

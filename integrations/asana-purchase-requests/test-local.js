@@ -680,5 +680,30 @@ eq('date columns are created by the script',
 eq('a fresh Order Status lands next to the approvals',
    /col\('Order Status'\)[\s\S]{0,300}col\('Final Approval'\) \|\| col\('Lead Approval'\)/.test(src), true);
 
+// ---------------------------------------------------------------------------
+console.log("\n-- estimate vs final price: the gate reads procurement's number --");
+eq('Final Price outranks the form column in candidate order',
+   JSON.stringify(api.COL.price.slice(0, 2)), JSON.stringify(['Final Price (INR)', 'Final Price']));
+eq('estimate is its own field', 'estimatedPrice' in api.COL, true);
+eq('the gate still keys on `price`', api.REQUIRED_FIELDS.includes('price'), true);
+eq('...and never on the estimate', api.REQUIRED_FIELDS.includes('estimatedPrice'), false);
+
+// With both columns present, `price` must resolve to Final Price.
+const HDR2 = ['Timestamp', 'Email address', 'Product type', 'Lead Approval', 'Final Approval',
+  'Item Name/ Description', 'Quantity', 'Price (INR)', 'PR_ID', 'Order Status', 'Final Price'];
+const cols2 = api.resolveColumns_(fakeSheet(HDR2));
+eq('price resolves to the Final Price column', cols2.fields.price, 10);
+eq('estimate resolves to nothing until the question is renamed',
+   cols2.fields.estimatedPrice, undefined);
+const HDR3 = HDR2.slice(); HDR3[7] = 'Estimated Price (INR)';
+const cols3 = api.resolveColumns_(fakeSheet(HDR3));
+eq('renamed question maps as the estimate', cols3.fields.estimatedPrice, 7);
+
+// The ticket shows the estimate.
+const est = api.buildNotes_(g({ item: 'Widget', estimatedPrice: '700000' }), route);
+eq('ticket carries the estimated price', est.includes('Estimated price (INR)'), true);
+eq('setupApprovalColumns creates Final Price beside Order Status',
+   /col\('Final Price'\)[\s\S]{0,200}col\('Order Status'\)/.test(src), true);
+
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);
