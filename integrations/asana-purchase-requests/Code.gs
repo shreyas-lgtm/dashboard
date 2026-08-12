@@ -408,6 +408,10 @@ function onApprovalEdit(e) {
   };
   if (!touched(cols.approval) && !touched(cols.finalApproval)) return;
 
+  // Direction of the edit decides whether Final Approval overrides: it wins
+  // when IT was the column edited (a paste spanning both counts as final).
+  const finalEdited = touched(cols.finalApproval);
+
   const firstRow = Math.max(e.range.getRow(), 2); // never the header
   const lastRow = e.range.getLastRow();
   if (lastRow < firstRow) return;
@@ -418,7 +422,7 @@ function onApprovalEdit(e) {
   try {
     for (let row = firstRow; row <= lastRow; row++) {
       try {
-        processRow_(sheet, row, cols);
+        processRow_(sheet, row, cols, finalEdited);
       } catch (err) {
         handleRowError_(sheet, row, cols, err);
       }
@@ -438,10 +442,10 @@ function onApprovalEdit(e) {
  * Any other value, including blank, is ignored. Returns the task URL when one was
  * created, otherwise null.
  */
-function processRow_(sheet, row, cols) {
+function processRow_(sheet, row, cols, finalEdited) {
   const values = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
 
-  const approval = effectiveDecision_(values, cols);
+  const approval = effectiveDecision_(values, cols, finalEdited);
   const decision = approval.decision;
   if (!decision) return null;
 
@@ -490,12 +494,16 @@ function processRow_(sheet, row, cols) {
   }
 
   if (isDecision_(decision, 'reject')) {
-    notifyRequester_('rejected', values, cols);
-    if (!actionable) return null;
-
     const current = cols.fields.status === undefined
       ? ''
       : cellText_(values[cols.fields.status]);
+
+    // Already cancelled: repeating the email and the card comment is spam.
+    if (actionable && sameStatus_(current, CFG.rejectedStatus)) return null;
+
+    notifyRequester_('rejected', values, cols);
+    if (!actionable) return null;
+
     const which = approval.source === 'final' ? 'Final Approval' : 'Lead Approval';
 
     // Past Ordered the request cannot just be cancelled -- money is committed or
@@ -522,12 +530,15 @@ function processRow_(sheet, row, cols) {
   }
 
   if (isDecision_(decision, 'reverify')) {
-    notifyRequester_('reverify', values, cols);
-    if (!actionable) return null;
-
     const current = cols.fields.status === undefined
       ? ''
       : cellText_(values[cols.fields.status]);
+
+    // Already in Rework: the requester has been told once.
+    if (actionable && sameStatus_(current, CFG.reverifyStatus)) return null;
+
+    notifyRequester_('reverify', values, cols);
+    if (!actionable) return null;
 
     // Sending an already-ordered item back to Rework would misrepresent it as
     // pending when it is not.
@@ -562,7 +573,7 @@ function isDecision_(value, key) {
  *
  * Returns { decision, source: 'lead' | 'final', cascade: boolean }.
  */
-function effectiveDecision_(values, cols) {
+function effectiveDecision_(values, cols, finalEdited) {
   const lead = cellText_(values[cols.approval]);
 
   if (!CFG.finalApprovalOverrides || cols.finalApproval === undefined) {
@@ -571,6 +582,16 @@ function effectiveDecision_(values, cols) {
 
   const final = cellText_(values[cols.finalApproval]);
   if (!final) return { decision: lead, source: 'lead', cascade: false };
+
+  // Direction-aware: Final Approval cascades at the moment IT is edited (and in
+  // backfill, where the stored value is all there is). A later edit to Lead
+  // Approval stands on its own -- without this, a stale Final Approval would
+  // permanently overwrite every subsequent lead decision, and after a
+  // Re-verify was resolved the lead could never approve: each attempt would be
+  // rewritten back, re-emailing the requester every time.
+  if (finalEdited === false) {
+    return { decision: lead, source: 'lead', cascade: false };
+  }
 
   // All three decisions cascade: a filled Final Approval IS the decision, and
   // Lead Approval is rewritten to match it. The reverse never happens -- Lead
@@ -827,6 +848,16 @@ function syncStatusesFromAsana() {
     const unknownSections = {};
 
     tasks.forEach(function (task) {
+      // Isolated per task: one failure (a rate-limit blip, a task deleted
+      // mid-run) must not abort the sync for every task after it.
+      try {
+        syncOneTask_(task);
+      } catch (err) {
+        console.error('Sync failed for task ' + task.gid + ': ' + err.message);
+      }
+    });
+
+    function syncOneTask_(task) {
       const row = rowByGid[task.gid];
       if (!row) return; // a task created by hand in Asana; nothing to sync to
 
@@ -881,7 +912,7 @@ function syncStatusesFromAsana() {
       }
 
       synced++;
-    });
+    }
 
     if (synced || blocked || commentsUpdated) {
       console.log(

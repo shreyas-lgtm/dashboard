@@ -596,8 +596,8 @@ eq('existence guard accepts URL or GID',
    src.includes("const hasCard = (!!url && url.indexOf('ERROR') !== 0) || !!gid;"), true);
 eq('action guard requires the GID', src.includes('const actionable = !!gid;'), true);
 eq('approve branch checks hasCard', /if \(isDecision_\(decision, 'approve'\)\) \{[\s\S]{0,200}if \(hasCard\)/.test(src), true);
-eq('reject branch requires actionable', /'reject'\)\) \{[\s\S]{0,120}if \(!actionable\) return null;/.test(src), true);
-eq('reverify branch requires actionable', /'reverify'\)\) \{[\s\S]{0,120}if \(!actionable\) return null;/.test(src), true);
+eq('reject branch requires actionable', /'reject'\)\) \{[\s\S]{0,600}if \(!actionable\) return null;/.test(src), true);
+eq('reverify branch requires actionable', /'reverify'\)\) \{[\s\S]{0,600}if \(!actionable\) return null;/.test(src), true);
 // The GID is the sync key, so if only one write survives it must be that one.
 const gidWrite = src.indexOf('cols.taskGid + 1).setValue(task.gid)');
 const urlWrite = src.indexOf('cols.taskUrl + 1).setValue(task.url)');
@@ -614,6 +614,44 @@ eq('the recheck happens before the comment sync',
 console.log('\n-- pagination offset is URL-encoded --');
 eq('offset passes through encodeURIComponent',
    src.includes("encodeURIComponent(offset)"), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- direction-aware cascade (the Re-verify deadlock fix) --');
+// Scenario that used to deadlock: final said Re-verify, requester fixed the
+// issue, lead sets Approved -- the lead's edit must stand, not be overwritten
+// by the stale final value.
+d = api.effectiveDecision_(mkRow('Approved', 'Re-verify'), WITH_FINAL, false);
+eq('lead edit stands against a stale final Re-verify', d.decision, 'Approved');
+eq('  ...no cascade rewrite', d.cascade, false);
+d = api.effectiveDecision_(mkRow('Approved', 'Rejected'), WITH_FINAL, false);
+eq('lead edit stands against a stale final Rejected', d.decision, 'Approved');
+
+// When the FINAL column is the one edited, it wins as before.
+d = api.effectiveDecision_(mkRow('Approved', 'Re-verify'), WITH_FINAL, true);
+eq('editing final: Re-verify overrides', d.decision, 'Re-verify');
+d = api.effectiveDecision_(mkRow('Approved', 'Rejected'), WITH_FINAL, true);
+eq('editing final: Rejected overrides', d.decision, 'Rejected');
+
+// Backfill has no edit event; the stored final decision is authoritative.
+d = api.effectiveDecision_(mkRow('Re-verify', 'Approved'), WITH_FINAL);
+eq('no flag (backfill): final still governs', d.decision, 'Approved');
+
+eq('onApprovalEdit derives the direction from the edited range',
+   src.includes('const finalEdited = touched(cols.finalApproval);'), true);
+eq('...and passes it through to processRow_',
+   src.includes('processRow_(sheet, row, cols, finalEdited)'), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- repeat decisions do not repeat notifications --');
+eq('reject skips when already Cancelled',
+   /sameStatus_\(current, CFG\.rejectedStatus\)\) return null;/.test(src), true);
+eq('reverify skips when already in Rework',
+   /sameStatus_\(current, CFG\.reverifyStatus\)\) return null;/.test(src), true);
+
+// ---------------------------------------------------------------------------
+console.log('\n-- one bad task cannot abort the sync --');
+eq('each task syncs inside its own try/catch',
+   /try \{\s*syncOneTask_\(task\);\s*\} catch/.test(src), true);
 
 console.log(fail ? `\n${fail} FAILURE(S)` : '\nAll assertions passed.');
 process.exit(fail ? 1 : 0);

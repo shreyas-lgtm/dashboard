@@ -137,11 +137,22 @@ automatically. A blank Final Approval changes nothing.
 | `Approved` | `Approved` | Approved | no — already agrees |
 | anything | *(blank or unrecognised)* | the Lead Approval value | no |
 
-A **final rejection outranks a lead approval too**. Without that, a request the
-senior overruled would still be ordered — so the override works in both
-directions. All three decisions cascade: a filled Final Approval *is* the
-decision, and Lead Approval is rewritten to match. The reverse never happens —
-Lead Approval is never written into Final Approval.
+A **final rejection outranks a lead approval too**. All three decisions cascade:
+a filled Final Approval *is* the decision at the moment it is set, and Lead
+Approval is rewritten to match. The reverse never happens — Lead Approval is
+never written into Final Approval.
+
+**The override is direction-aware.** Final Approval wins *when it is the column
+being edited*; a **later** edit to Lead Approval stands on its own, even if an
+old Final Approval value is still sitting in its cell. Without this, resolving a
+Re-verify would be impossible: the lead's eventual "Approved" would be endlessly
+rewritten back to Re-verify by the stale final value, re-emailing the requester
+each time. (During backfill there is no edit event, so the stored Final Approval
+is treated as authoritative.)
+
+Repeat decisions are quiet: re-selecting `Rejected` on an already-cancelled
+request, or `Re-verify` on one already in Rework, does nothing rather than
+re-emailing the requester and re-commenting the card.
 
 The cascade is written back to the Lead Approval cell so the sheet stays
 self-consistent and anything filtering on that column keeps working. A script
