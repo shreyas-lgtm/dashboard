@@ -32,9 +32,11 @@ const CONFIG = {
 
 function getSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(CONFIG.SHEET_NAME);
-  if (!sh) throw new Error(`Sheet not found: ${CONFIG.SHEET_NAME}`);
-  return sh;
+  const names = [CONFIG.SHEET_NAME].concat(SHEET_NAME_ALIASES);
+  for (const n of names) { const sh = ss.getSheetByName(n); if (sh) return sh; }
+  const match = ss.getSheets().filter(sh => isResponsesSheet_(sh))[0];
+  if (match) return match;
+  throw new Error(`Responses sheet not found. Tried: ${names.join(', ')}`);
 }
 
 function getHeaderMap_(sh) {
@@ -54,6 +56,92 @@ function col_(map, headerName) {
 function colAny_(map, ...names) {
   for (const n of names) { if (map[n]) return map[n]; }
   return 0; // 0 - 1 = -1 in colIdx
+}
+
+/**************** SHEET / HEADER RESOLUTION ****************/
+
+/**
+ * Tab names the responses sheet has gone by. The form has been reconfigured
+ * since this script was written, so resolve the sheet by any of these rather
+ * than by one hard-coded literal.
+ */
+const SHEET_NAME_ALIASES = [
+  "Form responses 1", "Form_Responses", "Form Responses", "Form responses"
+];
+
+/**
+ * Header text each logical field has gone by. Later form revisions renamed
+ * columns (PR_ID -> UID, Final Approval -> Lead Approval, Part Number/Link ->
+ * Part Number/ Model Number), which broke every lookup that hard-coded the old
+ * text. Aliases are tried in order, so for FINAL_APPROVAL the explicitly
+ * founder-facing names come first: a sheet that carries both a founder column
+ * and a lead column resolves to the founder one.
+ */
+const HEADER_ALIASES = {
+  TIMESTAMP:        ["Timestamp"],
+  EMAIL:            ["Email address", "Email"],
+  ITEM:             ["Item Name/ Description", "Item Name/Description", "Item Name"],
+  QTY:              ["Quantity", "Qty"],
+  ESTIMATE:         ["Estimate", "Estimated Cost"],
+  PART_NUMBER:      ["Part Number/ Model Number", "Part Number/Link", "Part Number"],
+  LINK:             ["Link"],
+  JUSTIFICATION:    ["Justification for Purchase", "Justification"],
+  FINAL_APPROVAL:   ["Founder Approval", "Final Approval", "Lead Approval"],
+  MANAGER_APPROVAL: ["Department Approval", "Manager Approval", "Dept Approval",
+                     "Departmental Approval", "Column 9"],
+  URGENCY_LEVEL:    ["Urgency Level"],
+  TEAM:             ["Team"],
+  PREFERRED_VENDOR: ["Preferred Vendor/ Source", "Preferred Vendor/Source",
+                     "Preferred Vendor", "Vendor"],
+  PR_ID:            ["PR_ID", "PR ID", "UID"],
+  ATTACHMENT:       ["Attachment", "Attachments"],
+  ORDER_STATUS:     ["Order Status", "Status"],
+  PRODUCT_CATEGORY: ["Product Main Category", "Product Category", "Main Category"],
+  LEAD_TIME:        ["Lead time", "Actual Arrival"],
+  ETA:              ["ETA", "Expected Delivery"],
+  APPROVAL_DATE:    ["Approval Date"],
+  ORDERED_DATE:     ["Ordered Date"]
+};
+
+/**
+ * Normalises a header for comparison: drops case, punctuation and any trailing
+ * "(...)" note, so "Urgency Level (Standard timeline is 3 weeks)" still matches
+ * "Urgency Level".
+ */
+function normHeader_(s) {
+  return String(s == null ? '' : s)
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[^A-Za-z0-9]+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+/** Column number for a logical field, or 0 when the sheet has no such column. */
+function resolveCol_(headerMap, fieldKey) {
+  const aliases = HEADER_ALIASES[fieldKey] || [fieldKey];
+  for (const a of aliases) { if (headerMap[a]) return headerMap[a]; }
+  // Fall back to a punctuation-insensitive comparison.
+  const normalised = {};
+  Object.keys(headerMap).forEach(h => {
+    const n = normHeader_(h);
+    if (n && !normalised[n]) normalised[n] = headerMap[h];
+  });
+  for (const a of aliases) {
+    const c = normalised[normHeader_(a)];
+    if (c) return c;
+  }
+  return 0;
+}
+
+/** The display name an alias set is known by, for use in error messages. */
+function fieldLabel_(fieldKey) {
+  return (HEADER_ALIASES[fieldKey] || [fieldKey])[0];
+}
+
+/** True when the given sheet is the form responses sheet, under any of its names. */
+function isResponsesSheet_(sh) {
+  const n = normHeader_(sh.getName());
+  return SHEET_NAME_ALIASES.some(a => normHeader_(a) === n);
 }
 
 /**
@@ -328,8 +416,14 @@ function viewExportSummary() {
 
 /**************** PAYMENT REPORT ****************/
 const PAYMENT_CONFIG = {
-  SOURCE_SHEET: "Form responses 1", PAYMENT_REPORT_SHEET: "Founder Payment Report",
-  REPORT_COLUMNS: { PR_ID: "PR_ID", VENDOR: "Preferred Vendor/ Source", ITEM: "Item Name/ Description", QUANTITY: "Quantity", PRODUCT_CATEGORY: "Product Main Category", ORDER_STATUS: "Order Status", FINAL_APPROVAL: "Final Approval" }
+  PAYMENT_REPORT_SHEET: "Founder Payment Report",
+  HEADERS: ["Select","PR_ID","Item Name/ Description","Quantity","Vendor Name","Bill No.","Founder Approval","Product Main Category","Sub Category","Amount"],
+  /** Logical source fields the report pulls, resolved through HEADER_ALIASES. */
+  SOURCE_FIELDS: ["PR_ID","ITEM","QTY","PREFERRED_VENDOR","FINAL_APPROVAL","PRODUCT_CATEGORY"],
+  /** Without these the report row is meaningless; the rest degrade to blank. */
+  REQUIRED_FIELDS: ["PR_ID","ITEM"],
+  /** PR_ID lives in column B of the report (column A is the Select checkbox). */
+  PR_ID_COL: 2
 };
 
 function getOrCreatePaymentReportSheet_() {
@@ -337,41 +431,135 @@ function getOrCreatePaymentReportSheet_() {
   let rs = ss.getSheetByName(PAYMENT_CONFIG.PAYMENT_REPORT_SHEET);
   if (!rs) {
     rs = ss.insertSheet(PAYMENT_CONFIG.PAYMENT_REPORT_SHEET);
-    const h = ["Select","PR_ID","Item Name/ Description","Quantity","Vendor Name","Bill No.","Founder Approval","Product Main Category","Sub Category","Amount"];
+    const h = PAYMENT_CONFIG.HEADERS;
     rs.getRange(1,1,1,h.length).setValues([h]).setFontWeight("bold").setBackground("#0F9D58").setFontColor("#FFFFFF").setHorizontalAlignment("center");
     rs.setFrozenRows(1);
   }
   return rs;
 }
 
+/**
+ * Resolves every source column the report needs. Collects the misses instead of
+ * throwing on the first one, so the user sees all the header problems at once
+ * rather than fixing them one alert at a time.
+ */
+function resolvePaymentColumns_(sh) {
+  const headerMap = getHeaderMap_(sh);
+  const byCol = {};
+  Object.keys(headerMap).forEach(h => { byCol[headerMap[h]] = h; });
+  const cols = {}, usedHeader = {}, missingRequired = [], missingOptional = [];
+  for (const key of PAYMENT_CONFIG.SOURCE_FIELDS) {
+    const c = resolveCol_(headerMap, key);
+    if (c) { cols[key] = c; usedHeader[key] = byCol[c]; continue; }
+    if (PAYMENT_CONFIG.REQUIRED_FIELDS.indexOf(key) >= 0) missingRequired.push(fieldLabel_(key));
+    else missingOptional.push(fieldLabel_(key));
+  }
+  return { cols, usedHeader, missingRequired, missingOptional, headerMap };
+}
+
+/** Sub Category / Amount already recorded in the Expense Tracker, keyed by PR_ID. */
+function expenseDetailsByPrId_() {
+  const es = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(EXPORT_CONFIG.EXPORT_SHEET);
+  const map = {};
+  // The tracker is a convenience, not a prerequisite — a missing one just means
+  // Sub Category and Amount get filled in by hand.
+  if (!es || es.getLastRow() < 2) return map;
+  es.getRange(2, 1, es.getLastRow() - 1, 9).getValues().forEach(r => {
+    const id = String(r[0] || '').trim();
+    if (id && !map[id]) map[id] = { sub: r[4] || "", amt: r[5] || "" };
+  });
+  return map;
+}
+
+/** PR_IDs already in the report, as a lookup set. */
+function reportPrIds_(rs) {
+  const set = {};
+  if (rs.getLastRow() < 2) return set;
+  rs.getRange(2, PAYMENT_CONFIG.PR_ID_COL, rs.getLastRow() - 1, 1).getValues()
+    .forEach(r => { const id = String(r[0] || '').trim(); if (id) set[id] = true; });
+  return set;
+}
+
+/** Builds one report row from an already-read source row. */
+function buildReportRow_(srcRow, cols, expense) {
+  const at = key => (cols[key] ? (srcRow[cols[key] - 1] || "") : "");
+  const prId = String(at('PR_ID')).trim();
+  const ed = expense[prId] || { sub: "", amt: "" };
+  return [false, prId, at('ITEM'), at('QTY'), at('PREFERRED_VENDOR'), "",
+          at('FINAL_APPROVAL'), at('PRODUCT_CATEGORY'), ed.sub, ed.amt];
+}
+
+/** Writes the rows and turns column A into checkboxes in one pass. */
+function appendReportRows_(rs, rows) {
+  if (!rows.length) return;
+  const start = rs.getLastRow() + 1;
+  rs.getRange(start, 1, rows.length, PAYMENT_CONFIG.HEADERS.length).setValues(rows);
+  rs.getRange(start, 1, rows.length, 1).insertCheckboxes();
+}
+
+/**
+ * The report's "Founder Approval" column is only as trustworthy as the source
+ * column it was read from, and the form has renamed that column. Say which one
+ * was used whenever it isn't the canonical "Founder Approval" header.
+ */
+function approvalSourceNote_(res) {
+  const used = res.usedHeader && res.usedHeader.FINAL_APPROVAL;
+  if (!used) return '\n\nNo founder/lead approval column found — "Founder Approval" left blank.';
+  if (used === fieldLabel_('FINAL_APPROVAL')) return '';
+  return `\n\nFounder Approval read from the "${used}" column.`;
+}
+
 function addItemsToFounderReport() {
+  const ui = SpreadsheetApp.getUi();
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet(); const ui = SpreadsheetApp.getUi();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
     const resp = ui.prompt('Add Items','Enter PR_IDs (comma-separated):',ui.ButtonSet.OK_CANCEL);
     if (resp.getSelectedButton() !== ui.Button.OK) return;
     const prIds = resp.getResponseText().trim().split(',').map(s=>s.trim()).filter(Boolean);
     if (!prIds.length) { ui.alert('No PR_IDs'); return; }
-    const src = getSheet_(); const hm = getHeaderMap_(src); const rs = getOrCreatePaymentReportSheet_();
-    const es = ss.getSheetByName(EXPORT_CONFIG.EXPORT_SHEET); if (!es) { ui.alert('Expense Tracker not found'); return; }
-    const em = {}; if (es.getLastRow()>=2) es.getRange(2,1,es.getLastRow()-1,9).getValues().forEach(r => { em[r[0]] = {sub:r[4]||"",amt:r[5]||""}; });
-    const pc = col_(hm,PAYMENT_CONFIG.REPORT_COLUMNS.PR_ID); let added=0, nf=[];
-    for (const sid of prIds) {
-      let found = false;
-      for (let r = 2; r <= src.getLastRow(); r++) {
-        if (src.getRange(r,pc).getValue() === sid) {
-          found = true;
-          if (rs.getLastRow()>=2 && rs.getRange(2,2,rs.getLastRow()-1,1).getValues().flat().includes(sid)) break;
-          const ed = em[sid]||{sub:"",amt:""};
-          rs.appendRow([false, sid, src.getRange(r,col_(hm,PAYMENT_CONFIG.REPORT_COLUMNS.ITEM)).getValue()||"", src.getRange(r,col_(hm,PAYMENT_CONFIG.REPORT_COLUMNS.QUANTITY)).getValue()||"", src.getRange(r,col_(hm,PAYMENT_CONFIG.REPORT_COLUMNS.VENDOR)).getValue()||"", "", src.getRange(r,col_(hm,PAYMENT_CONFIG.REPORT_COLUMNS.FINAL_APPROVAL)).getValue()||"", src.getRange(r,col_(hm,PAYMENT_CONFIG.REPORT_COLUMNS.PRODUCT_CATEGORY)).getValue()||"", ed.sub, ed.amt]);
-          rs.getRange(rs.getLastRow(),1).insertCheckboxes(); added++; break;
-        }
-      }
-      if (!found) nf.push(sid);
+
+    const src = getSheet_();
+    const res = resolvePaymentColumns_(src);
+    if (res.missingRequired.length) {
+      ui.alert(`Cannot build the report — "${src.getName()}" has no column for: ${res.missingRequired.join(', ')}.\n\n` +
+               `Headers found: ${Object.keys(res.headerMap).join(' | ')}`);
+      return;
     }
+    const cols = res.cols;
+    const rs = getOrCreatePaymentReportSheet_();
+    const expense = expenseDetailsByPrId_();
+    const seen = reportPrIds_(rs);
+
+    // One read of the source range, then an index. The previous version called
+    // getValue() once per row per requested PR_ID, which is O(rows x ids) round
+    // trips to the sheet and timed out once the form had a few hundred rows.
+    const lastRow = src.getLastRow();
+    const data = lastRow >= 2 ? src.getRange(2, 1, lastRow - 1, src.getLastColumn()).getValues() : [];
+    const byPrId = {};
+    data.forEach(row => {
+      const id = String(row[cols.PR_ID - 1] || '').trim();
+      if (id && !byPrId[id]) byPrId[id] = row;
+    });
+
+    const rows = [], duplicates = [], notFound = [];
+    for (const sid of prIds) {
+      const row = byPrId[sid];
+      if (!row) { notFound.push(sid); continue; }
+      if (seen[sid]) { duplicates.push(sid); continue; }
+      seen[sid] = true;                       // also de-dupes a repeat within one prompt
+      rows.push(buildReportRow_(row, cols, expense));
+    }
+    appendReportRows_(rs, rows);
     SpreadsheetApp.flush();
-    let msg = `Added ${added} item(s)`; if (nf.length) msg += `\nNot found: ${nf.join(', ')}`;
-    ui.alert(msg); ss.setActiveSheet(rs);
-  } catch (e) { SpreadsheetApp.getUi().alert(`Error: ${e.message}`); }
+
+    let msg = `Added ${rows.length} item(s)`;
+    if (duplicates.length) msg += `\nAlready in report: ${duplicates.join(', ')}`;
+    if (notFound.length) msg += `\nNot found: ${notFound.join(', ')}`;
+    if (res.missingOptional.length) msg += `\n\nLeft blank (no such column in "${src.getName()}"): ${res.missingOptional.join(', ')}`;
+    msg += approvalSourceNote_(res);
+    ui.alert(msg);
+    ss.setActiveSheet(rs);
+  } catch (e) { ui.alert(`Error: ${e.message}`); }
 }
 
 function removeCheckedItems() {
@@ -394,20 +582,36 @@ function clearFounderReport() {
 }
 
 function addCurrentRowToReport() {
+  const ui = SpreadsheetApp.getUi();
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet(); const as = ss.getActiveSheet(); const ar = as.getActiveRange();
-    if (!ar || as.getName()!==CONFIG.SHEET_NAME || ar.getRow()===1) { SpreadsheetApp.getUi().alert('Select a data row in Form responses 1'); return; }
-    const hm = getHeaderMap_(as); const prId = as.getRange(ar.getRow(), col_(hm, PAYMENT_CONFIG.REPORT_COLUMNS.PR_ID)).getValue();
-    if (!prId) { SpreadsheetApp.getUi().alert('No PR_ID'); return; }
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const as = ss.getActiveSheet();
+    const ar = as.getActiveRange();
+    if (!ar || !isResponsesSheet_(as) || ar.getRow() === 1) {
+      ui.alert(`Select a data row in the responses sheet (e.g. "${SHEET_NAME_ALIASES[1]}").`);
+      return;
+    }
+    const res = resolvePaymentColumns_(as);
+    if (res.missingRequired.length) {
+      ui.alert(`Cannot build the report — "${as.getName()}" has no column for: ${res.missingRequired.join(', ')}.`);
+      return;
+    }
+    const cols = res.cols;
+    const row = as.getRange(ar.getRow(), 1, 1, as.getLastColumn()).getValues()[0];
+    const prId = String(row[cols.PR_ID - 1] || '').trim();
+    if (!prId) { ui.alert(`Row ${ar.getRow()} has no ${fieldLabel_('PR_ID')}`); return; }
+
     const rs = getOrCreatePaymentReportSheet_();
-    if (rs.getLastRow()>=2 && rs.getRange(2,2,rs.getLastRow()-1,1).getValues().flat().includes(prId)) { SpreadsheetApp.getUi().alert(`${prId} already in report`); return; }
-    const es = ss.getSheetByName(EXPORT_CONFIG.EXPORT_SHEET); let sub="",amt="";
-    if (es && es.getLastRow()>=2) { for (const r of es.getRange(2,1,es.getLastRow()-1,9).getValues()) { if (r[0]===prId) { sub=r[4]||""; amt=r[5]||""; break; } } }
-    const row = ar.getRow();
-    rs.appendRow([false, prId, as.getRange(row,col_(hm,PAYMENT_CONFIG.REPORT_COLUMNS.ITEM)).getValue()||"", as.getRange(row,col_(hm,PAYMENT_CONFIG.REPORT_COLUMNS.QUANTITY)).getValue()||"", as.getRange(row,col_(hm,PAYMENT_CONFIG.REPORT_COLUMNS.VENDOR)).getValue()||"", "", as.getRange(row,col_(hm,PAYMENT_CONFIG.REPORT_COLUMNS.FINAL_APPROVAL)).getValue()||"", as.getRange(row,col_(hm,PAYMENT_CONFIG.REPORT_COLUMNS.PRODUCT_CATEGORY)).getValue()||"", sub, amt]);
-    rs.getRange(rs.getLastRow(),1).insertCheckboxes(); SpreadsheetApp.flush();
-    SpreadsheetApp.getUi().alert(`Added ${prId}`); ss.setActiveSheet(rs);
-  } catch (e) { SpreadsheetApp.getUi().alert(`Error: ${e.message}`); }
+    if (reportPrIds_(rs)[prId]) { ui.alert(`${prId} already in report`); return; }
+
+    appendReportRows_(rs, [buildReportRow_(row, cols, expenseDetailsByPrId_())]);
+    SpreadsheetApp.flush();
+    let msg = `Added ${prId}`;
+    if (res.missingOptional.length) msg += `\nLeft blank (no such column): ${res.missingOptional.join(', ')}`;
+    msg += approvalSourceNote_(res);
+    ui.alert(msg);
+    ss.setActiveSheet(rs);
+  } catch (e) { ui.alert(`Error: ${e.message}`); }
 }
 
 function onOpen() {
