@@ -52,6 +52,13 @@ function col_(map, headerName) {
   return c;
 }
 
+/** Column number for a logical field, throwing if the sheet has no such column. */
+function reqCol_(map, fieldKey) {
+  const c = resolveCol_(map, fieldKey);
+  if (!c) throw new Error(`Missing column for ${fieldKey}. Tried: ${(HEADER_ALIASES[fieldKey] || [fieldKey]).join(', ')}`);
+  return c;
+}
+
 /** Like col_() but tries multiple names and returns -1 (not found) instead of throwing */
 function colAny_(map, ...names) {
   for (const n of names) { if (map[n]) return map[n]; }
@@ -206,7 +213,7 @@ function normaliseApproval_(raw) {
 
 function nextPRID_(sh, headerMap) {
   try {
-    const prCol = col_(headerMap, CONFIG.HEADERS.PR_ID);
+    const prCol = reqCol_(headerMap, 'PR_ID');
     const year = new Date().getFullYear();
     const prefix = `${CONFIG.PR_PREFIX}-${year}-`;
     const lastRow = sh.getLastRow();
@@ -230,8 +237,8 @@ function onFormSubmit(e) {
     const sh = getSheet_();
     const headerMap = getHeaderMap_(sh);
     const row = e.range.getRow();
-    const prCol = col_(headerMap, CONFIG.HEADERS.PR_ID);
-    const statusCol = col_(headerMap, CONFIG.HEADERS.ORDER_STATUS);
+    const prCol = reqCol_(headerMap, 'PR_ID');
+    const statusCol = reqCol_(headerMap, 'ORDER_STATUS');
     if (!sh.getRange(row, prCol).getValue()) sh.getRange(row, prCol).setValue(nextPRID_(sh, headerMap));
     if (!sh.getRange(row, statusCol).getValue()) sh.getRange(row, statusCol).setValue(CONFIG.ORDER_STATUS_DEFAULT);
   } catch (error) {
@@ -253,7 +260,7 @@ function testPRIDGeneration() {
 function backfillMissingPRIDs() {
   try {
     const sh = getSheet_(); const headerMap = getHeaderMap_(sh);
-    const prCol = col_(headerMap, CONFIG.HEADERS.PR_ID);
+    const prCol = reqCol_(headerMap, 'PR_ID');
     const lastRow = sh.getLastRow(); let count = 0;
     for (let row = 2; row <= lastRow; row++) {
       if (!sh.getRange(row, prCol).getValue()) {
@@ -269,21 +276,24 @@ function backfillMissingPRIDs() {
 
 function sendPRUpdateEmail_(sh, headerMap, row, editedCol) {
   const H = CONFIG.HEADERS;
-  const email = sh.getRange(row, col_(headerMap, H.EMAIL)).getValue();
+  // Read whatever the sheet still has; a renamed or removed column blanks that
+  // line rather than throwing and losing the whole notification.
+  const at = key => { const c = resolveCol_(headerMap, key); return c ? (sh.getRange(row, c).getValue() || "") : ""; };
+  const email = at('EMAIL');
   if (!email) return;
-  const prId = sh.getRange(row, col_(headerMap, H.PR_ID)).getValue() || "(no PR_ID)";
-  const item = sh.getRange(row, col_(headerMap, H.ITEM)).getValue() || "";
-  const qty = sh.getRange(row, col_(headerMap, H.QTY)).getValue() || "";
-  const estimate = sh.getRange(row, col_(headerMap, H.ESTIMATE)).getValue() || "";
-  const orderStatus = sh.getRange(row, col_(headerMap, H.ORDER_STATUS)).getValue() || "";
-  const lead = sh.getRange(row, col_(headerMap, H.LEAD_TIME)).getValue() || "";
-  const eta = sh.getRange(row, col_(headerMap, H.ETA)).getValue() || "";
-  const fa = sh.getRange(row, col_(headerMap, H.FINAL_APPROVAL)).getValue() || "";
-  const ma = sh.getRange(row, col_(headerMap, H.MANAGER_APPROVAL)).getValue() || "";
-  const urg = sh.getRange(row, col_(headerMap, H.URGENCY_LEVEL)).getValue() || "";
-  const team = sh.getRange(row, col_(headerMap, H.TEAM)).getValue() || "";
-  const changed = Object.entries(H).find(([k, h]) => { try { return col_(headerMap, h) === editedCol; } catch(e) { return false; } });
-  const subject = `${prId} | ${changed ? changed[1] : "Purchase Request"} Updated`;
+  const prId = at('PR_ID') || "(no PR_ID)";
+  const item = at('ITEM');
+  const qty = at('QTY');
+  const estimate = at('ESTIMATE');
+  const orderStatus = at('ORDER_STATUS');
+  const lead = at('LEAD_TIME');
+  const eta = at('ETA');
+  const fa = at('FINAL_APPROVAL');
+  const ma = at('MANAGER_APPROVAL');
+  const urg = at('URGENCY_LEVEL');
+  const team = at('TEAM');
+  const changed = Object.keys(H).find(key => resolveCol_(headerMap, key) === editedCol);
+  const subject = `${prId} | ${changed ? H[changed] : "Purchase Request"} Updated`;
   const body = `Hi,\n\nUpdate on your Purchase Request.\n\nPR ID: ${prId}\nItem: ${item}\nQty: ${qty}\n${estimate ? 'Estimate: '+estimate+'\n' : ''}\nOrder Status: ${orderStatus||"Not set"}\nUrgency: ${urg||"Not set"}\nTeam: ${team||"Not set"}\n\nLead time: ${lead||"N/A"}\nETA: ${eta||"N/A"}\n\nFinal Approval: ${fa||"Pending"}\nManager Approval: ${ma||"Pending"}\n\nRegards,\nProcurement Team`;
   try { MailApp.sendEmail(email, subject, body); } catch(e) { Logger.log(`Email error: ${e.message}`); }
 }
@@ -292,7 +302,8 @@ function sendPRUpdateEmail_(sh, headerMap, row, editedCol) {
 const EXPORT_CONFIG = {
   SOURCE_SHEET: "Form responses 1", EXPORT_SHEET: "Expense Tracker",
   EXPORT_STATUSES: ["Paid", "Handed Over"],
-  EXPORT_COLUMNS: { ITEM: "Item Name/ Description", QUANTITY: "Quantity", PRODUCT_CATEGORY: "Product Main Category", PR_ID: "PR_ID", ORDER_STATUS: "Order Status", TIMESTAMP: "Timestamp" }
+  /** Logical fields, resolved through HEADER_ALIASES rather than literal text. */
+  EXPORT_FIELDS: ["PR_ID", "ITEM", "QTY", "PRODUCT_CATEGORY", "ORDER_STATUS", "TIMESTAMP"]
 };
 
 /**************** EXPENSE EXPORT FUNCTIONS ****************/
@@ -322,10 +333,11 @@ function updateExistingEntry_(es, prId, newStatus) {
 }
 
 function exportToExpenseTracker_(src, hm, row) {
-  const es = getOrCreateExpenseSheet_(); const EC = EXPORT_CONFIG.EXPORT_COLUMNS;
-  const prId = src.getRange(row, col_(hm, EC.PR_ID)).getValue();
-  if (isAlreadyExported_(es, prId)) { updateExistingEntry_(es, prId, src.getRange(row, col_(hm, EC.ORDER_STATUS)).getValue()); return false; }
-  es.appendRow([prId, src.getRange(row, col_(hm, EC.ITEM)).getValue(), src.getRange(row, col_(hm, EC.QUANTITY)).getValue(), src.getRange(row, col_(hm, EC.PRODUCT_CATEGORY)).getValue(), "", "", src.getRange(row, col_(hm, EC.ORDER_STATUS)).getValue(), new Date(), src.getRange(row, col_(hm, EC.TIMESTAMP)).getValue()]);
+  const es = getOrCreateExpenseSheet_();
+  const at = key => { const c = resolveCol_(hm, key); return c ? (src.getRange(row, c).getValue() || "") : ""; };
+  const prId = at('PR_ID');
+  if (isAlreadyExported_(es, prId)) { updateExistingEntry_(es, prId, at('ORDER_STATUS')); return false; }
+  es.appendRow([prId, at('ITEM'), at('QTY'), at('PRODUCT_CATEGORY'), "", "", at('ORDER_STATUS'), new Date(), at('TIMESTAMP')]);
   return true;
 }
 
@@ -337,50 +349,54 @@ function onEditWithExport(e) {
   try {
     if (!e || !e.range) return;
     const sh = e.range.getSheet();
-    if (sh.getName() !== CONFIG.SHEET_NAME || e.range.getRow() === 1) return;
+    if (!isResponsesSheet_(sh) || e.range.getRow() === 1) return;
     const headerMap = getHeaderMap_(sh);
     const editedCol = e.range.getColumn();
     const editedRow = e.range.getRow();
 
     // Auto-stamp Approval Date
-    const approvalCol = col_(headerMap, CONFIG.HEADERS.FINAL_APPROVAL);
-    if (editedCol === approvalCol && String(e.value||'').trim().toLowerCase() === 'approved') {
-      try { const c = col_(headerMap, CONFIG.HEADERS.APPROVAL_DATE); if (!sh.getRange(editedRow, c).getValue()) sh.getRange(editedRow, c).setValue(new Date()); } catch(err) {}
+    // 0 when the sheet has no such column — never equal to a real edited column,
+    // so each block below simply doesn't fire instead of throwing past the rest.
+    const approvalCol = resolveCol_(headerMap, 'FINAL_APPROVAL');
+    if (approvalCol && editedCol === approvalCol && String(e.value||'').trim().toLowerCase() === 'approved') {
+      const c = resolveCol_(headerMap, 'APPROVAL_DATE');
+      if (c && !sh.getRange(editedRow, c).getValue()) sh.getRange(editedRow, c).setValue(new Date());
     }
         // Mirror Final Approval decision into Column 9 (Department/Manager approval)
-    if (editedCol === approvalCol) {
+    if (approvalCol && editedCol === approvalCol) {
       const decision = String(e.value || '').trim().toLowerCase();
       const label = decision === 'approved' ? 'Approved'
                   : decision === 'rejected' ? 'Rejected'
                   : '';
       if (label) {
-        const mirrorCol = colAny_(headerMap,
-          'Column 9', 'Department Approval', 'Manager Approval', 'Dept Approval');
+        const mirrorCol = resolveCol_(headerMap, 'MANAGER_APPROVAL');
         if (mirrorCol > 0) sh.getRange(editedRow, mirrorCol).setValue(label);
       }
     }
 
     // Auto-stamp Ordered Date
-    const statusCol = col_(headerMap, CONFIG.HEADERS.ORDER_STATUS);
-    if (editedCol === statusCol) {
+    const statusCol = resolveCol_(headerMap, 'ORDER_STATUS');
+    if (statusCol && editedCol === statusCol) {
       const ns = classifyOrderStatus_(String(e.value||'').trim());
       if (ns === 'ordered' || ns === 'paid' || ns === 'in_transit') {
-        try { const c = col_(headerMap, CONFIG.HEADERS.ORDERED_DATE); if (!sh.getRange(editedRow, c).getValue()) sh.getRange(editedRow, c).setValue(new Date()); } catch(err) {}
+        const c = resolveCol_(headerMap, 'ORDERED_DATE');
+        if (c && !sh.getRange(editedRow, c).getValue()) sh.getRange(editedRow, c).setValue(new Date());
       }
     }
 
     // Email notifications
-    const watchCols = [CONFIG.HEADERS.ORDER_STATUS, CONFIG.HEADERS.LEAD_TIME, CONFIG.HEADERS.ETA, CONFIG.HEADERS.FINAL_APPROVAL, CONFIG.HEADERS.MANAGER_APPROVAL]
-      .map(h => { try { return col_(headerMap, h); } catch(e) { return null; } }).filter(c => c !== null);
+    const watchCols = ['ORDER_STATUS', 'LEAD_TIME', 'ETA', 'FINAL_APPROVAL', 'MANAGER_APPROVAL']
+      .map(key => resolveCol_(headerMap, key)).filter(c => c > 0);
     if (watchCols.includes(editedCol) && !(typeof e.oldValue !== "undefined" && String(e.oldValue) === String(e.value))) {
       sendPRUpdateEmail_(sh, headerMap, editedRow, editedCol);
     }
 
     // Expense export
-    if (editedCol === statusCol) {
+    if (statusCol && editedCol === statusCol) {
       if (shouldExport_(e.value)) exportToExpenseTracker_(sh, headerMap, editedRow);
       else if (shouldExport_(e.oldValue) && !shouldExport_(e.value)) {
-        updateExistingEntry_(getOrCreateExpenseSheet_(), sh.getRange(editedRow, col_(headerMap, CONFIG.HEADERS.PR_ID)).getValue(), e.value);
+        const prCol = resolveCol_(headerMap, 'PR_ID');
+        if (prCol) updateExistingEntry_(getOrCreateExpenseSheet_(), sh.getRange(editedRow, prCol).getValue(), e.value);
       }
     }
   } catch (error) { Logger.log(`Error in onEditWithExport: ${error.message}`); }
@@ -391,7 +407,7 @@ function onEditWithExport(e) {
 function backfillHandedOverItems() {
   try {
     const sh = getSheet_(); const hm = getHeaderMap_(sh);
-    const sc = col_(hm, CONFIG.HEADERS.ORDER_STATUS); const lr = sh.getLastRow();
+    const sc = reqCol_(hm, 'ORDER_STATUS'); const lr = sh.getLastRow();
     let exp = 0, upd = 0;
     for (let r = 2; r <= lr; r++) {
       if (shouldExport_(sh.getRange(r, sc).getValue())) { if (exportToExpenseTracker_(sh, hm, r)) exp++; else upd++; }
@@ -625,7 +641,7 @@ function onOpen() {
 function backfillApprovalDates() {
   try {
     const sh = getSheet_(); const hm = getHeaderMap_(sh); const lr = sh.getLastRow();
-    const ac = col_(hm, CONFIG.HEADERS.FINAL_APPROVAL); const adc = col_(hm, CONFIG.HEADERS.APPROVAL_DATE); const tc = col_(hm, CONFIG.HEADERS.TIMESTAMP);
+    const ac = reqCol_(hm, 'FINAL_APPROVAL'); const adc = reqCol_(hm, 'APPROVAL_DATE'); const tc = reqCol_(hm, 'TIMESTAMP');
     let c = 0;
     for (let r = 2; r <= lr; r++) {
       if (String(sh.getRange(r,ac).getValue()||'').trim().toLowerCase()==='approved' && !sh.getRange(r,adc).getValue()) {
@@ -640,7 +656,7 @@ function backfillApprovalDates() {
 function backfillOrderedDates() {
   try {
     const sh = getSheet_(); const hm = getHeaderMap_(sh); const lr = sh.getLastRow();
-    const sc = col_(hm, CONFIG.HEADERS.ORDER_STATUS); const odc = col_(hm, CONFIG.HEADERS.ORDERED_DATE); const tc = col_(hm, CONFIG.HEADERS.TIMESTAMP);
+    const sc = reqCol_(hm, 'ORDER_STATUS'); const odc = reqCol_(hm, 'ORDERED_DATE'); const tc = reqCol_(hm, 'TIMESTAMP');
     let c = 0;
     for (let r = 2; r <= lr; r++) {
       const cls = classifyOrderStatus_(sh.getRange(r,sc).getValue());
@@ -655,8 +671,8 @@ function backfillOrderedDates() {
 function backfillColumn9() {
   try {
     const sh = getSheet_(); const hm = getHeaderMap_(sh); const lr = sh.getLastRow();
-    const fac = col_(hm, CONFIG.HEADERS.FINAL_APPROVAL);
-    const mirrorCol = colAny_(hm, 'Column 9', 'Department Approval', 'Manager Approval', 'Dept Approval');
+    const fac = reqCol_(hm, 'FINAL_APPROVAL');
+    const mirrorCol = resolveCol_(hm, 'MANAGER_APPROVAL');
     if (!mirrorCol) { Browser.msgBox('Could not find the Column 9 / Department Approval column'); return; }
     let c = 0;
     for (let r = 2; r <= lr; r++) {
@@ -713,16 +729,10 @@ function getDashboardData() {
   if (lastRow < 2) return emptyResult;
 
   const allData = sh.getRange(2, 1, lastRow - 1, sh.getLastColumn()).getValues();
+  // resolveCol_ returns 0 for a column this sheet doesn't have, so the index goes
+  // to -1 and every read below falls back to '' via its own >= 0 guard.
   const colIdx = {};
-  Object.entries(H).forEach(([key, headerName]) => {
-    try { colIdx[key] = col_(headerMap, headerName) - 1; }
-    catch (e) { colIdx[key] = -1; }
-  });
-  // Flexible lookup for approval columns that may use different names across sheets
-  colIdx.MANAGER_APPROVAL = colAny_(headerMap,
-    'Department Approval', 'Manager Approval', 'Dept Approval', 'Departmental Approval') - 1;
-  colIdx.FINAL_APPROVAL = colAny_(headerMap,
-    'Final Approval', 'Founder Approval', 'Final Approval ') - 1;
+  Object.keys(H).forEach(key => { colIdx[key] = resolveCol_(headerMap, key) - 1; });
 
   const tz = Session.getScriptTimeZone();
   const now = new Date();
