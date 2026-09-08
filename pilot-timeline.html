@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+<title>Pilot &amp; Events Runway</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f7f6f2;
+    --surface: #fcfcfb;
+    --ink: #141412;
+    --ink2: #52514e;
+    --muted: #898781;
+    --grid: #e7e5dd;
+    --axis: #c3c2b7;
+    --border: rgba(20,20,18,0.10);
+    --paid: #2a78d6;
+    --demo: #eb6834;
+    --expo: #1baf7a;
+    --event: #4a3aa7;
+    --today: #c23a3a;
+    --good: #006300;
+    --tip-bg: #232320;
+    --tip-ink: #ffffff;
+    --tip-ink2: #c3c2b7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #111110;
+      --surface: #1a1a19;
+      --ink: #f5f4ef;
+      --ink2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --border: rgba(255,255,255,0.10);
+      --paid: #3987e5;
+      --demo: #d95926;
+      --expo: #199e70;
+      --event: #9085e9;
+      --today: #e66767;
+      --good: #0ca30c;
+      --tip-bg: #f5f4ef;
+      --tip-ink: #141412;
+      --tip-ink2: #52514e;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #111110;
+    --surface: #1a1a19;
+    --ink: #f5f4ef;
+    --ink2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255,255,255,0.10);
+    --paid: #3987e5;
+    --demo: #d95926;
+    --expo: #199e70;
+    --event: #9085e9;
+    --today: #e66767;
+    --good: #0ca30c;
+    --tip-bg: #f5f4ef;
+    --tip-ink: #141412;
+    --tip-ink2: #52514e;
+  }
+
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 24px 56px; }
+
+  .eyebrow {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 6px;
+  }
+  h1 {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 27px; font-weight: 700; letter-spacing: -0.01em;
+    margin: 0 0 8px; text-wrap: balance;
+  }
+  .meta { color: var(--ink2); margin: 0; max-width: 68ch; }
+  .meta strong { color: var(--ink); font-weight: 600; }
+
+  section.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-top: 24px;
+    padding: 20px 20px 14px;
+  }
+  .card-head {
+    display: flex; flex-wrap: wrap; align-items: baseline;
+    justify-content: space-between; gap: 8px 20px; margin-bottom: 6px;
+  }
+  h2 {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 16px; font-weight: 600; margin: 0;
+  }
+  .card-head .sub { font-size: 12px; color: var(--muted); }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 6px 18px;
+    font-size: 12px; color: var(--ink2);
+    padding: 6px 0 10px; align-items: center;
+  }
+  .legend .key { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .swatch { width: 14px; height: 10px; border-radius: 3px; display: inline-block; }
+  .legend .lead { width: 14px; height: 5px; border-radius: 2px; display: inline-block; opacity: 0.3; background: var(--paid); }
+  .legend .diamond {
+    width: 8px; height: 8px; display: inline-block;
+    background: var(--ink); transform: rotate(45deg); border-radius: 1px;
+  }
+  .legend .flagkey { display: inline-block; width: 2px; height: 12px; background: var(--ink2); position: relative; }
+  .legend .flagkey::after {
+    content: ""; position: absolute; left: 2px; top: 0;
+    border-style: solid; border-width: 4px 0 4px 7px;
+    border-color: transparent transparent transparent var(--ink2);
+  }
+  .legend .todaykey { width: 2px; height: 14px; background: var(--today); display: inline-block; }
+
+  .scroller { overflow-x: auto; }
+  svg { display: block; }
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .rowband { fill: var(--ink); opacity: 0; }
+  g.row.hot .rowband { opacity: 0.045; }
+  g.row .hit { fill: transparent; cursor: default; outline: none; }
+  g.row .hit:focus-visible { stroke: var(--paid); stroke-width: 2; }
+
+  #tooltip {
+    position: fixed; z-index: 10; max-width: 320px;
+    background: var(--tip-bg); color: var(--tip-ink);
+    border-radius: 8px; padding: 10px 12px;
+    font-size: 12px; line-height: 1.45;
+    pointer-events: none; display: none;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+  }
+  #tooltip .tt-title { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+  #tooltip .tt-row { display: flex; gap: 10px; justify-content: space-between; }
+  #tooltip .tt-row .k { color: var(--tip-ink2); }
+  #tooltip .tt-row .v { font-weight: 600; text-align: right; }
+
+  table {
+    border-collapse: collapse; width: 100%;
+    font-size: 12.5px; white-space: nowrap;
+  }
+  th, td {
+    text-align: left; padding: 7px 14px 7px 0;
+    border-bottom: 1px solid var(--grid);
+    vertical-align: top;
+  }
+  th {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  td { color: var(--ink2); }
+  td.name { color: var(--ink); font-weight: 600; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .status { font-weight: 600; }
+  .status.ok { color: var(--good); }
+  .status.no { color: var(--muted); }
+  .status.tbc { color: var(--ink2); }
+  h3 {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 13px; font-weight: 600; margin: 18px 0 8px;
+  }
+  h3:first-child { margin-top: 4px; }
+  .foot { color: var(--muted); font-size: 11.5px; margin-top: 18px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">PCG Demo Tracker &middot; as of Sep 8, 2026</p>
+    <h1>Pilot &amp; Events Runway</h1>
+    <p class="meta"><strong>7 deployments</strong> from Ashburn to Riyadh between Sep 8, 2026 and Jan 11, 2027
+    &mdash; 4 paid pilots, 2 demos, 1 expo build &mdash; plus <strong>9 industry events</strong> tracked through
+    Automate 2027. Next gate: <strong>PCG Go/No-Go on Sep 25</strong>. Hover any bar for dates, robot version, and team assignments.</p>
+  </header>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Deployment schedule &middot; H2 2026</h2>
+      <span class="sub">Rows ordered by on-site start date</span>
+    </div>
+    <div class="legend" aria-label="Legend">
+      <span class="key"><span class="swatch" style="background:var(--paid)"></span>Paid pilot</span>
+      <span class="key"><span class="swatch" style="background:var(--demo)"></span>Demo</span>
+      <span class="key"><span class="swatch" style="background:var(--expo)"></span>Expo</span>
+      <span class="key"><span class="lead"></span>Shipping &rarr; on-site</span>
+      <span class="key"><span class="diamond"></span>Go/No-Go gate</span>
+      <span class="key"><span class="flagkey"></span>Event day</span>
+      <span class="key"><span class="todaykey"></span>Today (Sep 8)</span>
+    </div>
+    <div class="scroller"><div id="gantt"></div></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Event runway &middot; Sep 2026 &ndash; May 2027</h2>
+      <span class="sub">&#10003; confirmed &middot; ? to be confirmed &middot; &times; not attending</span>
+    </div>
+    <div class="scroller"><div id="events"></div></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Full detail</h2></div>
+    <h3>Deployments</h3>
+    <div class="scroller"><table id="pilotTable"></table></div>
+    <h3>Events</h3>
+    <div class="scroller"><table id="eventTable"></table></div>
+    <p class="foot">Source: &ldquo;Finalized Pilot and Events Plan: H2-2026&rdquo; and the event prioritization sheet
+    in the PCG Demo Tracker. &ldquo;Room to Room&rdquo; denotes autonomous room-to-room active-site runs.
+    Event days marked &ldquo;TBC&rdquo; on a deployment are not yet scheduled.</p>
+  </section>
+</div>
+
+<div id="tooltip" role="status"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var TODAY = "2026-09-08";
+
+  var pilots = [
+    { client: "PCG", place: "Ashburn, VA", ship: "2026-09-08", start: "2026-09-28", end: "2026-10-16",
+      gate: "2026-09-25", eventDay: null, eventNote: "TBC", confirming: "2026-08-28",
+      robot: "V2.3", type: "Demo site", revenue: "Demo",
+      deployment: "Sathya, Shreyas, Mohit", software: "Tushar, Tanay, Vehan, Prabhav",
+      hardware: "Kaustubh, Ashish", sales: "Punith", qa: "Ravi" },
+    { client: "Procore", place: "Orlando, FL", ship: "2026-09-30", start: "2026-10-20", end: "2026-10-24",
+      gate: "2026-08-29", eventDay: "2026-10-21", eventNote: null, confirming: "Confirmed",
+      robot: "V3.1", type: "Tele-operation, basic manipulator", revenue: "Expo",
+      deployment: "", software: "", hardware: "Kaustubh", sales: "Yogesh, Punith", qa: "" },
+    { client: "Marek Brothers", place: "Texas", ship: "2026-09-08", start: "2026-10-26", end: "2026-11-05",
+      gate: "2026-10-15", eventDay: null, eventNote: "TBC", confirming: "2026-09-05",
+      robot: "V2.3", type: "Active site", revenue: "Demo",
+      deployment: "Sathya, Shreyas", software: "Tanay, Vehan, Prabhav",
+      hardware: "Kaustubh", sales: "Punith", qa: "" },
+    { client: "Around Town", place: "Frankfurt", ship: "2026-10-20", start: "2026-11-05", end: "2026-11-28",
+      gate: "2026-10-15", eventDay: "2026-11-16", eventNote: null, confirming: "",
+      robot: "V2.1", type: "Active site", revenue: "Paid pilot",
+      deployment: "Sathya, Mohit", software: "Tushar, Sriharsha, Ujjwal",
+      hardware: "Kathan, Aditya", sales: "Yogesh", qa: "Adhvaith" },
+    { client: "SMBs", place: "NYC", ship: "2026-09-08", start: "2026-11-07", end: "2026-12-19",
+      gate: "2026-10-15", eventDay: null, eventNote: "TBC", confirming: "2026-10-07",
+      robot: "V2.3", type: "Active site (Room to Room)", revenue: "Paid pilot",
+      deployment: "Shreyas", software: "Raj Shah, Abishek, Nilesh",
+      hardware: "Kaustubh", sales: "Punith", qa: "" },
+    { client: "JM", place: "Sweden", ship: "2026-11-28", start: "2026-12-07", end: "2026-12-18",
+      gate: "2026-12-15", eventDay: null, eventNote: null, confirming: "",
+      robot: "V2.1", type: "Active site (Room to Room)", revenue: "Paid pilot",
+      deployment: "", software: "Anand/Vishal, Ashish", hardware: "Dhruv, Karthik",
+      sales: "Yogesh", qa: "Adhvaith" },
+    { client: "Nesma Partners", place: "Saudi Arabia", ship: "2026-12-01", start: "2026-12-10", end: "2027-01-11",
+      gate: "2026-12-01", eventDay: null, eventNote: "TBC", confirming: "2026-09-11",
+      robot: "V3.2", type: "Active site (Room to Room)", revenue: "Paid pilot",
+      deployment: "Sathya, Shreyas", software: "Tushar, Sahil, Raj Mohd",
+      hardware: "Sai, Nikhil, Ashish", sales: "Punith", qa: "Adhvaith" }
+  ];
+
+  var events = [
+    { name: "IBWC", loc: "Singapore", start: "2026-09-02", end: "2026-09-04", robot: false, priority: "High", status: "Confirmed" },
+    { name: "Expo Real", loc: "Munich, DE", start: "2026-10-05", end: "2026-10-07", robot: true, priority: "Mid", status: "Not attending" },
+    { name: "STA Tech Expo", loc: "NYC, US", start: "2026-10-15", end: "2026-10-15", robot: true, priority: "Mid", status: "Not attending" },
+    { name: "Procore", loc: "Orlando, FL", start: "2026-10-20", end: "2026-10-22", robot: true, priority: "High", status: "Confirmed" },
+    { name: "CES 2027", loc: "Las Vegas", start: "2027-01-06", end: "2027-01-09", robot: true, priority: "Low", status: "TBC" },
+    { name: "PCA Expo 2027", loc: "New Orleans, LA", start: "2027-02-15", end: "2027-02-19", robot: true, priority: "High", status: "TBC" },
+    { name: "NYBuild Expo 2027", loc: "NYC, US", start: "2027-03-02", end: "2027-03-03", robot: true, priority: "High", status: "TBC" },
+    { name: "BUILD27 — AWCI Convention", loc: "Grapevine, TX", start: "2027-04-12", end: "2027-04-15", robot: true, priority: "High", status: "TBC" },
+    { name: "Automate 2027", loc: "Las Vegas", start: "2027-05-10", end: "2027-05-13", robot: true, priority: "Mid", status: "TBC" }
+  ];
+
+  var MS_DAY = 86400000;
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var revColor = { "Paid pilot": "var(--paid)", "Demo": "var(--demo)", "Expo": "var(--expo)" };
+
+  function T(s) { return Date.parse(s + "T00:00:00Z"); }
+  function fmt(ms) { var d = new Date(ms); return MONTHS[d.getUTCMonth()] + " " + d.getUTCDate(); }
+  function fmtRange(a, b) {
+    var da = new Date(T(a)), db = new Date(T(b));
+    if (a === b) return fmt(T(a));
+    if (da.getUTCMonth() === db.getUTCMonth()) return fmt(T(a)) + "–" + db.getUTCDate();
+    return fmt(T(a)) + " – " + fmt(T(b));
+  }
+  function el(tag, attrs) {
+    var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  /* ---------- tooltip ---------- */
+  var tip = document.getElementById("tooltip");
+  function showTip(x, y, title, rows) {
+    tip.replaceChildren();
+    var t = document.createElement("div");
+    t.className = "tt-title"; t.textContent = title;
+    tip.appendChild(t);
+    rows.forEach(function (r) {
+      if (!r[1]) return;
+      var row = document.createElement("div"); row.className = "tt-row";
+      var k = document.createElement("span"); k.className = "k"; k.textContent = r[0];
+      var v = document.createElement("span"); v.className = "v"; v.textContent = r[1];
+      row.appendChild(k); row.appendChild(v); tip.appendChild(row);
+    });
+    tip.style.display = "block";
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    var px = Math.min(x + 14, window.innerWidth - w - 10);
+    var py = y + 16 + h > window.innerHeight ? y - h - 12 : y + 16;
+    tip.style.left = px + "px"; tip.style.top = Math.max(6, py) + "px";
+  }
+  function hideTip() { tip.style.display = "none"; }
+
+  function wireHover(hit, group, title, rows) {
+    hit.addEventListener("pointermove", function (e) {
+      group.classList.add("hot"); showTip(e.clientX, e.clientY, title, rows);
+    });
+    hit.addEventListener("pointerleave", function () {
+      group.classList.remove("hot"); hideTip();
+    });
+    hit.setAttribute("tabindex", "0");
+    hit.setAttribute("role", "img");
+    hit.setAttribute("aria-label", title + ". " + rows.filter(function (r) { return r[1]; })
+      .map(function (r) { return r[0] + ": " + r[1]; }).join(". "));
+    hit.addEventListener("focus", function () {
+      var b = hit.getBoundingClientRect();
+      group.classList.add("hot"); showTip(b.left + b.width / 2, b.top, title, rows);
+    });
+    hit.addEventListener("blur", function () { group.classList.remove("hot"); hideTip(); });
+  }
+
+  /* ---------- shared axis ---------- */
+  function drawAxis(svg, scale, t0, t1, plotL, plotR, topY, botY, withToday) {
+    var d = new Date(t0);
+    var m = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+    var bounds = [];
+    while (m < t1) {
+      bounds.push(m);
+      var dm = new Date(m);
+      m = Date.UTC(dm.getUTCFullYear(), dm.getUTCMonth() + 1, 1);
+    }
+    bounds.push(t1);
+    for (var i = 0; i < bounds.length - 1; i++) {
+      var b = bounds[i];
+      if (b > t0) svg.appendChild(el("line", { x1: scale(b), x2: scale(b), y1: topY, y2: botY, stroke: "var(--grid)", "stroke-width": 1 }));
+      var lo = Math.max(b, t0), hi = Math.min(bounds[i + 1], t1);
+      if (hi - lo < 6 * MS_DAY) continue;
+      var mid = scale((lo + hi) / 2);
+      var dd = new Date(b);
+      var label = MONTHS[dd.getUTCMonth()] + (dd.getUTCMonth() === 0 ? " ’" + String(dd.getUTCFullYear()).slice(2) : "");
+      var t = el("text", { x: mid, y: topY - 8, "text-anchor": "middle", "font-size": 11, fill: "var(--muted)" });
+      t.textContent = label;
+      svg.appendChild(t);
+    }
+    svg.appendChild(el("line", { x1: plotL, x2: plotR, y1: botY, y2: botY, stroke: "var(--axis)", "stroke-width": 1 }));
+    if (withToday) {
+      var tx = scale(T(TODAY));
+      svg.appendChild(el("line", { x1: tx, x2: tx, y1: topY - 2, y2: botY, stroke: "var(--today)", "stroke-width": 1.5 }));
+      var tl = el("text", { x: Math.min(Math.max(tx, plotL + 22), plotR - 22), y: botY + 14, "text-anchor": "middle", "font-size": 10, "font-weight": 600, fill: "var(--today)" });
+      tl.textContent = "TODAY";
+      svg.appendChild(tl);
+    }
+  }
+
+  /* ---------- deployment gantt ---------- */
+  function renderGantt() {
+    var host = document.getElementById("gantt");
+    host.replaceChildren();
+    var W = Math.max(host.parentElement.parentElement.clientWidth - 2, 800);
+    var GUT = 168, PADR = 20, TOP = 34, ROW = 50, BAR = 16, LEAD = 6;
+    var rows = pilots.slice().sort(function (a, b) { return T(a.start) - T(b.start); });
+    var H = TOP + rows.length * ROW + 22;
+    var t0 = T("2026-08-24"), t1 = T("2027-01-18");
+    var plotL = GUT, plotR = W - PADR;
+    function X(t) { return plotL + (t - t0) / (t1 - t0) * (plotR - plotL); }
+
+    var svg = el("svg", { width: W, height: H, viewBox: "0 0 " + W + " " + H });
+    drawAxis(svg, X, t0, t1, plotL, plotR, TOP, TOP + rows.length * ROW, true);
+
+    rows.forEach(function (p, i) {
+      var y = TOP + i * ROW, cy = y + ROW / 2;
+      var g = el("g", { "class": "row" });
+      svg.appendChild(g);
+      g.appendChild(el("rect", { x: 0, y: y, width: W, height: ROW, rx: 6, "class": "rowband" }));
+
+      var name = el("text", { x: 12, y: cy - 3, "font-size": 13, "font-weight": 600, fill: "var(--ink)", "font-family": "Archivo, system-ui, sans-serif" });
+      name.textContent = p.client;
+      g.appendChild(name);
+      var sub = el("text", { x: 12, y: cy + 13, "font-size": 11, fill: "var(--ink2)" });
+      sub.textContent = p.place + " · " + p.robot;
+      g.appendChild(sub);
+
+      var color = revColor[p.revenue];
+      var xs = X(T(p.ship)), xa = X(T(p.start)), xb = X(T(p.end));
+
+      // shipping lead-in (ship date -> on-site start), 2px surface gap before the bar
+      if (xa - xs > 4) {
+        g.appendChild(el("rect", { x: xs, y: cy - LEAD / 2, width: xa - xs - 2, height: LEAD, rx: 3, fill: color, opacity: 0.3 }));
+      }
+      g.appendChild(el("circle", { cx: xs, cy: cy, r: 4, fill: color, stroke: "var(--surface)", "stroke-width": 2 }));
+
+      // on-site bar
+      g.appendChild(el("rect", { x: xa, y: cy - BAR / 2, width: Math.max(xb - xa, 6), height: BAR, rx: 4, fill: color, "class": "main" }));
+
+      // go/no-go diamond
+      if (p.gate) {
+        var gx = X(T(p.gate));
+        g.appendChild(el("rect", {
+          x: -4.5, y: -4.5, width: 9, height: 9, rx: 1.5,
+          transform: "translate(" + gx + " " + cy + ") rotate(45)",
+          fill: "var(--ink)", stroke: "var(--surface)", "stroke-width": 2
+        }));
+      }
+
+      // event-day flag
+      if (p.eventDay) {
+        var ex = X(T(p.eventDay));
+        g.appendChild(el("line", { x1: ex, x2: ex, y1: cy - BAR / 2 - 10, y2: cy - BAR / 2 - 1, stroke: "var(--ink2)", "stroke-width": 1.5 }));
+        var fp = el("path", { d: "M " + ex + " " + (cy - BAR / 2 - 10) + " l 8 3.5 l -8 3.5 z", fill: "var(--ink2)" });
+        g.appendChild(fp);
+      }
+
+      // date label at bar end (flip to the left edge if it would overflow)
+      var days = Math.round((T(p.end) - T(p.start)) / MS_DAY);
+      var lbl = fmtRange(p.start, p.end) + " · " + days + "d";
+      var estW = lbl.length * 6.4;
+      var tx, anchor;
+      var leftEdge = Math.min(xa, xs, p.gate ? X(T(p.gate)) : xa);
+      if (xb + 8 + estW > plotR) { tx = leftEdge - 10; anchor = "end"; } else { tx = xb + 8; anchor = "start"; }
+      var dl = el("text", { x: tx, y: cy + 4, "font-size": 11, fill: "var(--ink2)", "text-anchor": anchor, style: "font-variant-numeric: tabular-nums" });
+      dl.textContent = lbl;
+      g.appendChild(dl);
+
+      // hover hit target: the whole row band
+      var hit = el("rect", { x: 0, y: y, width: W, height: ROW, "class": "hit" });
+      g.appendChild(hit);
+      wireHover(hit, g, p.client + " · " + p.place, [
+        ["Revenue type", p.revenue],
+        ["Project", p.type],
+        ["Robot", p.robot],
+        ["Ships", fmt(T(p.ship))],
+        ["On-site", fmtRange(p.start, p.end) + " (" + days + " days)"],
+        ["Go/No-Go", p.gate ? fmt(T(p.gate)) : ""],
+        ["Event day", p.eventDay ? fmt(T(p.eventDay)) : (p.eventNote || "")],
+        ["Confirming", /^\d{4}/.test(p.confirming) ? fmt(T(p.confirming)) : p.confirming],
+        ["Deployment", p.deployment],
+        ["Software", p.software],
+        ["Hardware", p.hardware],
+        ["Sales", p.sales],
+        ["QA", p.qa]
+      ]);
+    });
+    host.appendChild(svg);
+  }
+
+  /* ---------- event runway ---------- */
+  function renderEvents() {
+    var host = document.getElementById("events");
+    host.replaceChildren();
+    var W = Math.max(host.parentElement.parentElement.clientWidth - 2, 800);
+    var GUT = 196, PADR = 20, TOP = 34, ROW = 42, BAR = 14;
+    var H = TOP + events.length * ROW + 22;
+    var t0 = T("2026-08-24"), t1 = T("2027-05-31");
+    var plotL = GUT, plotR = W - PADR;
+    function X(t) { return plotL + (t - t0) / (t1 - t0) * (plotR - plotL); }
+
+    var svg = el("svg", { width: W, height: H, viewBox: "0 0 " + W + " " + H });
+    drawAxis(svg, X, t0, t1, plotL, plotR, TOP, TOP + events.length * ROW, true);
+
+    events.forEach(function (ev, i) {
+      var y = TOP + i * ROW, cy = y + ROW / 2;
+      var g = el("g", { "class": "row" });
+      svg.appendChild(g);
+      g.appendChild(el("rect", { x: 0, y: y, width: W, height: ROW, rx: 6, "class": "rowband" }));
+
+      var dim = ev.status === "Not attending";
+      var name = el("text", { x: 12, y: cy - 2, "font-size": 12.5, "font-weight": 600, fill: dim ? "var(--muted)" : "var(--ink)", "font-family": "Archivo, system-ui, sans-serif" });
+      name.textContent = ev.name;
+      g.appendChild(name);
+      var sub = el("text", { x: 12, y: cy + 13, "font-size": 10.5, fill: "var(--muted)" });
+      sub.textContent = ev.loc + " · " + ev.priority + " priority" + (ev.robot ? " · robot" : "");
+      g.appendChild(sub);
+
+      var xa = X(T(ev.start)), xb = Math.max(X(T(ev.end)) , xa + 10);
+      var bar = el("rect", { x: xa, y: cy - BAR / 2, width: xb - xa, height: BAR, rx: 4, "class": "main" });
+      if (ev.status === "Confirmed") {
+        bar.setAttribute("fill", "var(--event)");
+      } else if (ev.status === "TBC") {
+        bar.setAttribute("fill", "var(--event)");
+        bar.setAttribute("opacity", "0.35");
+        bar.setAttribute("stroke", "var(--event)");
+        bar.setAttribute("stroke-dasharray", "3 3");
+      } else {
+        bar.setAttribute("fill", "var(--muted)");
+        bar.setAttribute("opacity", "0.35");
+      }
+      g.appendChild(bar);
+
+      var mark = ev.status === "Confirmed" ? "✓ Confirmed" : ev.status === "TBC" ? "? TBC" : "× Not attending";
+      var lbl = fmtRange(ev.start, ev.end) + "  ·  " + mark;
+      var estW = lbl.length * 6.2;
+      var tx, anchor;
+      if (xb + 8 + estW > plotR) { tx = xa - 8; anchor = "end"; } else { tx = xb + 8; anchor = "start"; }
+      var dl = el("text", { x: tx, y: cy + 4, "font-size": 11, fill: ev.status === "Confirmed" ? "var(--good)" : "var(--ink2)", "text-anchor": anchor, "font-weight": ev.status === "Confirmed" ? 600 : 400, style: "font-variant-numeric: tabular-nums" });
+      dl.textContent = lbl;
+      g.appendChild(dl);
+
+      var hit = el("rect", { x: 0, y: y, width: W, height: ROW, "class": "hit" });
+      g.appendChild(hit);
+      wireHover(hit, g, ev.name + " · " + ev.loc, [
+        ["Dates", fmtRange(ev.start, ev.end)],
+        ["Participation", ev.status],
+        ["Priority", ev.priority],
+        ["Robot required", ev.robot ? "Yes" : "No"]
+      ]);
+    });
+    host.appendChild(svg);
+  }
+
+  /* ---------- tables ---------- */
+  function cell(tr, text, cls) {
+    var td = document.createElement("td");
+    if (cls) td.className = cls;
+    td.textContent = text || "—";
+    tr.appendChild(td);
+  }
+  function headerRow(table, cols) {
+    var tr = document.createElement("tr");
+    cols.forEach(function (c) {
+      var th = document.createElement("th"); th.textContent = c; tr.appendChild(th);
+    });
+    table.appendChild(tr);
+  }
+  function renderTables() {
+    var pt = document.getElementById("pilotTable");
+    pt.replaceChildren();
+    headerRow(pt, ["Client", "Location", "Ships", "On-site", "Go/No-Go", "Event day", "Robot", "Project type", "Revenue", "Deployment", "Software", "Hardware", "Sales", "QA"]);
+    pilots.slice().sort(function (a, b) { return T(a.start) - T(b.start); }).forEach(function (p) {
+      var tr = document.createElement("tr");
+      cell(tr, p.client, "name");
+      cell(tr, p.place);
+      cell(tr, fmt(T(p.ship)), "num");
+      cell(tr, fmtRange(p.start, p.end), "num");
+      cell(tr, p.gate ? fmt(T(p.gate)) : "", "num");
+      cell(tr, p.eventDay ? fmt(T(p.eventDay)) : (p.eventNote || ""), "num");
+      cell(tr, p.robot, "num");
+      cell(tr, p.type);
+      cell(tr, p.revenue);
+      cell(tr, p.deployment);
+      cell(tr, p.software);
+      cell(tr, p.hardware);
+      cell(tr, p.sales);
+      cell(tr, p.qa);
+      pt.appendChild(tr);
+    });
+
+    var et = document.getElementById("eventTable");
+    et.replaceChildren();
+    headerRow(et, ["Event", "Location", "Dates", "Robot req.", "Priority", "Participation"]);
+    events.forEach(function (ev) {
+      var tr = document.createElement("tr");
+      cell(tr, ev.name, "name");
+      cell(tr, ev.loc);
+      cell(tr, fmtRange(ev.start, ev.end), "num");
+      cell(tr, ev.robot ? "Yes" : "No");
+      cell(tr, ev.priority);
+      var td = document.createElement("td");
+      var s = document.createElement("span");
+      s.className = "status " + (ev.status === "Confirmed" ? "ok" : ev.status === "TBC" ? "tbc" : "no");
+      s.textContent = (ev.status === "Confirmed" ? "✓ " : ev.status === "TBC" ? "? " : "× ") + ev.status;
+      td.appendChild(s); tr.appendChild(td);
+      et.appendChild(tr);
+    });
+  }
+
+  function renderAll() { renderGantt(); renderEvents(); }
+  renderAll();
+  renderTables();
+  var rt;
+  window.addEventListener("resize", function () {
+    clearTimeout(rt); rt = setTimeout(renderAll, 120);
+  });
+})();
+</script>
+
+</body>
+</html>
