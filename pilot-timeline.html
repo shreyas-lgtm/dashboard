@@ -185,7 +185,8 @@
     <h1>Pilot &amp; Events Runway</h1>
     <p class="meta"><strong>7 deployments</strong> from Ashburn to Riyadh between Sep 8, 2026 and Jan 11, 2027
     &mdash; 4 paid pilots, 2 demos, 1 expo build &mdash; plus <strong>9 industry events</strong> tracked through
-    Automate 2027. Next gate: <strong>PCG Go/No-Go on Sep 25</strong>. Hover any bar for dates, robot version, and team assignments.</p>
+    Automate 2027, staffed by a crew spanning <strong>deployment, software, hardware, sales, and QA</strong>.
+    Next gate: <strong>PCG Go/No-Go on Sep 25</strong>. Hover any bar for dates, robot version, and team assignments.</p>
   </header>
 
   <section class="card">
@@ -203,6 +204,14 @@
       <span class="key"><span class="todaykey"></span>Today (Sep 8)</span>
     </div>
     <div class="scroller"><div id="gantt"></div></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Team allocation &middot; who is on-site where</h2>
+      <span class="sub">One lane per person, grouped by function &middot; bars span each client&rsquo;s on-site window, colored by revenue type</span>
+    </div>
+    <div class="scroller"><div id="people"></div></div>
   </section>
 
   <section class="card">
@@ -378,7 +387,7 @@
     var host = document.getElementById("gantt");
     host.replaceChildren();
     var W = Math.max(host.parentElement.parentElement.clientWidth - 2, 800);
-    var GUT = 168, PADR = 20, TOP = 34, ROW = 50, BAR = 16, LEAD = 6;
+    var GUT = 168, PADR = 20, TOP = 34, ROW = 68, BAR = 16, LEAD = 6;
     var rows = pilots.slice().sort(function (a, b) { return T(a.start) - T(b.start); });
     var H = TOP + rows.length * ROW + 22;
     var t0 = T("2026-08-24"), t1 = T("2027-01-18");
@@ -389,7 +398,7 @@
     drawAxis(svg, X, t0, t1, plotL, plotR, TOP, TOP + rows.length * ROW, true);
 
     rows.forEach(function (p, i) {
-      var y = TOP + i * ROW, cy = y + ROW / 2;
+      var y = TOP + i * ROW, cy = y + 26;
       var g = el("g", { "class": "row" });
       svg.appendChild(g);
       g.appendChild(el("rect", { x: 0, y: y, width: W, height: ROW, rx: 6, "class": "rowband" }));
@@ -442,6 +451,18 @@
       dl.textContent = lbl;
       g.appendChild(dl);
 
+      // crew line under the bar (all assigned people, role order)
+      var crew = [p.deployment, p.software, p.hardware, p.sales, p.qa]
+        .join(",").split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+      if (crew.length) {
+        var crewLbl = crew.join(" · ");
+        var crewW = crewLbl.length * 5.6;
+        var cx0 = Math.max(plotL + 4, Math.min(xa, plotR - crewW));
+        var ct = el("text", { x: cx0, y: y + 56, "font-size": 10.5, fill: "var(--muted)" });
+        ct.textContent = crewLbl;
+        g.appendChild(ct);
+      }
+
       // hover hit target: the whole row band
       var hit = el("rect", { x: 0, y: y, width: W, height: ROW, "class": "hit" });
       g.appendChild(hit);
@@ -460,6 +481,91 @@
         ["Sales", p.sales],
         ["QA", p.qa]
       ]);
+    });
+    host.appendChild(svg);
+  }
+
+  /* ---------- team allocation ---------- */
+  function renderPeople() {
+    var host = document.getElementById("people");
+    host.replaceChildren();
+    var W = Math.max(host.parentElement.parentElement.clientWidth - 2, 800);
+    var GUT = 150, PADR = 20, TOP = 34, ROW = 30, HDR = 32, BAR = 12;
+    var t0 = T("2026-08-24"), t1 = T("2027-01-18");
+    var plotL = GUT, plotR = W - PADR;
+    function X(t) { return plotL + (t - t0) / (t1 - t0) * (plotR - plotL); }
+
+    var FUNCS = [["Deployment", "deployment"], ["Software", "software"], ["Hardware", "hardware"], ["Sales", "sales"], ["QA", "qa"]];
+    var groups = FUNCS.map(function (f) {
+      var byName = {}, people = [];
+      pilots.forEach(function (p) {
+        (p[f[1]] || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (n) {
+          if (!byName[n]) { byName[n] = { name: n, eng: [] }; people.push(byName[n]); }
+          byName[n].eng.push({ client: p.client, place: p.place, start: p.start, end: p.end, revenue: p.revenue });
+        });
+      });
+      people.forEach(function (pe) { pe.eng.sort(function (a, b) { return T(a.start) - T(b.start); }); });
+      people.sort(function (a, b) { return b.eng.length - a.eng.length || T(a.eng[0].start) - T(b.eng[0].start); });
+      return { label: f[0], people: people };
+    }).filter(function (gr) { return gr.people.length; });
+
+    var totalRows = groups.reduce(function (s, g) { return s + g.people.length; }, 0);
+    var botY = TOP + groups.length * HDR + totalRows * ROW;
+    var H = botY + 22;
+    var svg = el("svg", { width: W, height: H, viewBox: "0 0 " + W + " " + H });
+    drawAxis(svg, X, t0, t1, plotL, plotR, TOP, botY, true);
+
+    var yCur = TOP;
+    groups.forEach(function (gr) {
+      var ht = el("text", { x: 12, y: yCur + 21, "font-size": 10, "font-weight": 600, fill: "var(--muted)", "letter-spacing": "0.12em", "font-family": "Archivo, system-ui, sans-serif" });
+      ht.textContent = gr.label.toUpperCase();
+      svg.appendChild(ht);
+      yCur += HDR;
+
+      gr.people.forEach(function (pe) {
+        var y = yCur, cy = y + ROW / 2;
+        var g = el("g", { "class": "row" });
+        svg.appendChild(g);
+        g.appendChild(el("rect", { x: 0, y: y, width: W, height: ROW, rx: 6, "class": "rowband" }));
+
+        var name = el("text", { x: 24, y: cy + 4, "font-size": 12, "font-weight": 600, fill: "var(--ink)", "font-family": "Archivo, system-ui, sans-serif" });
+        name.textContent = pe.name;
+        g.appendChild(name);
+
+        pe.eng.forEach(function (en, j) {
+          var xa = X(T(en.start)), xb = Math.max(X(T(en.end)), xa + 8);
+          g.appendChild(el("rect", { x: xa, y: cy - BAR / 2, width: xb - xa, height: BAR, rx: 3, fill: revColor[en.revenue] }));
+
+          // client label: after the bar if it fits before the next bar, else inside, else above
+          var shortName = { "Marek Brothers": "Marek", "Nesma Partners": "Nesma" }[en.client] || en.client;
+          var estW = shortName.length * 5.8;
+          var nextX = j + 1 < pe.eng.length ? X(T(pe.eng[j + 1].start)) : plotR;
+          if (xb + 6 + estW < nextX - 4) {
+            var lt = el("text", { x: xb + 6, y: cy + 3.5, "font-size": 10, fill: "var(--ink2)" });
+            lt.textContent = shortName;
+            g.appendChild(lt);
+          } else if (xb - xa > estW + 12) {
+            var li = el("text", { x: (xa + xb) / 2, y: cy + 3.5, "font-size": 10, "font-weight": 600, fill: "#ffffff", "text-anchor": "middle" });
+            li.textContent = shortName;
+            g.appendChild(li);
+          } else {
+            var la = el("text", { x: (xa + xb) / 2, y: cy - 9, "font-size": 9.5, fill: "var(--ink2)", "text-anchor": "middle" });
+            la.textContent = shortName;
+            g.appendChild(la);
+          }
+
+          var days = Math.round((T(en.end) - T(en.start)) / MS_DAY);
+          var hit = el("rect", { x: xa - 6, y: cy - 12, width: xb - xa + 12, height: 24, "class": "hit" });
+          g.appendChild(hit);
+          wireHover(hit, g, pe.name + " · " + gr.label, [
+            ["Client", en.client],
+            ["Where", en.place],
+            ["On-site", fmtRange(en.start, en.end) + " (" + days + " days)"],
+            ["Revenue type", en.revenue]
+          ]);
+        });
+        yCur += ROW;
+      });
     });
     host.appendChild(svg);
   }
@@ -584,7 +690,7 @@
     });
   }
 
-  function renderAll() { renderGantt(); renderEvents(); }
+  function renderAll() { renderGantt(); renderPeople(); renderEvents(); }
   renderAll();
   renderTables();
   var rt;
