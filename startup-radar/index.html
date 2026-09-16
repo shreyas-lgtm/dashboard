@@ -1,0 +1,397 @@
+<title>University Startup Radar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&family=Albert+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #F4F5F1;
+    --surface: #FFFFFF;
+    --ink: #1B2228;
+    --ink-soft: #5B6670;
+    --ink-faint: #8B959D;
+    --line: #DFE3DA;
+    --accent: #0F6B5C;
+    --accent-soft: #E3EEE9;
+    --chip-bg: #EDF0E9;
+    --chip-ink: #46524B;
+    --card-shadow: 0 1px 2px rgba(27,34,40,.05);
+    --c-mit: #A31F34;
+    --c-harvard: #A51C30;
+    --c-stanford: #8C1515;
+    --c-berkeley: #1F5C99;
+    --c-cmu: #C41230;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12171A;
+      --surface: #1B2126;
+      --ink: #E7EAE4;
+      --ink-soft: #A0AAB0;
+      --ink-faint: #6E7980;
+      --line: #2B333A;
+      --accent: #55B8A3;
+      --accent-soft: #1E2E2B;
+      --chip-bg: #242C31;
+      --chip-ink: #B4BEB7;
+      --card-shadow: none;
+      --c-mit: #E37287;
+      --c-harvard: #E56C81;
+      --c-stanford: #DE7373;
+      --c-berkeley: #7EAEDD;
+      --c-cmu: #EA7085;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12171A;
+    --surface: #1B2126;
+    --ink: #E7EAE4;
+    --ink-soft: #A0AAB0;
+    --ink-faint: #6E7980;
+    --line: #2B333A;
+    --accent: #55B8A3;
+    --accent-soft: #1E2E2B;
+    --chip-bg: #242C31;
+    --chip-ink: #B4BEB7;
+    --card-shadow: none;
+    --c-mit: #E37287;
+    --c-harvard: #E56C81;
+    --c-stanford: #DE7373;
+    --c-berkeley: #7EAEDD;
+    --c-cmu: #EA7085;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Albert Sans", system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-block: 28px 64px;
+    padding-inline: 20px;
+  }
+  header .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  header .eyebrow .pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    flex: none;
+  }
+  h1 {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(30px, 5vw, 44px);
+    line-height: 1.08;
+    margin: 10px 0 8px;
+    text-wrap: balance;
+  }
+  .standfirst {
+    color: var(--ink-soft);
+    max-width: 62ch;
+    margin: 0;
+  }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    margin-top: 26px;
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  nav.tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    appearance: none;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font: inherit;
+    font-weight: 500;
+    color: var(--ink-soft);
+    padding: 8px 14px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tab .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--dot, var(--accent)); flex: none; }
+  .tab[aria-selected="true"] {
+    color: var(--ink);
+    font-weight: 600;
+    border-bottom-color: var(--dot, var(--accent));
+  }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+  .school-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 34px 0 4px;
+  }
+  .school-head h2 {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 600;
+    font-size: 24px;
+    margin: 0;
+  }
+  .school-head h2 .mark { color: var(--school, var(--accent)); }
+  .school-head .pipeline {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    letter-spacing: .04em;
+    color: var(--ink-faint);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--card-shadow);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .card .toprow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .rank {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-faint);
+  }
+  .schooltag {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--school, var(--accent));
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .schooltag::before {
+    content: "";
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--school, var(--accent));
+  }
+  .card h3 {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 600;
+    font-size: 21px;
+    line-height: 1.15;
+    margin: 0;
+  }
+  .card h3 a { color: inherit; text-decoration: none; }
+  .card h3 a:hover { color: var(--accent); }
+  .card h3 .ext { font-size: 13px; color: var(--ink-faint); font-family: "Albert Sans", sans-serif; }
+  .card .desc { margin: 0; color: var(--ink-soft); flex: 1; }
+  .card .conn { margin: 0; font-size: 12.5px; color: var(--ink-faint); }
+  .metarow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+  .chip {
+    background: var(--chip-bg);
+    color: var(--chip-ink);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    padding: 3px 9px;
+    border-radius: 99px;
+  }
+  .funding {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  footer {
+    margin-top: 44px;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    max-width: 78ch;
+  }
+  footer p { margin: 0 0 6px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><span class="pulse"></span><span>Weekly brief · Week of Sep 14, 2026</span><span id="updated"></span></div>
+    <h1>University Startup Radar</h1>
+    <p class="standfirst">The <strong>top 10 startups to watch</strong> out of each of five leading university ecosystems — MIT, Harvard, Stanford, UC Berkeley, and Carnegie Mellon — ranked by momentum in the current press and accelerator cycle. Refreshed every week.</p>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <main id="content"></main>
+
+  <footer>
+    <p><strong>Method &amp; sources.</strong> Each school's list is compiled weekly from its own venues (MIT delta v &amp; The Engine, Harvard i-lab &amp; President's Innovation Challenge, StartX, Berkeley SkyDeck &amp; BAIR, CMU Swartz Center) plus funding coverage in TechCrunch, Bloomberg, Forbes, Fortune and Businesswire. Funding figures are as reported by the linked source; click a startup's name to open it.</p>
+    <p>Physical Intelligence appears under both Stanford and Berkeley — it was co-founded by faculty from both. Rankings are editorial, weighted toward the freshest news.</p>
+  </footer>
+</div>
+
+<script>
+const SCHOOLS = [
+  { id: "all", name: "All schools" },
+  { id: "mit", name: "MIT", full: "Massachusetts Institute of Technology", pipeline: "delta v · The Engine · CSAIL · PSFC" },
+  { id: "harvard", name: "Harvard", full: "Harvard University", pipeline: "i-lab · President's Innovation Challenge · HBS NVC" },
+  { id: "stanford", name: "Stanford", full: "Stanford University", pipeline: "StartX · HAI · GSB" },
+  { id: "berkeley", name: "UC Berkeley", full: "University of California, Berkeley", pipeline: "SkyDeck · BAIR · Sky Computing Lab" },
+  { id: "cmu", name: "Carnegie Mellon", full: "Carnegie Mellon University", pipeline: "Swartz Center · Project Olympus · Robotics Institute" },
+];
+
+const STARTUPS = [
+  // ——— MIT ———
+  { school:"mit", rank:1, name:"Liquid AI", sector:"AI models", desc:"Efficient “liquid foundation models” built on liquid neural networks as an alternative to transformers.", conn:"MIT CSAIL spinout — Daniela Rus, Ramin Hasani, Alexander Amini.", funding:"$250M Series A · ~$2.35B val", url:"https://www.bloomberg.com/news/articles/2024-12-13/liquid-ai-raising-250-million-to-build-ai-inspired-by-worm-brains" },
+  { school:"mit", rank:2, name:"Commonwealth Fusion Systems", sector:"Fusion energy", desc:"Compact tokamak fusion power plants (SPARC demo; first ARC plant planned in Virginia) using high-temperature superconducting magnets.", conn:"Spun out of MIT's Plasma Science and Fusion Center.", funding:"$863M Series B2 · ~$3B total", url:"https://cfs.energy/news-and-media/commonwealth-fusion-systems-raises-863-million-series-b2-round-to-accelerate-the-commercialization-of-fusion-energy/" },
+  { school:"mit", rank:3, name:"Strand Therapeutics", sector:"Biotech", desc:"Programmable mRNA “smart medicines” that make solid tumors visible to the immune system.", conn:"MIT synthetic-biology spinout.", funding:"$153M raise (Aug 2025)", url:"https://www.forbes.com/sites/amyfeldman/2025/08/07/mit-spinout-strand-therapeutics-raises-153-million-to-make-cancerous-tumors-light-up/" },
+  { school:"mit", rank:4, name:"Sublime Systems", sector:"Climate · materials", desc:"True-zero cement made by ambient-temperature electrochemistry instead of fossil-fired kilns; Microsoft signed a 620k-ton purchase deal.", conn:"Founded at MIT by Leah Ellis and Prof. Yet-Ming Chiang.", funding:"$75M from CRH + Holcim · ~$200M total", url:"https://sublime-systems.com/sublime-systems-secures-combined-75m-in-investments-from-global-building-materials-majors-crh-and-holcim-to-accelerate-scale-up-of-true-zero-cement-manufacturing-technology/" },
+  { school:"mit", rank:5, name:"Quaise Energy", sector:"Geothermal", desc:"Millimeter-wave drilling to unlock superhot geothermal energy almost anywhere on Earth.", conn:"MIT Energy Initiative spinout built on PSFC gyrotron research.", funding:"$180M Series B · ~$280M total", url:"https://energy.mit.edu/news/mitei-spinout-quaise-raises-180-million/" },
+  { school:"mit", rank:6, name:"Foundation EGI", sector:"AI · manufacturing", desc:"“Engineering general intelligence” that turns natural language into structured code for industrial design and manufacturing workflows.", conn:"MIT CSAIL spinout — Prof. Wojciech Matusik and co-founders.", funding:"$23M Series A · $30M+ total", url:"https://www.prnewswire.com/news-releases/foundation-egi-secures-23m-in-oversubscribed-series-a-to-build-the-worlds-first-engineering-general-intelligence-platform-302499061.html" },
+  { school:"mit", rank:7, name:"Vertical Semiconductor", sector:"Semiconductors", desc:"Vertical GaN power-delivery chips that cut power loss and heat in AI data centers.", conn:"Spun out of Prof. Tomás Palacios' GaN lab at MIT.", funding:"$11M seed (Playground Global)", url:"https://siliconangle.com/2025/10/15/mit-spinoff-vertical-semiconductor-gets-11m-build-power-efficient-ai-chips/" },
+  { school:"mit", rank:8, name:"Cambridge Terahertz", sector:"Imaging hardware", desc:"Silicon-chip terahertz 3D imaging that sees inside unopened packages — aimed at return fraud, security and inspection.", conn:"Founded from MIT terahertz research by Nathan Monroe (PhD).", funding:"$12M seed (Felicis + Amazon)", url:"https://techstartups.com/2025/07/24/amazon-backs-mit-founded-startup-cambridge-terahertz-in-12m-round-to-tackle-100b-return-fraud-crisis/" },
+  { school:"mit", rank:9, name:"Themis AI", sector:"AI reliability", desc:"Capsa wraps any model to quantify uncertainty and catch hallucinated or unreliable outputs in seconds.", conn:"MIT CSAIL spinout — Daniela Rus, Alexander Amini, Elaheh Ahmadi.", funding:"Venture-backed · round undisclosed", url:"https://news.mit.edu/2025/themis-ai-teaches-ai-models-what-they-dont-know-0603" },
+  { school:"mit", rank:10, name:"Gees", sector:"Health · femtech", desc:"Saliva-based hormone-tracking sensor for women managing hormonal conditions; headline startup of delta v Demo Day 2025.", conn:"MIT delta v 2025 cohort (Martin Trust Center).", funding:"Pre-seed · accelerator stage", url:"https://news.mit.edu/2025/demo-day-features-hormone-tracking-sensors-desalination-systems-and-other-innovations-0910" },
+
+  // ——— Harvard ———
+  { school:"harvard", rank:1, name:"Mercor", sector:"AI · talent", desc:"AI-powered marketplace that recruits and vets domain experts, now largely supplying talent to train frontier AI models.", conn:"Co-founder Adarsh Hiremath dropped out of Harvard College.", funding:"$350M Series C · $10B val", url:"https://techcrunch.com/2025/10/27/mercor-quintuples-valuation-to-10b-with-350m-series-c/" },
+  { school:"harvard", rank:2, name:"Etched", sector:"Semiconductors", desc:"Sohu, a transformer-only AI inference chip challenging Nvidia, with $1B+ in booked customer contracts.", conn:"Founded by Harvard dropouts Gavin Uberti and Robert Wachen.", funding:"$500M round · $5B val", url:"https://techfundingnews.com/nvidia-rival-ai-chip-maker-etched-founded-by-harvard-dropouts-lands-500m-at-5b-valuation/" },
+  { school:"harvard", rank:3, name:"OpenEvidence", sector:"Healthcare AI", desc:"“ChatGPT for doctors” — an AI medical information platform used by hundreds of thousands of US physicians at the point of care.", conn:"Founded by Daniel Nadler, Harvard PhD (previously Kensho).", funding:"$250M round · $12B val", url:"https://www.forbes.com/sites/amyfeldman/2025/07/15/this-ai-founder-became-a-billionaire-by-building-chatgpt-for-doctors/" },
+  { school:"harvard", rank:4, name:"Suno", sector:"Consumer AI · music", desc:"Generative-AI music platform that creates full songs from text prompts.", conn:"All four co-founders are Harvard alumni who met at Kensho.", funding:"$250M Series C · $2.45B val", url:"https://www.forbes.com/sites/conormurray/2025/11/19/ai-music-generator-suno-valued-at-245-billion-heres-why-its-controversial/" },
+  { school:"harvard", rank:5, name:"Chai Discovery", sector:"TechBio", desc:"Foundation models (Chai-1/Chai-2) for protein structure prediction and zero-shot antibody design.", conn:"CEO Joshua Meier trained in Harvard's Feng Zhang lab.", funding:"$130M Series B · $1.3B val", url:"https://www.genengnews.com/topics/artificial-intelligence/chais-the-limit-for-ai-antibody-designer-after-130m-series-b-funding/" },
+  { school:"harvard", rank:6, name:"Decagon", sector:"Enterprise AI", desc:"AI agents that autonomously handle customer support across chat, email, voice and SMS for Hertz, Chime, Oura and others.", conn:"Co-founder/CEO Jesse Zhang studied CS at Harvard.", funding:"$131M Series C · $1.5B → $4.5B val", url:"https://www.businesswire.com/news/home/20250623894798/en/Decagon-Raises-$131M-at-$1.5B-Valuation-to-Deliver-Concierge-Customer-Experience-with-AI-Agents" },
+  { school:"harvard", rank:7, name:"Listen Labs", sector:"AI · research", desc:"AI that conducts and analyzes thousands of qualitative customer-research voice interviews at once.", conn:"Founders met as Harvard master's students.", funding:"$69M Series B (Ribbit Capital)", url:"https://fortune.com/article/ai-startup-listen-labs-sequoia-27-million-funding/" },
+  { school:"harvard", rank:8, name:"Sapien", sector:"Fintech · AI", desc:"Autonomous AI coworkers for CFOs and corporate finance teams that automate financial analysis.", conn:"CEO Ron Nachum dropped out of Harvard College to build it.", funding:"$8.7M seed · $180M val reported", url:"https://fortune.com/2026/09/08/exclusive-ai-startup-sapien-raises-180m-valuation-companies-find-really-driving-profit-cfo/" },
+  { school:"harvard", rank:9, name:"Starcloud", sector:"Space · AI infra", desc:"AI data centers in orbit — first company to put an Nvidia H100 into space, targeting gigawatts of orbital compute.", conn:"CEO Philip Johnston holds a Harvard Kennedy School MPA.", funding:"$170M Series A (Benchmark, EQT)", url:"https://techcrunch.com/2026/03/30/starcloud-raises-170-million-series-ato-build-data-centers-in-space" },
+  { school:"harvard", rank:10, name:"Halo Braid", sector:"Consumer robotics", desc:"Robotic hair braiding that cuts braid time from hours to minutes, built with and for Black salon owners.", conn:"Founded by Yinka Ogunbiyi (Harvard MS/MBA '23) via the i-lab.", funding:"$75K PIC grand prize 2025", url:"https://seas.harvard.edu/news/halo-braid-wins-presidents-innovation-challenge-grand-prize" },
+
+  // ——— Stanford ———
+  { school:"stanford", rank:1, name:"World Labs", sector:"AI · world models", desc:"Spatial-intelligence world models; Marble generates explorable 3D environments from text, images or video.", conn:"Founded by Prof. Fei-Fei Li (Stanford HAI) with Stanford PhD alumni.", funding:"~$1B round · ~$5B val", url:"https://siliconangle.com/2026/01/23/fei-fei-lis-world-labs-reportedly-raising-funding-5b-valuation/" },
+  { school:"stanford", rank:2, name:"Physical Intelligence", sector:"Robotics · AI", desc:"General-purpose robot foundation models (π0) that let any robot perform real-world tasks from natural-language commands.", conn:"Co-founded by Prof. Chelsea Finn (also UC Berkeley's Sergey Levine).", funding:"$600M · $5.6B val", url:"https://www.bloomberg.com/news/articles/2025-11-20/robotics-startup-physical-intelligence-valued-at-5-6-billion-in-new-funding" },
+  { school:"stanford", rank:3, name:"Simile", sector:"AI · simulation", desc:"AI digital twins of real people that simulate human decision-making, replacing focus groups and polling panels.", conn:"Spun out of Stanford's generative-agents research (Joon Sung Park).", funding:"$200M Series B · $2B val", url:"https://techcrunch.com/2026/07/30/synthetic-user-startup-simile-raises-200m-at-2b-valuation-5-months-after-100m-series-a/" },
+  { school:"stanford", rank:4, name:"Inception", sector:"AI models", desc:"Diffusion-based LLMs (Mercury) that generate text and code up to 10× faster than autoregressive models.", conn:"Founded by Prof. Stefano Ermon, co-inventor of diffusion models.", funding:"$50M seed (Menlo Ventures)", url:"https://techcrunch.com/2025/11/06/inception-raises-50-million-to-build-diffusion-models-for-code-and-text/" },
+  { school:"stanford", rank:5, name:"Axiom Math", sector:"AI · reasoning", desc:"An AI mathematician that solves advanced problems, produces formal proofs, and verifies its own correctness.", conn:"Founded by Carina Hong, who left her Stanford math PhD.", funding:"$64M seed", url:"https://www.forbes.com/sites/rashishrivastava/2025/09/30/meet-the-stanford-dropout-building-an-ai-to-solve-maths-hardest-problems-and-create-harder-ones/" },
+  { school:"stanford", rank:6, name:"Human Intelligence", sector:"AI · biomed", desc:"AI models of human physiology to accelerate biomedical research, building on FDA-cleared cardiac AI (EchoNet).", conn:"Founded by Prof. James Zou (biomedical data science).", funding:"Raising ~$100M · ~$1B val", url:"https://www.bloomberg.com/news/articles/2026-04-24/stanford-professor-targets-1-billion-valuation-for-ai-for-physiology-startup" },
+  { school:"stanford", rank:7, name:"Together AI", sector:"AI infrastructure", desc:"AI acceleration cloud for training, fine-tuning and serving open-source models on GPU infrastructure.", conn:"Co-founded by Profs. Chris Ré and Percy Liang.", funding:"$800M Series C · $8.3B val", url:"https://techcrunch.com/2026/07/01/neocloud-together-ai-raises-800m-leaps-to-8-3b-valuation/" },
+  { school:"stanford", rank:8, name:"Aspora", sector:"Fintech", desc:"Cross-border banking and remittances for the 30M+ Indian diaspora.", conn:"Founded by Stanford dropout Parth Garg.", funding:"$93M total · ~$500M val", url:"https://techfundingnews.com/stanford-dropout-raises-93m-to-disrupt-how-30m-indians-bank-across-borders/" },
+  { school:"stanford", rank:9, name:"Rime", sector:"Voice AI", desc:"Hyper-realistic, linguistics-driven text-to-speech that helps enterprises field high-volume customer phone calls.", conn:"Founded by former Stanford linguistics PhD student Lily Clifford.", funding:"$24M Series A", url:"https://techcrunch.com/2026/07/15/rime-picks-up-24m-series-a-to-help-enterprises-field-customer-calls/" },
+  { school:"stanford", rank:10, name:"Human Behavior", sector:"AI · analytics", desc:"Vision-AI product analytics whose models watch real session replays to explain why users convert or churn — no instrumentation.", conn:"Founded by Stanford dropout Amogh Chaturvedi (YC Spring 2025).", funding:"$5M seed (closed in 2 days)", url:"https://finance.yahoo.com/news/20-22-olds-raised-5m-150332688.html" },
+
+  // ——— UC Berkeley ———
+  { school:"berkeley", rank:1, name:"LMArena", sector:"AI evaluation", desc:"Community-driven platform for evaluating and ranking frontier AI models head-to-head, spun out of Chatbot Arena.", conn:"Founded by Berkeley grad students/researchers (Sky Computing Lab).", funding:"$150M Series A · $1.7B val", url:"https://techcrunch.com/2026/01/06/lmarena-lands-1.7b-valuation-four-months-after-launching-its-product" },
+  { school:"berkeley", rank:2, name:"Physical Intelligence", sector:"Robotics · AI", desc:"General-purpose robot foundation models that let robots learn a wide range of physical tasks.", conn:"Co-founded by Prof. Sergey Levine (also Stanford's Chelsea Finn).", funding:"$600M · $5.6B val", url:"https://www.bloomberg.com/news/articles/2025-11-20/robotics-startup-physical-intelligence-valued-at-5-6-billion-in-new-funding" },
+  { school:"berkeley", rank:3, name:"Profluent Bio", sector:"AI × biotech", desc:"Frontier AI models that design novel functional proteins — including the first AI-designed CRISPR gene editor.", conn:"Founder-CEO Ali Madani (Berkeley PhD); incubated at Bakar Labs.", funding:"$106M Series B · ~$150M total", url:"https://www.businesswire.com/news/home/20251119356889/en/Profluent-Raises-$106M-to-Scale-Frontier-AI-Models-for-Programmable-Biology" },
+  { school:"berkeley", rank:4, name:"Letta", sector:"AI agents", desc:"Stateful AI agents with long-term memory, commercializing the popular MemGPT open-source project.", conn:"BAIR spinout — Berkeley PhDs Sarah Wooders and Charles Packer.", funding:"$10M seed · $70M val", url:"https://www.prnewswire.com/news-releases/berkeley-ai-research-lab-spinout-letta-raises-10m-seed-financing-led-by-felicis-to-build-ai-with-memory-302257004.html" },
+  { school:"berkeley", rank:5, name:"Virtue AI", sector:"AI security", desc:"End-to-end security for AI systems: prompt injection, hallucinations, data poisoning and other AI-native threats.", conn:"Co-founded by Prof. Dawn Song (Berkeley RDI).", funding:"$30M seed + Series A", url:"https://www.businesswire.com/news/home/20250415693312/en/Virtue-AI-Raises-%2430-Million-in-Seed-and-Series-A-Funding-to-Bridge-the-Critical-AI-Security-Gap" },
+  { school:"berkeley", rank:6, name:"SkyPilot", sector:"AI infrastructure", desc:"Commercializes the open-source SkyPilot framework for running AI workloads across clouds and GPU providers.", conn:"Spinout of Berkeley's Sky Computing Lab (Ion Stoica's group).", funding:"$20M seed (Lux Capital)", url:"https://sky.cs.berkeley.edu/news/" },
+  { school:"berkeley", rank:7, name:"Conversion", sector:"AI · martech", desc:"AI marketing automation that autonomously builds and optimizes customer campaigns.", conn:"Founded by two UC Berkeley dropouts.", funding:"$28M Series A (Abstract)", url:"https://techcrunch.com/2025/07/30/how-2-uc-berkeley-dropouts-raised-28m-for-their-ai-marketing-automation-startup/" },
+  { school:"berkeley", rank:8, name:"micro1", sector:"AI training data", desc:"Recruits vetted experts — professors, MDs, PhDs — to generate post-training data for AI models.", conn:"Founded by Berkeley alumnus Ali Ansari.", funding:"$35M Series A · $500M val", url:"https://www.dailycal.org/news/city/local-businesses/uc-berkeley-alum-raises-35m-for-ai-startup-valued-at-500m/article_f5180b6d-809d-4d9f-ad34-51c8211383eb.html" },
+  { school:"berkeley", rank:9, name:"Ambi Robotics", sector:"Logistics robotics", desc:"AI-powered robotic sorting and parcel-handling systems for warehouses and logistics.", conn:"Founded by four Berkeley PhDs with Prof. Ken Goldberg (AUTOLab).", funding:"~$70M raised · Series B in progress", url:"https://www.berkeleyside.org/2026/04/06/ambi-robotics-builds-robots-to-do-the-heavy-lifting" },
+  { school:"berkeley", rank:10, name:"Waypoint AI", sector:"AI agents", desc:"An AI customer-support engineer that triages, investigates and resolves escalated product-defect tickets.", conn:"Berkeley SkyDeck accelerator company; SkyDeck Fund invested.", funding:"$3.1M pre-seed", url:"https://skydeck.berkeley.edu/press-release-waypoint-ai-raises-3-1m-pre-seed-round-deploys-first-ai-customer-support-engineer-for-industry-leaders-including-clickhouse-and-kpler/" },
+
+  // ——— Carnegie Mellon ———
+  { school:"cmu", rank:1, name:"Skild AI", sector:"Robotics · AI", desc:"A general-purpose “robot brain” foundation model that lets many kinds of robots learn skills.", conn:"Founded by CMU professors Deepak Pathak and Abhinav Gupta.", funding:"$1.4B Series C · $14B+ val", url:"https://www.businesswire.com/news/home/20260114335623/en/Skild-AI-Raises-%241.4B-Now-Valued-Over-%2414B" },
+  { school:"cmu", rank:2, name:"Abridge", sector:"Healthcare AI", desc:"Ambient AI medical scribe that turns doctor–patient conversations into clinical documentation.", conn:"Born of a UPMC/CMU/Pitt collaboration in Pittsburgh.", funding:"$300M Series E · $5.3B val", url:"https://techcrunch.com/2025/06/24/in-just-4-months-ai-medical-scribe-abridge-doubles-valuation-to-5-3b/" },
+  { school:"cmu", rank:3, name:"Gecko Robotics", sector:"Industrial robotics", desc:"Wall-climbing inspection robots plus AI that monitor the health of power plants, ships and defense assets.", conn:"CMU-linked Pittsburgh spinout.", funding:"$125M Series D · $1.25B val", url:"https://technical.ly/entrepreneurship/gecko-robotics-raises-125m-unicorn-valuation/" },
+  { school:"cmu", rank:4, name:"Efficient Computer", sector:"Semiconductors", desc:"Ultra-low-power processors (Electron E1) claiming ~100× less energy for edge and AI computing.", conn:"Spun out of CMU; co-founded by Prof. Brandon Lucia.", funding:"$60M Series A", url:"https://www.thepittsburghwire.com/news/efficient-computer-pittsburgh-60-million-series-a-ai-chips/" },
+  { school:"cmu", rank:5, name:"Genesis AI", sector:"Robotics · AI", desc:"Universal robotics foundation model and simulation-driven physical-AI platform with its own physics engine.", conn:"Co-founded by Zhou Xian, CMU robotics PhD.", funding:"$105M seed (Eclipse, Khosla)", url:"https://techcrunch.com/2025/07/01/genesis-ai-launches-with-105m-seed-funding-from-eclipse-khosla-to-build-ai-models-for-robots" },
+  { school:"cmu", rank:6, name:"Gray Swan AI", sector:"AI security", desc:"Safety-tests and red-teams AI models and agents for security vulnerabilities.", conn:"CMU spinout from Prof. Zico Kolter's group.", funding:"$40M Series A", url:"https://technical.ly/entrepreneurship/gray-swan-ai-security-40m-series-a/" },
+  { school:"cmu", rank:7, name:"Lovelace AI", sector:"Defense · AI", desc:"Real-time data fusion for crisis response and battlefield decision-making.", conn:"Founded by Andrew Moore, former dean of CMU's School of CS.", funding:"$16.2M seed (RRE Ventures)", url:"https://technical.ly/entrepreneurship/lovelace-ai-seed-round-rre-ventures/" },
+  { school:"cmu", rank:8, name:"NovoLINC", sector:"Data-center cooling", desc:"Advanced thermal interface material that cools high-power chips in AI data centers.", conn:"2024 CMU spinout; CMU is an investor.", funding:"$10.2M seed", url:"https://technical.ly/entrepreneurship/novolinc-raise-data-center-cooling/" },
+  { school:"cmu", rank:9, name:"CorePower Magnetics", sector:"Energy · materials", desc:"High-performance magnetic components — inductors, motors, transformers — for EVs and grid power electronics.", conn:"2020 CMU spinout commercializing CMU materials research.", funding:"$14.3M (2025)", url:"https://technical.ly/entrepreneurship/corepower-magnetics-raises-14m-ev-grid-tech/" },
+  { school:"cmu", rank:10, name:"Mito Robotics", sector:"Lab automation", desc:"Automates manual lab work like cell culture with robotics, born from a grad-lab bottleneck.", conn:"Founded by CMU grad student Bingda Li.", funding:"$1M pre-seed (Draper)", url:"https://technical.ly/professional-development/bingda-li-mito-robotics-how-i-got-here/" },
+];
+
+const UPDATED = "Sep 16, 2026";
+
+const tabsEl = document.getElementById("tabs");
+const contentEl = document.getElementById("content");
+document.getElementById("updated").textContent = "· Updated " + UPDATED;
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function cardHTML(s, showSchool) {
+  const school = SCHOOLS.find(x => x.id === s.school);
+  return `<article class="card" style="--school: var(--c-${s.school})">
+    <div class="toprow">
+      <span class="rank">${String(s.rank).padStart(2, "0")}</span>
+      ${showSchool ? `<span class="schooltag">${esc(school.name)}</span>` : ""}
+    </div>
+    <h3><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)} <span class="ext">↗</span></a></h3>
+    <p class="desc">${s.desc}</p>
+    <p class="conn">${esc(s.conn)}</p>
+    <div class="metarow">
+      <span class="chip">${esc(s.sector)}</span>
+      <span class="funding">${esc(s.funding)}</span>
+    </div>
+  </article>`;
+}
+
+function sectionHTML(schoolId) {
+  const school = SCHOOLS.find(x => x.id === schoolId);
+  const rows = STARTUPS.filter(s => s.school === schoolId).sort((a, b) => a.rank - b.rank);
+  return `<section style="--school: var(--c-${schoolId})">
+    <div class="school-head">
+      <h2><span class="mark">●</span> ${esc(school.full)}</h2>
+      <span class="pipeline">${esc(school.pipeline)}</span>
+    </div>
+    <div class="grid">${rows.map(s => cardHTML(s, false)).join("")}</div>
+  </section>`;
+}
+
+function render(tabId) {
+  if (tabId === "all") {
+    contentEl.innerHTML = SCHOOLS.filter(s => s.id !== "all").map(s => sectionHTML(s.id)).join("");
+  } else {
+    contentEl.innerHTML = sectionHTML(tabId);
+  }
+  for (const btn of tabsEl.querySelectorAll(".tab")) {
+    btn.setAttribute("aria-selected", btn.dataset.tab === tabId ? "true" : "false");
+  }
+  try { localStorage.setItem("radar-tab", tabId); } catch (e) {}
+}
+
+tabsEl.innerHTML = SCHOOLS.map(s =>
+  `<button class="tab" role="tab" data-tab="${s.id}" id="tab-${s.id}"
+     style="${s.id === "all" ? "" : `--dot: var(--c-${s.id})`}">
+     ${s.id === "all" ? "" : '<span class="dot"></span>'}${esc(s.name)}
+   </button>`
+).join("");
+
+tabsEl.addEventListener("click", e => {
+  const btn = e.target.closest(".tab");
+  if (btn) render(btn.dataset.tab);
+});
+
+let initial = "all";
+try {
+  const saved = localStorage.getItem("radar-tab");
+  if (saved && SCHOOLS.some(s => s.id === saved)) initial = saved;
+} catch (e) {}
+render(initial);
+</script>
